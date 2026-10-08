@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iBuild Obras — Orçamentos</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">iB</span>
+      <div>
+        <h1>iBuild Obras</h1>
+        <p>Acompanhamento e orçamento de obras</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnExportar" class="btn btn-ghost" title="Baixa um arquivo .json com todos os orçamentos">⬇ Exportar backup</button>
+      <label class="btn btn-ghost" title="Carrega um backup .json (ex.: vindo da pasta OneDrive/SharePoint)">
+        ⬆ Importar backup
+        <input type="file" id="inputImportar" accept=".json,application/json" hidden />
+      </label>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- Lista de orçamentos -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h2>Orçamentos</h2>
+        <button id="btnNovoOrcamento" class="btn btn-primary btn-sm">+ Novo</button>
+      </div>
+      <ul class="orcamento-list" id="listaOrcamentos"></ul>
+    </aside>
+
+    <!-- Estado vazio (nenhum orçamento) -->
+    <section class="content" id="contentVazio">
+      <div class="empty-state">
+        <div class="destaque">🏗️</div>
+        <h2>Bem-vindo ao iBuild Obras</h2>
+        <p>Crie seu primeiro orçamento com EAP em 4 níveis e memória de cálculo automática de quantidades.</p>
+        <button id="btnNovoVazio" class="btn btn-primary">+ Criar orçamento</button>
+        <button id="btnExemplo" class="btn btn-ghost">Ver exemplo pronto</button>
+      </div>
+    </section>
+
+    <!-- Tela do orçamento -->
+    <section class="content hidden" id="contentOrcamento">
+      <div class="orcamento-head">
+        <div>
+          <h2 id="orcamentoNome"></h2>
+          <p id="orcamentoMeta"></p>
+        </div>
+        <div class="orcamento-head-actions">
+          <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
+          <button id="btnAddServico" class="btn btn-primary">+ Adicionar serviço</button>
+        </div>
+      </div>
+
+      <div class="resumo">
+        <div class="resumo-card">
+          <span>Total do orçamento</span>
+          <strong class="total-grande" id="totalGeral">R$ 0,00</strong>
+        </div>
+        <div class="resumo-card">
+          <span>Serviços</span>
+          <strong id="totalServicos">0</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="tabela" id="tabelaOrcamento">
+          <thead>
+            <tr>
+              <th class="col-eap">EAP</th>
+              <th>Descrição</th>
+              <th class="col-qtd">Quantidade</th>
+              <th class="col-un">Un.</th>
+              <th class="col-valor">Valor unitário</th>
+              <th class="col-valor">Valor total</th>
+              <th class="col-acoes"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela"></tbody>
+          <tfoot>
+            <tr class="linha-total">
+              <td colspan="5">TOTAL DO ORÇAMENTO</td>
+              <td id="totalRodape">R$ 0,00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: adicionar/editar serviço -->
+  <dialog id="modalServico" class="modal">
+    <form id="formServico">
+      <h3 id="modalTitulo">Adicionar serviço</h3>
+      <input type="hidden" id="fServicoId" />
+
+      <label>Unidade construtiva
+        <input type="text" id="fUnidade" list="dlUnidade" placeholder="Ex.: Casa 01" required />
+      </label>
+      <datalist id="dlUnidade"></datalist>
+
+      <label>Etapa
+        <input type="text" id="fEtapa" list="dlEtapa" placeholder="Ex.: Vedações" required />
+      </label>
+      <datalist id="dlEtapa"></datalist>
+
+      <label>Sub etapa
+        <input type="text" id="fSubEtapa" list="dlSubEtapa" placeholder="Ex.: Paredes" required />
+      </label>
+      <datalist id="dlSubEtapa"></datalist>
+
+      <label>Serviço
+        <input type="text" id="fServico" list="dlServico" placeholder="Ex.: Alvenaria" required />
+      </label>
+      <datalist id="dlServico"></datalist>
+
+      <label>Descrição do serviço
+        <input type="text" id="fDescricao" placeholder="Ex.: Paredes em bloco cerâmico, esp. 15 cm" />
+      </label>
+
+      <div class="grid-2">
+        <label>Quantidade (manual)
+          <input type="text" id="fQtd" inputmode="decimal" placeholder="Ex.: 27" />
+        </label>
+        <label>Unidade de medida
+          <input type="text" id="fUnidadeMedida" list="dlMedidas" value="m²" />
+        </label>
+        <datalist id="dlMedidas">
+          <option value="m²"></option>
+          <option value="m³"></option>
+          <option value="m"></option>
+          <option value="un"></option>
+          <option value="kg"></option>
+          <option value="h"></option>
+          <option value="vb"></option>
+        </datalist>
+        <label>Valor unitário (R$)
+          <input type="text" id="fValor" inputmode="decimal" placeholder="Ex.: 85,00" />
+        </label>
+      </div>
+
+      <p class="dica">💡 <strong>Quantidade manual é opcional.</strong> Se preferir, deixe em branco e use a <strong>memória de cálculo</strong> do serviço (botão 🧮 na linha): ela soma automaticamente as quantidades das linhas — ex.: parede sala 1 (12 m²) + parede sala 2 (15 m²) = 27 m².</p>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCancelarModal" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar serviço</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
