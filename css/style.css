@@ -54,7 +54,6 @@ button{font:inherit}
 .resumo-card strong{font-size:20px;color:var(--azul)}
 .resumo-card strong.total-grande{color:var(--laranja);font-size:24px}
 
-/* ---- tabela EAP (padrão print) ---- */
 .table-wrap{background:#fff;border:1px solid var(--borda);border-radius:12px;overflow-x:auto;box-shadow:var(--som)}
 .tabela{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
 .tabela th{text-align:left;padding:9px 12px;background:#eef1f4;color:#1c2b36;border:1px solid #d9e0e6;font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
@@ -78,7 +77,6 @@ button{font:inherit}
 
 .linha-total td{background:#eef4fa;font-weight:800;color:var(--azul-escuro);border-top:2px solid var(--azul);font-size:15px}
 
-/* ---- memória de cálculo ---- */
 .linha-memo td{background:#fbf7f0;padding:0}
 .memo-box{padding:14px 16px;border-top:2px dashed #e3c9a8}
 .memo-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
@@ -110,4 +108,20 @@ input:focus{outline:2px solid #cfe0ee;border-color:var(--azul-2)}
 .sidebar{width:100%;min-width:0;position:static;max-height:none;border-right:none;border-bottom:1px solid var(--borda)}
 .topbar{flex-wrap:wrap;gap:8px}
 .grid-2{grid-template-columns:1fr}
+}
+
+/* ---- impressão / PDF ---- */
+@media print{
+  body{background:#fff;font-size:12px}
+  .topbar,.sidebar,.resumo,.orcamento-head-actions,.no-print{display:none!important}
+  .layout{display:block;min-height:0}
+  .content{padding:0}
+  .orcamento-head{margin-bottom:8px}
+  .table-wrap{border:none;border-radius:0;box-shadow:none;overflow:visible}
+  .tabela{min-width:0;font-size:11px}
+  .tabela th,.tabela td{border:1px solid #999;padding:4px 6px}
+  .tabela .col-acoes{display:none}
+  .linha-memo{display:none}
+  .grupo td{background:#e8e8e8!important}
+  .linha-total td{background:#dde7f0!important}
 }
