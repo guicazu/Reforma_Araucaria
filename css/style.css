@@ -1,5 +1,5 @@
 *{box-sizing:border-box}
-:root{--azul:#1c4e80;--azul-2:#2e6da3;--azul-escuro:#123457;--laranja:#e8833a;--fundo:#f2f5f7;--borda:#d9e0e6;--texto:#24303c;--suave:#67798a;--verde:#1f7a4d;--vermelho:#c0392b;--som:0 2px 8px rgba(20,40,60,.08)}
+:root{--azul:#1c4e80;--azul-2:#2e6da4;--azul-escuro:#123457;--laranja:#e8833a;--fundo:#f2f5f7;--borda:#d9e0e6;--texto:#24303c;--suave:#67798a;--verde:#1f7a4d;--vermelho:#c0392b;--som:0 2px 8px rgba(20,40,60,.08)}
 html,body{margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--fundo);color:var(--texto);font-size:15px;line-height:1.45}
 button{font:inherit}
@@ -19,7 +19,8 @@ button{font:inherit}
 .btn-ghost:hover{background:#eef3f7}
 .btn-danger{background:var(--vermelho);color:#fff}
 .btn-sm{padding:5px 10px;font-size:13px}
-.btn-icon{background:transparent;border:1px solid var(--borda);border-radius:6px;width:30px;height:30px;font-size:14px;line-height:1;display:inline-grid;place-items:center;cursor:pointer}
+.btn-xs{padding:2px 8px;font-size:11px;border-radius:6px}
+.btn-icon{background:transparent;border:1px solid var(--borda);border-radius:6px;width:28px;height:28px;font-size:13px;line-height:1;display:inline-grid;place-items:center;cursor:pointer;padding:0}
 .btn-icon:hover{background:#eef3f7}
 .btn-icon.btn-danger:hover{background:#fdecea;border-color:var(--vermelho)}
 
@@ -53,43 +54,44 @@ button{font:inherit}
 .resumo-card strong{font-size:20px;color:var(--azul)}
 .resumo-card strong.total-grande{color:var(--laranja);font-size:24px}
 
-/* Árvore EAP */
-.arvore{display:flex;flex-direction:column;gap:14px}
-.unidade{background:#fff;border:1px solid var(--borda);border-radius:12px;box-shadow:var(--som);overflow:hidden}
-.unidade-head{background:linear-gradient(90deg,#e8eef5,#f0f4f8);padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--borda)}
-.unidade-head .rotulo{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);margin-right:6px}
-.unidade-head strong{font-size:16px;color:var(--azul-escuro)}
-.etapas{padding:10px 14px;display:flex;flex-direction:column;gap:10px}
-.etapa{background:#f7fafc;border:1px solid var(--borda);border-radius:10px;overflow:hidden}
-.etapa-head{background:#f0f4f8;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--borda)}
-.etapa-head strong{font-size:15px;color:#3d4f60}
-.subs{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
-.sub{background:#fff;border:1px solid var(--borda);border-radius:10px;overflow:hidden}
-.sub-head{background:#f7fafc;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--borda)}
-.sub-head strong{font-size:14px;color:#3d4f60}
-.servicos{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
-.servico{background:#fff;border:1px solid #d7e2ec;border-radius:10px;overflow:hidden}
-.servico-head{background:#fbfcfd;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid #eef1f4}
-.servico-head strong{font-size:14px;color:var(--azul-escuro)}
-.servico-un{background:#eef4fa;color:var(--azul);border:1px solid #cdddea;border-radius:20px;padding:1px 10px;font-size:12px;font-weight:600}
-.servico-valores{padding:8px 12px;display:flex;gap:24px;flex-wrap:wrap;font-size:13px;color:var(--suave)}
-.servico-valores b{color:var(--azul-escuro)}
-.servico-valores .total{border-top:1px solid #eef1f4;margin-top:6px;padding-top:6px;font-size:15px;color:var(--laranja)}
+/* ---- tabela EAP (padrão print) ---- */
+.table-wrap{background:#fff;border:1px solid var(--borda);border-radius:12px;overflow-x:auto;box-shadow:var(--som)}
+.tabela{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
+.tabela th{text-align:left;padding:9px 12px;background:#eef1f4;color:#1c2b36;border:1px solid #d9e0e6;font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+.tabela td{padding:8px 12px;border:1px solid #e3e8ed;vertical-align:middle}
+.col-codigo{width:110px;white-space:nowrap}
+.col-un{width:60px;text-align:center}
+.col-num{width:130px;text-align:right;white-space:nowrap}
+.col-acoes{width:190px;text-align:right;white-space:nowrap}
+.codigo{font-family:Consolas,'Courier New',monospace;color:var(--azul);font-weight:600;font-size:13px}
+.total{font-weight:700;color:var(--azul-escuro)}
 
-/* memória de cálculo */
-.memo{padding:12px;border-top:1px dashed #c9d7e5;background:#fbfcfd}
+.grupo td{font-weight:600;border-top:1px solid #c9d7e5}
+.grupo.n1 td{background:#e8eef5;color:var(--azul-escuro)}
+.grupo.n2 td{background:#f0f4f8}
+.grupo.n3 td{background:#f7fafc}
+.grupo .btn-xs{margin-left:10px;font-weight:600}
+
+.linha-servico:hover td{background:#fbfcfe}
+.tag-memo{font-size:10px;background:#eef4fa;color:var(--azul);border:1px solid #cdddea;border-radius:12px;padding:1px 7px;margin-left:8px;vertical-align:middle}
+.sem-servicos{text-align:center;padding:40px!important;color:var(--suave)}
+
+.linha-total td{background:#eef4fa;font-weight:800;color:var(--azul-escuro);border-top:2px solid var(--azul);font-size:15px}
+
+/* ---- memória de cálculo ---- */
+.linha-memo td{background:#fbf7f0;padding:0}
+.memo-box{padding:14px 16px;border-top:2px dashed #e3c9a8}
 .memo-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-.memo-head h4{margin:0;font-size:14px;color:var(--azul)}
-.memo-soma{background:#eef4fa;border:1px solid #cdddea;border-radius:20px;padding:3px 12px;font-size:13px;color:var(--azul)}
-.memo-tabela{width:100%;border-collapse:collapse;font-size:13px}
-.memo-tabela th{text-align:left;padding:6px 8px;color:var(--suave);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--borda)}
-.memo-tabela td{padding:6px 8px;border-bottom:1px solid #eef1f4;vertical-align:middle}
-.memo-tabela input{width:100%;min-width:70px;padding:5px 6px;font-size:13px}
-.memo-tabela .res{font-weight:700;color:var(--azul-escuro);white-space:nowrap}
+.memo-head h4{margin:0;font-size:14px;color:#7a5a2e}
+.memo-soma{background:#f3e5cd;border:1px solid #e3c9a8;border-radius:20px;padding:3px 12px;font-size:13px;color:#6d4e22}
+.tabela-memo{width:100%;border-collapse:collapse;font-size:13px}
+.tabela-memo th{text-align:left;padding:6px 8px;color:var(--suave);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--borda);background:transparent}
+.tabela-memo td{padding:5px 6px;border-bottom:1px solid #f0e5d3;vertical-align:middle;border-left:none;border-right:none}
+.tabela-memo input{width:100%;min-width:64px;padding:5px 6px;font-size:13px}
+.tabela-memo .res{font-weight:700;color:var(--azul-escuro);white-space:nowrap}
 .memo-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.memo-add input{flex:1;min-width:120px}
-.memo-add input.col-qtd{max-width:130px}
-.memo-aviso{color:var(--suave);font-size:12px;margin:6px 0 10px}
+.memo-aviso{color:var(--suave);font-size:12px;margin:8px 0 0}
+.memo-aviso b{color:var(--texto)}
 
 input,select,textarea{border:1px solid var(--borda);border-radius:8px;padding:8px 10px;font-size:14px;width:100%;background:#fff;color:var(--texto)}
 input:focus{outline:2px solid #cfe0ee;border-color:var(--azul-2)}
