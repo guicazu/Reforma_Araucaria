@@ -226,15 +226,16 @@ function renderTabela(o){
     const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
       <td class="col-codigo codigo">${cU}</td>
-      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button></td>
+      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome)}</strong></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
       <td class="col-num total">${fmtBRL.format(subtotalUnidade(o,u))}</td>
-      <td class="col-acoes">
-        <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
-        <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
-        <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
-        <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir unidade">🗑</button>
-      </td>
+<td class="col-acoes">
+  <button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button>
+  <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
+  <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
+  <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
+  <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir unidade">🗑</button>
+</td>
     </tr>`;
     if(!abertaU)return;
     u.etapas.forEach((e,ie)=>{
@@ -242,15 +243,16 @@ function renderTabela(o){
       const abertaE=estaAberto('e-'+e.id);
       html+=`<tr class="grupo n2">
         <td class="col-codigo codigo">${cE}</td>
-        <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(e.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button></td>
+        <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(e.nome)}</strong></td>
         <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
         <td class="col-num total">${fmtBRL.format(subtotalEtapa(e))}</td>
         <td class="col-acoes">
-          <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
-          <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
-          <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
-          <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir etapa">🗑</button>
-        </td>
+  <button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
+  <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
+  <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
+  <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
+  <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir etapa">🗑</button>
+</td>
       </tr>`;
       if(!abertaE)return;
       e.subEtapas.forEach((s,is)=>{
@@ -258,15 +260,16 @@ function renderTabela(o){
         const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
           <td class="col-codigo codigo">${cS}</td>
-          <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(s.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button></td>
+          <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(s.nome)}</strong></td>
           <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
           <td class="col-num total">${fmtBRL.format(subtotalSub(s))}</td>
           <td class="col-acoes">
-            <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
-            <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
-            <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
-            <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir sub etapa">🗑</button>
-          </td>
+  <button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button>
+  <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
+  <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
+  <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
+  <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir sub etapa">🗑</button>
+</td>
         </tr>`;
         if(!abertaS)return;
         s.servicos.forEach((sv,isv)=>{
