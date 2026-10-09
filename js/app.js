@@ -1,634 +1,288 @@
 'use strict';
+const DB_KEY='ibuild_orcamentos_v2';
+const $=(s,c=document)=>c.querySelector(s);
+const fmtBRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
 
-/* ============================================================
-   iBuild Obras — Tela de Orçamento (EAP 4 níveis + memória de cálculo)
-   Dados salvos no navegador (localStorage) + backup JSON
-   ============================================================ */
+function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
+function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
 
-const DB_KEY = 'ibuild_orcamentos_v1';
-const $ = (sel, ctx = document) => ctx.querySelector(sel);
+function estadoInicial(){return{orcamentos:[],ativoId:null};}
+function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)return estadoInicial();const s=JSON.parse(raw);return{orcamentos:Array.isArray(s.orcamentos)?s.orcamentos:[],ativoId:s.ativoId||null};}catch(e){return estadoInicial();}}
+const state=carregarEstado();
+function salvar(){localStorage.setItem(DB_KEY,JSON.stringify(state));}
 
-const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtNum = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
 
-/* ---------- utilidades ---------- */
+/* ---------- navegação na árvore ---------- */
+function acharUnidade(o,uid_){return o.unidades.find(u=>u.id===uid_);}
+function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
+function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
+function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
 
-function uid() {
-  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+/* ---------- orçamentos ---------- */
+function criarOrcamento(nome){const o={id:uid(),nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};state.orcamentos.push(o);state.ativoId=o.id;salvar();renderTudo();}
+function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
+function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
+function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
+
+/* ---------- criar/renomear/excluir/reordenar níveis ---------- */
+function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;o.unidades.push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
+function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=n.trim()||u.nome;salvar();renderTudo();}
+function excluirUnidade(o,u){if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;o.unidades=o.unidades.filter(x=>x.id!==u.id);salvar();renderTudo();}
+function moverUnidade(o,u,dir){const i=o.unidades.indexOf(u);const j=i+dir;if(j<0||j>=o.unidades.length)return;[o.unidades[i],o.unidades[j]]=[o.unidades[j],o.unidades[i]];salvar();renderTudo();}
+
+function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[]});salvar();renderTudo();}
+function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=n.trim()||e.nome;salvar();renderTudo();}
+function excluirEtapa(u,e){if(!confirm(`Excluir a etapa "${e.nome}" e tudo dentro dela?`))return;u.etapas=u.etapas.filter(x=>x.id!==e.id);salvar();renderTudo();}
+function moverEtapa(u,e,dir){const i=u.etapas.indexOf(e);const j=i+dir;if(j<0||j>=u.etapas.length)return;[u.etapas[i],u.etapas[j]]=[u.etapas[j],u.etapas[i]];salvar();renderTudo();}
+
+function addSub(e){const n=prompt('Nome da sub etapa (ex.: Paredes):','');if(n===null||!n.trim())return;e.subEtapas.push({id:uid(),nome:n.trim(),servicos:[]});salvar();renderTudo();}
+function renomearSub(s){const n=prompt('Renomear sub etapa:',s.nome);if(n===null)return;s.nome=n.trim()||s.nome;salvar();renderTudo();}
+function excluirSub(e,s){if(!confirm(`Excluir a sub etapa "${s.nome}" e seus serviços?`))return;e.subEtapas=e.subEtapas.filter(x=>x.id!==s.id);salvar();renderTudo();}
+function moverSub(e,s,dir){const i=e.subEtapas.indexOf(s);const j=i+dir;if(j<0||j>=e.subEtapas.length)return;[e.subEtapas[i],e.subEtapas[j]]=[e.subEtapas[j],e.subEtapas[i]];salvar();renderTudo();}
+
+function addServico(s){abrirModalServico(null,s);}
+function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
+function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
+function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
+
+/* ---------- memória de cálculo ---------- */
+function calcularLinha(l){
+  const c=num(l.comprimento),a=num(l.altura),w=num(l.largura),q=num(l.quantidade);
+  const coef=num(l.coeficiente)??1;
+  if(c!=null&&a!=null&&w!=null)return{valor:c*a*w*coef,tipo:'m³'};
+  if(c!=null&&a!=null)return{valor:c*a*coef,tipo:'m²'};
+  if(q!=null)return{valor:q*coef,tipo:'qtd'};
+  return{valor:null,tipo:''};
 }
-
-function escapeHtml(str) {
-  return String(str ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
+function qtdServico(sv){
+  if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}
+  return num(sv.qtdManual)||0;
 }
+function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
+function totalOrcamento(o){let t=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function contarServicos(o){let n=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
 
-/* Aceita "12", "12,5" (vírgula decimal BR) e "1.234,5".
-   Se houver vírgula: ponto vira separador de milhar.
-   Se não houver vírgula e houver +1 ponto: pontos são milhar. */
-function parseNum(v) {
-  if (v == null || String(v).trim() === '') return null;
-  let s = String(v).trim();
-  if (s.includes(',')) {
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else {
-    const dots = (s.match(/\./g) || []).length;
-    if (dots > 1) s = s.replace(/\./g, '');
-  }
-  const n = Number(s);
-  return isNaN(n) ? null : n;
-}
-
-/* ---------- estado ---------- */
-
-function estadoInicial() {
-  return { orcamentos: [], ativoId: null, expandidos: {} };
-}
-
-function carregarEstado() {
-  try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (!raw) return estadoInicial();
-    const s = JSON.parse(raw);
-    return {
-      orcamentos: Array.isArray(s.orcamentos) ? s.orcamentos : [],
-      ativoId: s.ativoId || null,
-      expandidos: s.expandidos || {}
-    };
-  } catch (e) {
-    console.error('Falha ao ler dados locais:', e);
-    return estadoInicial();
-  }
-}
-
-const state = carregarEstado();
-
-function salvar() {
-  localStorage.setItem(DB_KEY, JSON.stringify(state));
-}
-
-/* ---------- seletores ---------- */
-
-function orcamentoAtivo() {
-  return state.orcamentos.find(o => o.id === state.ativoId) || null;
-}
-
-function servicoPorId(o, id) {
-  return (o && o.servicos) ? o.servicos.find(s => s.id === id) : null;
-}
-
-/* ---------- operações: orçamentos ---------- */
-
-function criarOrcamento(nome) {
-  const o = {
-    id: uid(),
-    nome: (nome || '').trim() || 'Orçamento sem nome',
-    criadoEm: new Date().toISOString(),
-    servicos: []
-  };
-  state.orcamentos.push(o);
-  state.ativoId = o.id;
-  salvar();
-  renderTudo();
-}
-
-function renomearOrcamento() {
-  const o = orcamentoAtivo();
-  if (!o) return;
-  const novo = prompt('Nome do orçamento:', o.nome);
-  if (novo === null) return;
-  o.nome = novo.trim() || o.nome;
-  salvar();
-  renderTudo();
-}
-
-function excluirOrcamento(id) {
-  const o = state.orcamentos.find(x => x.id === id);
-  if (!o) return;
-  if (!confirm(`Excluir o orçamento "${o.nome}"? Esta ação não pode ser desfeita.`)) return;
-  state.orcamentos = state.orcamentos.filter(x => x.id !== id);
-  if (state.ativoId === id) state.ativoId = state.orcamentos.length ? state.orcamentos[0].id : null;
-  salvar();
-  renderTudo();
-}
-
-function ativarOrcamento(id) {
-  if (!state.orcamentos.some(o => o.id === id)) return;
-  state.ativoId = id;
-  salvar();
-  renderTudo();
-}
-
-/* ---------- operações: serviços ---------- */
-
-function addServico(d) {
-  const o = orcamentoAtivo();
-  if (!o) return false;
-  o.servicos.push({
-    id: uid(),
-    unidade: d.unidade.trim(),
-    etapa: d.etapa.trim(),
-    subEtapa: d.subEtapa.trim(),
-    servico: d.servico.trim(),
-    descricao: (d.descricao || '').trim(),
-    qtdManual: parseNum(d.qtd),
-    unidadeMedida: (d.unidadeMedida || 'm²').trim(),
-    valorUnitario: parseNum(d.valor),
-    memo: []
-  });
-  salvar();
-  return true;
-}
-
-function atualizarServico(id, d) {
-  const o = orcamentoAtivo();
-  const s = servicoPorId(o, id);
-  if (!s) return;
-  s.unidade = d.unidade.trim();
-  s.etapa = d.etapa.trim();
-  s.subEtapa = d.subEtapa.trim();
-  s.servico = d.servico.trim();
-  s.descricao = (d.descricao || '').trim();
-  s.qtdManual = parseNum(d.qtd);
-  s.unidadeMedida = (d.unidadeMedida || 'm²').trim();
-  s.valorUnitario = parseNum(d.valor);
-  salvar();
-  renderTudo();
-}
-
-function excluirServico(id) {
-  const o = orcamentoAtivo();
-  const s = servicoPorId(o, id);
-  if (!s) return;
-  if (!confirm(`Excluir o serviço "${s.servico}"?`)) return;
-  o.servicos = o.servicos.filter(x => x.id !== id);
-  salvar();
-  renderTudo();
-}
-
-/* ---------- operações: memória de cálculo ---------- */
-
-function addLinhaMemo(servicoId, descricao, qtd) {
-  const o = orcamentoAtivo();
-  const s = servicoPorId(o, servicoId);
-  if (!s) return;
-  s.memo.push({ id: uid(), descricao: (descricao || '').trim(), qtd: Number(qtd) || 0 });
-  salvar();
-  renderTudo();
-}
-
-function delLinhaMemo(servicoId, linhaId) {
-  const o = orcamentoAtivo();
-  const s = servicoPorId(o, servicoId);
-  if (!s) return;
-  s.memo = s.memo.filter(l => l.id !== linhaId);
-  salvar();
-  renderTudo();
-}
-
-function limparMemo(servicoId) {
-  const o = orcamentoAtivo();
-  const s = servicoPorId(o, servicoId);
-  if (!s || !s.memo.length) return;
-  if (!confirm('Apagar todas as linhas da memória de cálculo deste serviço?')) return;
-  s.memo = [];
-  salvar();
-  renderTudo();
-}
-
-/* ---------- cálculos ---------- */
-
-function qtdEfetiva(s) {
-  if (Array.isArray(s.memo) && s.memo.length) {
-    return s.memo.reduce((acc, l) => acc + (Number(l.qtd) || 0), 0);
-  }
-  return Number(s.qtdManual) || 0;
-}
-
-function totalServico(s) {
-  return qtdEfetiva(s) * (Number(s.valorUnitario) || 0);
-}
-
-function totalOrcamento(o) {
-  return (o.servicos || []).reduce((acc, s) => acc + totalServico(s), 0);
-}
-
-function subtotalSubEtapa(sb) {
-  return sb.servicos.reduce((a, s) => a + totalServico(s), 0);
-}
-function subtotalEtapa(e) {
-  return e.subEtapas.reduce((a, sb) => a + subtotalSubEtapa(sb), 0);
-}
-function subtotalUnidade(u) {
-  return u.etapas.reduce((a, e) => a + subtotalEtapa(e), 0);
-}
-
-/* ---------- árvore da EAP (ordem de inserção) ---------- */
-
-function arvoreEAP(o) {
-  const unidades = [];
-  for (const s of o.servicos) {
-    let u = unidades.find(x => x.nome === s.unidade);
-    if (!u) { u = { nome: s.unidade, etapas: [] }; unidades.push(u); }
-    let e = u.etapas.find(x => x.nome === s.etapa);
-    if (!e) { e = { nome: s.etapa, subEtapas: [] }; u.etapas.push(e); }
-    let sb = e.subEtapas.find(x => x.nome === s.subEtapa);
-    if (!sb) { sb = { nome: s.subEtapa, servicos: [] }; e.subEtapas.push(sb); }
-    sb.servicos.push(s);
-  }
-  return unidades;
-}
-
-/* ---------- expansão de grupos ---------- */
-
-function ehExpandido(o, key) {
-  return state.expandidos[o.id + '|' + key] !== false;
-}
-function alternarExpandido(o, key) {
-  const full = o.id + '|' + key;
-  state.expandidos[full] = !ehExpandido(o, key);
-  salvar();
-  renderTudo();
-}
+function addLinhaMemo(sv){sv.memo=sv.memo||[];sv.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
+function delLinhaMemo(sv,lid){sv.memo=sv.memo.filter(l=>l.id!==lid);salvar();renderTudo();}
+function atualizarLinhaMemo(sv,lid,campo,valor){const l=sv.memo.find(x=>x.id===lid);if(!l)return;l[campo]=valor;salvar();renderTudo();}
 
 /* ---------- renderização ---------- */
+function renderTudo(){renderLista();renderConteudo();}
 
-function renderTudo() {
-  renderLista();
-  renderConteudo();
+function renderLista(){const ul=$('#listaOrcamentos');if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
+ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
+
+function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
+$('#orcamentoNome').textContent=o.nome;
+$('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
+$('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
+$('#totalServicos').textContent=contarServicos(o);
+$('#arvore').innerHTML=renderArvore(o);}
+
+function renderArvore(o){
+  if(!o.unidades.length)return `<div class="empty-inline">Nenhuma unidade construtiva ainda. Clique em <strong>+ Unidade construtiva</strong> para começar.</div>`;
+  return o.unidades.map((u,iu)=>`
+  <div class="unidade">
+    <div class="unidade-head">
+      <span class="rotulo">Unidade ${iu+1}</span>
+      <strong>${esc(u.nome)}</strong>
+      <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
+      <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
+      <button class="btn btn-primary btn-sm" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button>
+      <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
+      <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir">🗑</button>
+    </div>
+    <div class="etapas">${renderEtapas(o,u)}</div>
+  </div>`).join('');
 }
 
-function renderLista() {
-  const ul = $('#listaOrcamentos');
-  if (!state.orcamentos.length) {
-    ul.innerHTML = '<li class="lista-vazia">Nenhum orçamento ainda.<br>Crie o primeiro com "+ Novo".</li>';
-    return;
-  }
-  ul.innerHTML = state.orcamentos.map(o => {
-    const data = new Date(o.criadoEm).toLocaleDateString('pt-BR');
-    const ativo = o.id === state.ativoId ? ' ativo' : '';
+function renderEtapas(o,u){
+  if(!u.etapas.length)return `<div class="empty-inline">Nenhuma etapa. Use <strong>+ Etapa</strong> acima.</div>`;
+  return u.etapas.map((e,ie)=>`
+  <div class="etapa">
+    <div class="etapa-head">
+      <span class="rotulo">Etapa ${ie+1}</span>
+      <strong>${esc(e.nome)}</strong>
+      <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
+      <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
+      <button class="btn btn-primary btn-sm" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
+      <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
+      <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir">🗑</button>
+    </div>
+    <div class="subs">${renderSubs(o,u,e)}</div>
+  </div>`).join('');
+}
+
+function renderSubs(o,u,e){
+  if(!e.subEtapas.length)return `<div class="empty-inline">Nenhuma sub etapa. Use <strong>+ Sub Etapa</strong> acima.</div>`;
+  return e.subEtapas.map((s,is)=>`
+  <div class="sub">
+    <div class="sub-head">
+      <span class="rotulo">Sub ${is+1}</span>
+      <strong>${esc(s.nome)}</strong>
+      <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
+      <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
+      <button class="btn btn-primary btn-sm" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button>
+      <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
+      <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir">🗑</button>
+    </div>
+    <div class="servicos">${renderServicos(o,u,e,s)}</div>
+  </div>`).join('');
+}
+
+function renderServicos(o,u,e,s){
+  if(!s.servicos.length)return `<div class="empty-inline">Nenhum serviço. Use <strong>+ Serviço</strong> acima.</div>`;
+  return s.servicos.map((sv,isv)=>{
+    const qtd=qtdServico(sv);
     return `
-      <li class="orcamento-item${ativo}" data-orcamento-id="${o.id}">
-        <div class="oi-info">
-          <strong>${escapeHtml(o.nome)}</strong>
-          <span>${fmtBRL.format(totalOrcamento(o))} · ${data}</span>
-        </div>
-        <button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir orçamento">🗑</button>
-      </li>`;
+    <div class="servico">
+      <div class="servico-head">
+        <strong>${esc(sv.nome)}</strong>
+        <span class="servico-un">${esc(sv.unidadeMedida)}</span>
+        <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
+        <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
+        <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Memória de cálculo">🧮</button>
+        <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
+        <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
+      </div>
+      <div class="servico-valores">
+        <span>Quantidade: <b>${fmtNum.format(qtd)} ${esc(sv.unidadeMedida)}</b></span>
+        <span>Valor unit.: <b>${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</b></span>
+        <span class="total">Total: <b>${fmtBRL.format(totalServico(sv))}</b></span>
+      </div>
+      ${sv.memo&&sv.memo.length?renderMemo(sv):''}
+    </div>`;
   }).join('');
 }
 
-function renderConteudo() {
-  const o = orcamentoAtivo();
-  const vazio = $('#contentVazio');
-  const orc = $('#contentOrcamento');
-  if (!o) {
-    vazio.classList.remove('hidden');
-    orc.classList.add('hidden');
-    return;
-  }
-  vazio.classList.add('hidden');
-  orc.classList.remove('hidden');
-
-  $('#orcamentoNome').textContent = o.nome;
-  $('#orcamentoMeta').textContent =
-    'Criado em ' + new Date(o.criadoEm).toLocaleDateString('pt-BR') +
-    ' · ' + o.servicos.length + ' serviço(s)';
-  $('#totalGeral').textContent = fmtBRL.format(totalOrcamento(o));
-  $('#totalServicos').textContent = o.servicos.length;
-  $('#totalRodape').textContent = fmtBRL.format(totalOrcamento(o));
-
-  preencherDatalists();
-  renderTabela(o);
-}
-
-function renderTabela(o) {
-  const tbody = $('#corpoTabela');
-  if (!o.servicos.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="sem-servicos">
-      Nenhum serviço ainda. Clique em <strong>+ Adicionar serviço</strong> para montar a EAP.
-    </td></tr>`;
-    return;
-  }
-
-  const arvore = arvoreEAP(o);
-  let html = '';
-
-  arvore.forEach((u, iu) => {
-    const keyU = 'u|' + u.nome;
-    const abertaU = ehExpandido(o, keyU);
-    html += `<tr class="linha-grupo nivel-1" data-acao="toggle" data-key="${keyU}">
-      <td class="col-eap">${iu + 1}</td>
-      <td colspan="6">
-        <span class="grup-toggle">${abertaU ? '▾' : '▸'}</span>
-        <strong>${escapeHtml(u.nome)}</strong> <span style="color:var(--suave);font-weight:400">— Unidade construtiva</span>
-        <span class="grup-total">${fmtBRL.format(subtotalUnidade(u))}</span>
-      </td>
-    </tr>`;
-
-    u.etapas.forEach((e, ie) => {
-      const keyE = 'e|' + u.nome + '::' + e.nome;
-      const abertaE = ehExpandido(o, keyE) && abertaU;
-      html += `<tr class="linha-grupo nivel-2 ${abertaU ? '' : 'oculto'}" data-acao="toggle" data-key="${keyE}">
-        <td class="col-eap">${iu + 1}.${ie + 1}</td>
-        <td colspan="6">
-          <span class="grup-toggle">${abertaE ? '▾' : '▸'}</span>
-          <strong>${escapeHtml(e.nome)}</strong> <span style="color:var(--suave);font-weight:400">— Etapa</span>
-          <span class="grup-total">${fmtBRL.format(subtotalEtapa(e))}</span>
-        </td>
-      </tr>`;
-
-      e.subEtapas.forEach((sb, isb) => {
-        const keyS = 's|' + u.nome + '::' + e.nome + '::' + sb.nome;
-        const abertaS = ehExpandido(o, keyS) && abertaU && abertaE;
-        html += `<tr class="linha-grupo nivel-3 ${abertaU && abertaE ? '' : 'oculto'}" data-acao="toggle" data-key="${keyS}">
-          <td class="col-eap">${iu + 1}.${ie + 1}.${isb + 1}</td>
-          <td colspan="6">
-            <span class="grup-toggle">${abertaS ? '▾' : '▸'}</span>
-            <strong>${escapeHtml(sb.nome)}</strong> <span style="color:var(--suave);font-weight:400">— Sub etapa</span>
-            <span class="grup-total">${fmtBRL.format(subtotalSubEtapa(sb))}</span>
-          </td>
-        </tr>`;
-
-        sb.servicos.forEach((s, is) => {
-          const visivel = abertaU && abertaE && abertaS;
-          const codigo = `${iu + 1}.${ie + 1}.${isb + 1}.${is + 1}`;
-          const memoAberta = state.expandidos['m|' + o.id + '|' + s.id] === true;
-          html += servicoRow(o, s, codigo, visivel, memoAberta);
-          if (memoAberta && visivel) html += memoRow(o, s);
-        });
-      });
-    });
-  });
-
-  tbody.innerHTML = html;
-}
-
-function servicoRow(o, s, codigo, visivel, memoAberta) {
-  const temMemo = s.memo && s.memo.length;
-  const qtd = qtdEfetiva(s);
+function renderMemo(sv){
+  const linhas=sv.memo.map(l=>{const r=calcularLinha(l);return `
+  <tr>
+    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição (ex.: Divisória sala 1º andar)" /></td>
+    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="Comp." /></td>
+    <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="Alt." /></td>
+    <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="Larg." /></td>
+    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="Coef." /></td>
+    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="Qtd" /></td>
+    <td class="res">${r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
+    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover">✕</button></td>
+  </tr>`;}).join('');
+  const soma=qtdServico(sv);
   return `
-  <tr class="linha-servico ${visivel ? '' : 'oculto'}">
-    <td class="col-eap codigo">${codigo}</td>
-    <td>
-      <div class="sv-desc">
-        <strong>${escapeHtml(s.servico)}</strong>
-        ${s.descricao ? `<span class="sv-extra">${escapeHtml(s.descricao)}</span>` : ''}
-        <span class="sv-path">${escapeHtml(s.unidade)} / ${escapeHtml(s.etapa)} / ${escapeHtml(s.subEtapa)}</span>
-        ${temMemo ? '<span class="tag-memo">qtd via memória de cálculo</span>' : ''}
-      </div>
-    </td>
-    <td class="col-qtd">${fmtNum.format(qtd)}</td>
-    <td class="col-un">${escapeHtml(s.unidadeMedida)}</td>
-    <td class="col-valor">${s.valorUnitario == null ? '—' : fmtBRL.format(Number(s.valorUnitario))}</td>
-    <td class="col-valor total">${fmtBRL.format(totalServico(s))}</td>
-    <td class="col-acoes">
-      <button class="btn-icon" data-acao="memo" data-sid="${s.id}" title="${temMemo && memoAberta ? 'Ocultar memória' : 'Abrir memória de cálculo'}">🧮</button>
-      <button class="btn-icon" data-acao="edit" data-sid="${s.id}" title="Editar serviço">✏️</button>
-      <button class="btn-icon btn-danger" data-acao="del" data-sid="${s.id}" title="Excluir serviço">🗑</button>
-    </td>
-  </tr>`;
+  <div class="memo">
+    <div class="memo-head">
+      <h4>🧮 Memória de cálculo</h4>
+      <span class="memo-soma">Soma: <strong>${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
+    </div>
+    <table class="memo-tabela">
+      <thead><tr><th>Descrição</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Coef.</th><th>Qtd</th><th>Resultado</th><th></th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    <div class="memo-add">
+      <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Adicionar linha</button>
+      <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Apagar memória</button>
+    </div>
+    <p class="memo-aviso">ℹ️ Preencha <b>comprimento + altura</b> → m² · <b>+ largura</b> → m³ · só <b>quantidade</b> → qtd. O <b>coeficiente</b> multiplica (opcional).</p>
+  </div>`;
 }
 
-function memoRow(o, s) {
-  const linhas = (s.memo || []).map(l => `
-    <tr>
-      <td>${escapeHtml(l.descricao) || '—'}</td>
-      <td class="col-qtd">${fmtNum.format(Number(l.qtd) || 0)}</td>
-      <td class="col-un">${escapeHtml(s.unidadeMedida)}</td>
-      <td class="col-acoes">
-        <button class="btn-icon" data-acao="del-linha" data-sid="${s.id}" data-lid="${l.id}" title="Remover linha">✕</button>
-      </td>
-    </tr>`).join('');
-
-  const soma = qtdEfetiva(s);
-
-  return `
-  <tr class="linha-memo">
-    <td colspan="7">
-      <div class="memo-box">
-        <div class="memo-head">
-          <h4>🧮 Memória de cálculo — ${escapeHtml(s.servico)}</h4>
-          <span class="memo-soma">Soma: <strong>${fmtNum.format(soma)} ${escapeHtml(s.unidadeMedida)}</strong></span>
-        </div>
-        ${s.qtdManual != null ? `<p class="memo-aviso">ℹ️ Quantidade manual informada (${fmtNum.format(Number(s.qtdManual))}) é ignorada enquanto existirem linhas na memória.</p>` : ''}
-        ${linhas ? `
-          <table class="tabela-memo">
-            <thead><tr><th>Descrição</th><th>Quantidade</th><th>Un.</th><th></th></tr></thead>
-            <tbody>${linhas}</tbody>
-          </table>` :
-          '<p class="memo-aviso">Nenhuma linha ainda. Adicione abaixo — ex.: "Parede sala 1 — 12", "Parede sala 2 — 15". A soma vira a quantidade do serviço.</p>'}
-        <div class="memo-add">
-          <input type="text" id="memoDesc_${s.id}" placeholder="Descrição (ex.: Parede sala 1)" />
-          <input type="text" id="memoQtd_${s.id}" class="col-qtd" inputmode="decimal" placeholder="Qtd (ex.: 12)" />
-          <button class="btn btn-primary btn-sm" data-acao="add-linha" data-sid="${s.id}">+ Adicionar</button>
-          ${linhas ? `<button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-sid="${s.id}">Apagar memória</button>` : ''}
-        </div>
-      </div>
-    </td>
-  </tr>`;
-}
-
-/* ---------- datalists (autocompletar da EAP) ---------- */
-
-function preencherDatalists() {
-  const un = new Set(), et = new Set(), sub = new Set(), sv = new Set();
-  for (const o of state.orcamentos) {
-    for (const s of o.servicos) {
-      un.add(s.unidade); et.add(s.etapa); sub.add(s.subEtapa); sv.add(s.servico);
-    }
-  }
-  const setHtml = (id, set) => {
-    $(id).innerHTML = [...set].map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
-  };
-  setHtml('#dlUnidade', un);
-  setHtml('#dlEtapa', et);
-  setHtml('#dlSubEtapa', sub);
-  setHtml('#dlServico', sv);
-}
-
-/* ---------- modal de serviço ---------- */
-
-function abrirModal(servico) {
-  const o = orcamentoAtivo();
-  if (!o) return;
-  $('#fServicoId').value = servico ? servico.id : '';
-  $('#modalTitulo').textContent = servico ? 'Editar serviço' : 'Adicionar serviço';
-  $('#fUnidade').value = servico ? servico.unidade : '';
-  $('#fEtapa').value = servico ? servico.etapa : '';
-  $('#fSubEtapa').value = servico ? servico.subEtapa : '';
-  $('#fServico').value = servico ? servico.servico : '';
-  $('#fDescricao').value = servico ? servico.descricao : '';
-  $('#fQtd').value = servico && servico.qtdManual != null ? servico.qtdManual : '';
-  $('#fUnidadeMedida').value = servico ? servico.unidadeMedida : 'm²';
-  $('#fValor').value = servico && servico.valorUnitario != null ? servico.valorUnitario : '';
+/* ---------- modal serviço ---------- */
+function abrirModalServico(sv,sub){
+  $('#fServicoId').value=sv?sv.id:'';
+  $('#fSubId').value=sub?sub.id:'';
+  $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
+  $('#fNome').value=sv?sv.nome:'';
+  $('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';
+  $('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';
   $('#modalServico').showModal();
-  $('#fUnidade').focus();
+  $('#fNome').focus();
 }
 
-$('#formServico').addEventListener('submit', (ev) => {
+$('#formServico').addEventListener('submit',(ev)=>{
   ev.preventDefault();
-  const id = $('#fServicoId').value;
-  const dados = {
-    unidade: $('#fUnidade').value,
-    etapa: $('#fEtapa').value,
-    subEtapa: $('#fSubEtapa').value,
-    servico: $('#fServico').value,
-    descricao: $('#fDescricao').value,
-    qtd: $('#fQtd').value,
-    unidadeMedida: $('#fUnidadeMedida').value,
-    valor: $('#fValor').value
-  };
-  if (!dados.unidade.trim() || !dados.etapa.trim() || !dados.subEtapa.trim() || !dados.servico.trim()) {
-    alert('Preencha os 4 níveis da EAP: unidade construtiva, etapa, sub etapa e serviço.');
-    return;
+  const o=orcamentoAtivo();if(!o)return;
+  const svid=$('#fServicoId').value;
+  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value)};
+  if(!dados.nome){alert('Informe o nome do serviço.');return;}
+  if(svid){
+    // localizar serviço
+    for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}}
+  }else{
+    const sub=acharSub(o,o._uid,o._eid,$('#fSubId').value);
+    if(sub){sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});}
   }
-  if (id) atualizarServico(id, dados);
-  else addServico(dados);
-  $('#modalServico').close();
+  salvar();renderTudo();$('#modalServico').close();
 });
-
-/* ---------- backup (exportar / importar) ---------- */
-
-function exportarBackup() {
-  if (!state.orcamentos.length) {
-    alert('Não há orçamentos para exportar.');
-    return;
-  }
-  const blob = new Blob([JSON.stringify(state.orcamentos, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ibuild-orcamentos-' + new Date().toISOString().slice(0, 10) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-}
-
-function importarBackup(ev) {
-  const file = ev.target.files && ev.target.files[0];
-  ev.target.value = '';
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const dados = JSON.parse(reader.result);
-      if (!Array.isArray(dados) || !dados.every(o => o && Array.isArray(o.servicos))) {
-        throw new Error('formato inválido');
-      }
-      if (!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS. Exporte um backup antes, se necessário.`)) return;
-      state.orcamentos = dados;
-      state.ativoId = dados.length ? dados[0].id : null;
-      state.expandidos = {};
-      salvar();
-      renderTudo();
-      alert('Backup importado com sucesso.');
-    } catch (e) {
-      alert('Arquivo inválido: não é um backup de orçamentos da iBuild Obras.');
-    }
-  };
-  reader.readAsText(file);
-}
-
-/* ---------- exemplo pronto ---------- */
-
-function carregarExemplo() {
-  const o = {
-    id: uid(),
-    nome: 'Exemplo — Casa Steel Frame',
-    criadoEm: new Date().toISOString(),
-    servicos: [
-      {
-        id: uid(), unidade: 'Casa 01', etapa: 'Vedações', subEtapa: 'Paredes',
-        servico: 'Alvenaria',
-        descricao: 'Paredes internas em alvenaria (bloco cerâmico)',
-        qtdManual: null, unidadeMedida: 'm²', valorUnitario: 85,
-        memo: [
-          { id: uid(), descricao: 'Parede sala 1', qtd: 12 },
-          { id: uid(), descricao: 'Parede sala 2', qtd: 15 },
-          { id: uid(), descricao: 'Parede quarto', qtd: 10 }
-        ]
-      },
-      {
-        id: uid(), unidade: 'Casa 01', etapa: 'Estrutura', subEtapa: 'Painéis',
-        servico: 'Painel steel frame',
-        descricao: 'Painéis estruturais com perfis Ue 90',
-        qtdManual: 96, unidadeMedida: 'm²', valorUnitario: 210, memo: []
-      },
-      {
-        id: uid(), unidade: 'Casa 01', etapa: 'Cobertura', subEtapa: 'Telhado',
-        servico: 'Telha metálica',
-        descricao: 'Telha trapezoidal e=0,43 mm',
-        qtdManual: 120, unidadeMedida: 'm²', valorUnitario: 95, memo: []
-      }
-    ]
-  };
-  state.orcamentos.push(o);
-  state.ativoId = o.id;
-  salvar();
-  renderTudo();
-}
 
 /* ---------- eventos ---------- */
-
-$('#listaOrcamentos').addEventListener('click', (ev) => {
-  const btnDel = ev.target.closest('[data-acao="del-orcamento"]');
-  if (btnDel) { excluirOrcamento(btnDel.dataset.id); return; }
-  const item = ev.target.closest('.orcamento-item');
-  if (item) ativarOrcamento(item.dataset.orcamentoId);
+$('#listaOrcamentos').addEventListener('click',(ev)=>{
+  const b=ev.target.closest('[data-acao="del-orcamento"]');if(b){excluirOrcamento(b.dataset.id);return;}
+  const item=ev.target.closest('.orcamento-item');if(item)ativarOrcamento(item.dataset.orcamentoId);
 });
 
-$('#corpoTabela').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('[data-acao]');
-  if (!btn) return;
-  const o = orcamentoAtivo();
-  if (!o) return;
-  const acao = btn.dataset.acao;
-  const sid = btn.dataset.sid;
+$('#arvore').addEventListener('click',(ev)=>{
+  const b=ev.target.closest('[data-acao]');if(!b)return;
+  const o=orcamentoAtivo();if(!o)return;
+  const acao=b.dataset.acao;
+  const uid_=b.dataset.uid,eid=b.dataset.eid,sid=b.dataset.sid,svid=b.dataset.svid,lid=b.dataset.lid;
+  const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=acharServico(o,uid_,eid,sid,svid);
 
-  if (acao === 'toggle') { alternarExpandido(o, btn.dataset.key); return; }
+  switch(acao){
+    case 'up-un':moverUnidade(o,u,-1);break;
+    case 'down-un':moverUnidade(o,u,1);break;
+    case 'ren-un':renomearUnidade(u);break;
+    case 'del-un':excluirUnidade(o,u);break;
+    case 'add-etapa':addEtapa(u);break;
 
-  switch (acao) {
-    case 'memo': {
-      const k = 'm|' + o.id + '|' + sid;
-      state.expandidos[k] = !state.expandidos[k];
-      salvar();
-      renderTudo();
-      break;
-    }
-    case 'edit': abrirModal(servicoPorId(o, sid)); break;
-    case 'del': excluirServico(sid); break;
-    case 'add-linha': {
-      const d = $('#memoDesc_' + sid);
-      const q = $('#memoQtd_' + sid);
-      addLinhaMemo(sid, d ? d.value : '', q ? q.value : '');
-      break;
-    }
-    case 'del-linha': delLinhaMemo(sid, btn.dataset.lid); break;
-    case 'clear-memo': limparMemo(sid); break;
+    case 'up-et':moverEtapa(u,e,-1);break;
+    case 'down-et':moverEtapa(u,e,1);break;
+    case 'ren-et':renomearEtapa(e);break;
+    case 'del-et':excluirEtapa(u,e);break;
+    case 'add-sub':addSub(e);break;
+
+    case 'up-sub':moverSub(e,s,-1);break;
+    case 'down-sub':moverSub(e,s,1);break;
+    case 'ren-sub':renomearSub(s);break;
+    case 'del-sub':excluirSub(e,s);break;
+    case 'add-servico':addServico(s);break;
+
+    case 'up-sv':moverServico(s,sv,-1);break;
+    case 'down-sv':moverServico(s,sv,1);break;
+    case 'edit-sv':abrirModalServico(sv);break;
+    case 'del-sv':excluirServico(s,sv);break;
+    case 'memo-sv':addLinhaMemo(sv);break;
+
+    case 'add-linha':addLinhaMemo(sv);break;
+    case 'clear-memo':if(sv.memo&&sv.memo.length&&confirm('Apagar toda a memória de cálculo deste serviço?')){sv.memo=[];salvar();renderTudo();}break;
+    case 'del-linha':delLinhaMemo(sv,lid);break;
   }
 });
 
-$('#btnNovoOrcamento').addEventListener('click', () => {
-  const nome = prompt('Nome do novo orçamento (ex.: Residência Silva — São Carlos):', '');
-  if (nome === null) return;
-  criarOrcamento(nome);
+$('#arvore').addEventListener('input',(ev)=>{
+  const inp=ev.target.closest('input[data-lid]');if(!inp)return;
+  const o=orcamentoAtivo();if(!o)return;
+  const lid=inp.dataset.lid,campo=inp.dataset.campo;
+  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){
+    if(sv.memo){const l=sv.memo.find(x=>x.id===lid);if(l){l[campo]=inp.value;salvar();renderTudo();return;}}
+  }
 });
-$('#btnNovoVazio').addEventListener('click', () => {
-  const nome = prompt('Nome do novo orçamento (ex.: Residência Silva — São Carlos):', '');
-  if (nome === null) return;
-  criarOrcamento(nome);
-});
-$('#btnExemplo').addEventListener('click', carregarExemplo);
-$('#btnRenomear').addEventListener('click', renomearOrcamento);
-$('#btnAddServico').addEventListener('click', () => abrirModal(null));
-$('#btnCancelarModal').addEventListener('click', () => $('#modalServico').close());
-$('#btnExportar').addEventListener('click', exportarBackup);
-$('#inputImportar').addEventListener('change', importarBackup);
 
-/* ---------- inicio ---------- */
+$('#btnNovoOrcamento').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
+$('#btnNovoVazio').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
+$('#btnRenomear').addEventListener('click',renomearOrcamento);
+$('#btnAddUnidade').addEventListener('click',addUnidade);
+$('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
+$('#btnExportar').addEventListener('click',()=>{
+  if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
+  const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ibuild-orcamentos-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+});
+$('#inputImportar').addEventListener('change',(ev)=>{
+  const file=ev.target.files&&ev.target.files[0];ev.target.value='';if(!file)return;
+  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.ativoId=dados.length?dados[0].id:null;salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
+});
+
 renderTudo();
