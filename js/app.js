@@ -560,3 +560,4 @@ async function carregarDoServidor(){
   }
 }
 carregarDoServidor();
+window.state = state;
