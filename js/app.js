@@ -20,6 +20,7 @@ function acharUnidade(o,uid_){return o.unidades.find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
 function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
 function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
+function acharSubPorId(o,sid){for(const u of o.unidades)for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
 
 /* ---------- orçamentos ---------- */
 function criarOrcamento(nome){const o={id:uid(),nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};state.orcamentos.push(o);state.ativoId=o.id;salvar();renderTudo();}
@@ -211,7 +212,7 @@ $('#formServico').addEventListener('submit',(ev)=>{
     // localizar serviço
     for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}}
   }else{
-    const sub=acharSub(o,o._uid,o._eid,$('#fSubId').value);
+    const sub=acharSubPorId(o,$('#fSubId').value);
     if(sub){sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});}
   }
   salvar();renderTudo();$('#modalServico').close();
