@@ -17,8 +17,8 @@
     </div>
   </div>
   <div class="topbar-actions">
-    <button id="btnExportar" class="btn btn-ghost">⬇ Exportar backup</button>
-    <label class="btn btn-ghost">⬆ Importar backup
+    <button id="btnExportar" class="btn btn-ghost">⬇ Backup</button>
+    <label class="btn btn-ghost">⬆ Importar
       <input type="file" id="inputImportar" accept=".json,application/json" hidden />
     </label>
   </div>
@@ -49,6 +49,8 @@
         <p id="orcamentoMeta"></p>
       </div>
       <div class="orcamento-head-actions">
+        <button id="btnExportarExcel" class="btn btn-ghost" title="Exportar planilha .xlsx">📊 Excel</button>
+        <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF">📄 PDF</button>
         <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
         <button id="btnAddUnidade" class="btn btn-primary">+ Unidade construtiva</button>
       </div>
@@ -124,6 +126,7 @@
   </form>
 </dialog>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
