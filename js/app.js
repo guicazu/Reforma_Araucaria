@@ -161,8 +161,12 @@ function compararVersoes(){
 /* ---------- CRUD níveis ---------- */
 function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;uu(o).push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
 function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=n.trim()||u.nome;salvar();renderTudo();}
-function excluirUnidade(o,u){if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;uu(o)=[];/* noop guard */;uu(o).splice(0,uu(o).length);/* placeholder */;salvar();renderTudo();}
-function moverUnidade(o,u,dir){const arr=uu(o);const i=arr.indexOf(u);const j=i+dir;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];salvar();renderTudo();}
+function excluirUnidade(o,u){
+  if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;
+  const arr=uu(o);const i=arr.indexOf(u);
+  if(i>-1)arr.splice(i,1);
+  salvar();renderTudo();
+}function moverUnidade(o,u,dir){const arr=uu(o);const i=arr.indexOf(u);const j=i+dir;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];salvar();renderTudo();}
 
 function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[]});salvar();renderTudo();}
 function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=n.trim()||e.nome;salvar();renderTudo();}
