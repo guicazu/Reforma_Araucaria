@@ -1,12 +1,6 @@
-/* ─────────────────────────────────────────────────────────────
-   js/sync.js — Sincronização dos orçamentos com Cloudflare D1
-   REGRA: carregar DEPOIS do app.js (ver edição no index.html).
-   Fonte da verdade: servidor. localStorage continua como cache
-   offline (o app continua funcionando s/ internet).
-   ───────────────────────────────────────────────────────────── */
+/* Sincronização dos orçamentos com Cloudflare D1 */
 (function () {
   'use strict';
-
   var API_URL = '/api/orcamentos';
 
   function api(opts) {
@@ -20,12 +14,11 @@
   }
 
   function temEstado() { return typeof window.state !== 'undefined' && window.state; }
-  function temSalvar() { return typeof window.salvar === 'function'; }
 
-  // Envia o snapshot completo (todos os orçamentos) para o servidor
+  // Envia o snapshot completo dos orçamentos
   window.salvarNoServidor = function () {
     if (!temEstado()) return Promise.resolve();
-    return api({ method: 'POST', body: JSON.stringify({ dados: window.state.orcamentos }) });
+    return api({ method: 'POST', body: JSON.stringify({ orcamentos: window.state.orcamentos }) });
   };
 
   // Busca o snapshot do servidor
@@ -35,42 +28,30 @@
 
   // 1) Toda vez que o app chamar salvar(), sincroniza também com o servidor
   var salvarOriginal = null;
-  if (temSalvar()) {
+  if (typeof window.salvar === 'function') {
     salvarOriginal = window.salvar;
     window.salvar = function () {
       var resultado = salvarOriginal.apply(this, arguments);
-      window.salvarNoServidor().catch(function (e) {
-        console.warn('Sincronização com o servidor falhou (dados continuam salvos localmente).', e);
-      });
+      window.salvarNoServidor().catch(function () { /* offline: dados continuam no local */ });
       return resultado;
     };
   }
 
-  // 2) Ao carregar: servidor vence; se o servidor estiver vazio,
-  //    sobe os dados locais (migração automática no primeiro uso)
+  // 2) Ao carregar: servidor vence; se vazio, sobe os dados locais
   function sincronizarAoCarregar() {
     window.buscarServidor()
       .then(function (resp) {
         var remotos = resp && resp.dados;
-        if (!temEstado()) return;
-        var locais = window.state.orcamentos || [];
-
         if (remotos && remotos.length) {
-          // Servidor tem dados -> usa como fonte da verdade
           window.state.orcamentos = remotos;
           window.state.ativoId = remotos[0].id || null;
-          if (temSalvar()) salvarOriginal();
+          if (typeof salvarOriginal === 'function') salvarOriginal();
           if (window.renderTudo) window.renderTudo();
-        } else if (locais.length) {
-          // Primeiro acesso com dados locais -> sobe para o servidor
-          window.salvarNoServidor().catch(function (e) {
-            console.warn('Não foi possível subir os dados locais.', e);
-          });
+        } else if (window.state.orcamentos && window.state.orcamentos.length) {
+          window.salvarNoServidor().catch(function () {});
         }
       })
-      .catch(function (e) {
-        console.warn('Servidor indisponível no carregamento; usando dados locais.', e);
-      });
+      .catch(function () { /* servidor indisponível; usa dados locais */ });
   }
 
   if (document.readyState === 'loading') {
