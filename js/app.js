@@ -37,8 +37,30 @@ function proximoCodigo(){
 state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
 salvar();
 
-function salvar(){localStorage.setItem(DB_KEY,JSON.stringify(state));}
-
+function salvar(){
+  // 1) Sempre grava no cache local (funciona offline)
+  localStorage.setItem(DB_KEY, JSON.stringify(state));
+  // 2) Envia para o D1 (sincronização entre dispositivos)
+  enviarParaServidor();
+}
+let salvando = false;
+async function enviarParaServidor(){
+  if(salvando) return;              // evita disparos em sequência
+  salvando = true;
+  try{
+    await fetch('/api/orcamentos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orcamentos: state.orcamentos })
+    });
+  }catch(e){
+    // Sem internet agora? Sem problema: o local já guardou.
+    // A próxima sincronização resolve.
+    console.warn('Sincronização adiada (offline):', e);
+  }finally{
+    salvando = false;
+  }
+}
 function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
 function versaoAtiva(o){return o.versoes[o.versoes.length-1];}
 function uu(o){return versaoAtiva(o).unidades;}
@@ -515,3 +537,26 @@ $('#inputImportar').addEventListener('change',(ev)=>{
 });
 
 renderTudo();
+async function carregarDoServidor(){
+  try{
+    const res = await fetch('/api/orcamentos');
+    if(!res.ok) return;
+    const dados = await res.json();
+    // dados = [{ id, codigo, nome, criadoEm, conteudo, atualizadoEm }]
+    const ultimo = dados[0]; // o registro "atual" que salvamos
+    if(ultimo && ultimo.conteudo){
+      const remoto = JSON.parse(ultimo.conteudo);
+      // Se o servidor tem dados, usa-os; senão mantém o local
+      if(Array.isArray(remoto) && remoto.length){
+        state.orcamentos = remoto.map(migrarOrcamento);
+        state.orcamentos.forEach(o=>{ if(!o.codigo) o.codigo = proximoCodigo(); });
+        if(!state.ativoId && state.orcamentos.length) state.ativoId = state.orcamentos[0].id;
+        salvar();          // grava no local também
+        renderTudo();
+      }
+    }
+  }catch(e){
+    console.warn('Não foi possível carregar do servidor (offline):', e);
+  }
+}
+carregarDoServidor();
