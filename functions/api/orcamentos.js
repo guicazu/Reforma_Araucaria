@@ -1,19 +1,23 @@
 export async function onRequestGet({ env }) {
-  const { results } = await env.DB.prepare(
-    "SELECT id, codigo, nome, criadoEm, conteudo, atualizadoEm FROM orcamentos ORDER BY atualizadoEm DESC"
-  ).all();
-  return Response.json(results || []);
+  const row = await env.DB.prepare(
+    "SELECT conteudo FROM orcamentos WHERE id = 'atual'"
+  ).first();
+  let dados = [];
+  if (row && row.conteudo) {
+    try { dados = JSON.parse(row.conteudo); } catch (e) { dados = []; }
+  }
+  return Response.json({ dados });
 }
 
 export async function onRequestPost({ request, env }) {
-  const dados = await request.json(); // { orcamentos: [...] } — seu state.orcamentos
+  const corpo = await request.json();
+  const orcamentos = corpo.orcamentos ?? corpo.dados ?? [];
   const agora = new Date().toISOString();
-  const payload = JSON.stringify(dados.orcamentos ?? []);
-  // Upsert: substitui todos e guarda um único registro "atual"
+  const payload = JSON.stringify(orcamentos);
   await env.DB.prepare(
     `INSERT INTO orcamentos (id, codigo, nome, criadoEm, conteudo)
      VALUES ('atual', 'SNAP', 'Estado atual', ?, ?)
-     ON CONFLICT(id) DO UPDATE SET conteudo = excluded.conteudo, atualizadoEm = datetime('now')`
+     ON CONFLICT(id) DO UPDATE SET conteudo = excluded.conteudo, atualizadoEm = excluded.atualizadoEm`
   ).bind(agora, payload).run();
   return Response.json({ ok: true });
 }
