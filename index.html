@@ -65,11 +65,32 @@
       </div>
     </div>
 
-    <div id="arvore" class="arvore"></div>
+    <div class="table-wrap">
+      <table class="tabela" id="tabelaOrcamento">
+        <thead>
+          <tr>
+            <th class="col-codigo">Código</th>
+            <th>Descrição</th>
+            <th class="col-un">Un.</th>
+            <th class="col-num">Quantidade orçada</th>
+            <th class="col-num">Preço unitário</th>
+            <th class="col-num">Preço total</th>
+            <th class="col-acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+        <tfoot>
+          <tr class="linha-total">
+            <td colspan="5">TOTAL DO ORÇAMENTO</td>
+            <td id="totalRodape">R$ 0,00</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   </section>
 </main>
 
-<!-- Modal: criar/editar serviço -->
 <dialog id="modalServico" class="modal">
   <form id="formServico">
     <h3 id="modalTitulo">Adicionar serviço</h3>
@@ -94,7 +115,7 @@
       </label>
     </div>
 
-    <p class="dica">💡 Depois de salvar, use o botão <strong>🧮</strong> no serviço para adicionar a <strong>memória de cálculo</strong> (comprimento, altura, largura, coeficiente, quantidade).</p>
+    <p class="dica">💡 Depois de salvar, use o botão <strong>🧮</strong> no serviço para adicionar a <strong>memória de cálculo</strong> (Qtd, Coef., Comprimento, Altura, Largura).</p>
 
     <div class="modal-actions">
       <button type="button" id="btnCancelarModal" class="btn btn-ghost">Cancelar</button>
