@@ -1,4 +1,4 @@
-// Cloudflare Pages Function — API de sincronização dos orçamentos
+// Cloudflare Pages Function — API de sincronização do orçamentos
 // Rota gerada automaticamente: /api/orcamentos
 // Binding D1 usado: "DB" (configurado no painel, passo 7)
 
