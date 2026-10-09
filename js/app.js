@@ -1,5 +1,5 @@
 'use strict';
-const DB_KEY='ibuild_orcamentos_v4';
+const DB_KEY='ibuild_orcamentos_v5';
 const $=(s,c=document)=>c.querySelector(s);
 const fmtBRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
@@ -8,10 +8,21 @@ function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
 function num2(n){return Math.round((Number(n)||0)*100)/100;}
+function clone(x){return JSON.parse(JSON.stringify(x));}
 
 function estadoInicial(){return{orcamentos:[],ativoId:null,expandidos:{}};}
 function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)return estadoInicial();const s=JSON.parse(raw);return{orcamentos:Array.isArray(s.orcamentos)?s.orcamentos:[],ativoId:s.ativoId||null,expandidos:s.expandidos||{}};}catch(e){return estadoInicial();}}
 const state=carregarEstado();
+
+/* --- migrar estrutura antiga (unidades no topo) para versões --- */
+function migrarOrcamento(o){
+  if(!Array.isArray(o.versoes)||!o.versoes.length){
+    o.versoes=[{id:uid(),numero:1,rotulo:'Versão 1',criadoEm:o.criadoEm||new Date().toISOString(),unidades:Array.isArray(o.unidades)?o.unidades:[]}];
+  }
+  delete o.unidades;
+  return o;
+}
+state.orcamentos.forEach(migrarOrcamento);
 
 /* códigos sequenciais automáticos */
 function proximoCodigo(){
@@ -29,6 +40,8 @@ salvar();
 function salvar(){localStorage.setItem(DB_KEY,JSON.stringify(state));}
 
 function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
+function versaoAtiva(o){return o.versoes[o.versoes.length-1];}
+function uu(o){return versaoAtiva(o).unidades;}
 
 /* ---------- expansão/recolhimento ---------- */
 function estaAberto(key){return state.expandidos[key]!==false;}
@@ -36,30 +49,120 @@ function alternar(key){state.expandidos[key]=!estaAberto(key);salvar();renderTud
 function seta(aberto){return aberto?'▾':'▸';}
 
 /* ---------- navegação na árvore ---------- */
-function acharUnidade(o,uid_){return o.unidades.find(u=>u.id===uid_);}
+function acharUnidade(o,uid_){return uu(o).find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
 function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
 function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
-function acharServicoPorId(o,svid){for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;}return null;}
-function acharServicoPorLinha(o,lid){for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}return null;}
-function acharSubPorId(o,sid){for(const u of o.unidades)for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
+function acharServicoPorId(o,svid){for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;}return null;}
+function acharServicoPorLinha(o,lid){for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}return null;}
+function acharSubPorId(o,sid){for(const u of uu(o))for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
 
 /* ---------- orçamentos ---------- */
 function criarOrcamento(){
   const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
   if(nome===null)return;
-  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};
+  const agora=new Date().toISOString();
+  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,rotulo:'Versão 1',criadoEm:agora,unidades:[]}]};
   state.orcamentos.push(novo);state.ativoId=novo.id;salvar();renderTudo();
 }
 function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
 function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
+function duplicarOrcamento(id){
+  const src=state.orcamentos.find(x=>x.id===id);if(!src)return;
+  const c=clone(src);
+  c.id=uid();c.codigo=proximoCodigo();c.nome=src.nome+' (cópia)';c.criadoEm=new Date().toISOString();
+  c.versoes.forEach(v=>{v.id=uid();});
+  state.orcamentos.push(c);state.ativoId=c.id;state.expandidos={};salvar();renderTudo();
+}
+
+/* ---------- versões ---------- */
+function gerarVersao(){
+  const o=orcamentoAtivo();if(!o)return;
+  const ativa=versaoAtiva(o);
+  const novoNum=Math.max(...o.versoes.map(v=>v.numero))+1;
+  const rotulo=prompt(`Rótulo da versão ${novoNum} (ex.: Após revisão da cobertura):`, `Versão ${novoNum}`);
+  if(rotulo===null)return;
+  o.versoes.push({id:uid(),numero:novoNum,rotulo:rotulo.trim()||('Versão '+novoNum),criadoEm:new Date().toISOString(),unidades:clone(ativa.unidades)});
+  state.expandidos={};
+  salvar();renderTudo();
+  if($('#modalVersoes').open)renderVersoes(o);
+}
+function totalVersao(v){let t=0;for(const u of v.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function flatServicos(unidades){
+  const out=[];
+  unidades.forEach((u,iu)=>{
+    u.etapas.forEach((e,ie)=>{
+      e.subEtapas.forEach((s,is)=>{
+        s.servicos.forEach((sv,isv)=>{
+          out.push({cod:`${iu+1}.${ie+1}.${is+1}.${isv+1}`,nome:sv.nome,un:sv.unidadeMedida,qtd:qtdServico(sv),total:totalServico(sv)});
+        });
+      });
+    });
+  });
+  return out;
+}
+function renderVersoes(o){
+  const el=$('#listaVersoes');if(!el)return;
+  if(!o.versoes.length){el.innerHTML='<p class="memo-aviso">Nenhuma versão.</p>';return;}
+  el.innerHTML=o.versoes.map((v,idx)=>{
+    const ultima=idx===o.versoes.length-1;
+    return `<div class="versao-item" data-idx="${idx}">
+      <input type="checkbox" class="chk-versao" value="${idx}" />
+      <span class="v-num">V${v.numero}</span>
+      <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}</small></span>
+      ${ultima?'<span class="badge-ativa">Ativa</span>':''}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.versao-item').forEach(item=>{
+    item.addEventListener('click',(ev)=>{
+      if(ev.target.tagName==='INPUT')return;
+      const chk=item.querySelector('.chk-versao');chk.checked=!chk.checked;
+      item.classList.toggle('selecionada',chk.checked);
+    });
+  });
+}
+function compararVersoes(){
+  const o=orcamentoAtivo();if(!o)return;
+  const sel=[...document.querySelectorAll('.chk-versao:checked')].map(c=>Number(c.value));
+  if(sel.length!==2){alert('Selecione exatamente 2 versões para comparar.');return;}
+  const a=o.versoes[sel[0]],b=o.versoes[sel[1]];
+  const fa=flatServicos(a.unidades),fb=flatServicos(b.unidades);
+  const ma={},mb={};
+  fa.forEach(x=>ma[x.cod]=x);fb.forEach(x=>mb[x.cod]=x);
+  const keys=[...new Set([...Object.keys(ma),...Object.keys(mb)])].sort();
+  let html=`
+    <div class="cmp-head">
+      <span><b>${esc(a.rotulo)} (V${a.numero})</b>: ${fmtBRL.format(totalVersao(a))}</span>
+      <span><b>${esc(b.rotulo)} (V${b.numero})</b>: ${fmtBRL.format(totalVersao(b))}</span>
+      <span>Diferença: <b>${fmtBRL.format(totalVersao(b)-totalVersao(a))}</b></span>
+    </div>
+    <table class="cmp-tabela">
+      <thead><tr><th>Código</th><th>Serviço</th><th>Un.</th><th>Qtd ${esc(a.rotulo)}</th><th>Total ${esc(a.rotulo)}</th><th>Qtd ${esc(b.rotulo)}</th><th>Total ${esc(b.rotulo)}</th><th>Situação</th></tr></thead><tbody>`;
+  keys.forEach(cod=>{
+    const x=ma[cod],y=mb[cod];
+    let sit,cls;
+    if(!x&&y){sit='Adicionado';cls='sit-add';}
+    else if(x&&!y){sit='Removido';cls='sit-rem';}
+    else if(Math.abs((x.qtd||0)-(y.qtd||0))>0.001||Math.abs((x.total||0)-(y.total||0))>0.001){sit='Alterado';cls='sit-alt';}
+    else{sit='Igual';cls='sit-ig';}
+    const nome=x?esc(x.nome):esc(y.nome);
+    const un=x?esc(x.un):esc(y.un);
+    html+=`<tr><td>${cod}</td><td>${nome}</td><td>${un}</td>
+      <td>${x?fmtNum.format(x.qtd):'—'}</td><td>${x?fmtBRL.format(x.total):'—'}</td>
+      <td>${y?fmtNum.format(y.qtd):'—'}</td><td>${y?fmtBRL.format(y.total):'—'}</td>
+      <td class="${cls}">${sit}</td></tr>`;
+  });
+  html+='</tbody></table>';
+  $('#comparacaoVersoes').innerHTML=html;
+  $('#btnCompararVersoes').textContent='Comparar selecionadas (2)';
+}
 
 /* ---------- CRUD níveis ---------- */
-function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;o.unidades.push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
+function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;uu(o).push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
 function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=n.trim()||u.nome;salvar();renderTudo();}
-function excluirUnidade(o,u){if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;o.unidades=o.unidades.filter(x=>x.id!==u.id);salvar();renderTudo();}
-function moverUnidade(o,u,dir){const i=o.unidades.indexOf(u);const j=i+dir;if(j<0||j>=o.unidades.length)return;[o.unidades[i],o.unidades[j]]=[o.unidades[j],o.unidades[i]];salvar();renderTudo();}
+function excluirUnidade(o,u){if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;uu(o)=[];/* noop guard */;uu(o).splice(0,uu(o).length);/* placeholder */;salvar();renderTudo();}
+function moverUnidade(o,u,dir){const arr=uu(o);const i=arr.indexOf(u);const j=i+dir;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];salvar();renderTudo();}
 
 function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[]});salvar();renderTudo();}
 function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=n.trim()||e.nome;salvar();renderTudo();}
@@ -89,8 +192,8 @@ function calcularLinha(l){
 }
 function qtdServico(sv){if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}return num(sv.qtdManual)||0;}
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
-function totalOrcamento(o){let t=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
-function contarServicos(o){let n=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
+function totalOrcamento(o){let t=0;for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function contarServicos(o){let n=0;for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
 function subtotalSub(s){return s.servicos.reduce((a,sv)=>a+totalServico(sv),0);}
 function subtotalEtapa(e){let t=0;for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
@@ -99,20 +202,22 @@ function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.s
 function renderTudo(){renderLista();renderConteudo();}
 
 function renderLista(){const ul=$('#listaOrcamentos');if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
-ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
+ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon" data-acao="dup-orcamento" data-id="${o.id}" title="Duplicar">⧉</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
 
 function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
 $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
-$('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
+$('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s) · '+o.versoes.length+' versão(ões)';
 $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
+$('#versaoAtivaLabel').textContent='V'+versaoAtiva(o).numero;
 $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 $('#corpoTabela').innerHTML=renderTabela(o);}
 
 function renderTabela(o){
-  if(!o.unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
+  const unidades=uu(o);
+  if(!unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
   let html='';
-  o.unidades.forEach((u,iu)=>{
+  unidades.forEach((u,iu)=>{
     const cU=iu+1;
     const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
@@ -242,9 +347,10 @@ $('#formServico').addEventListener('submit',(ev)=>{
 /* ---------- exportar Excel / PDF ---------- */
 function exportarExcel(){
   const o=orcamentoAtivo();if(!o)return;
+  const unidades=uu(o);
   const rows=[];
   rows.push(['CÓDIGO','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
-  o.unidades.forEach((u,iu)=>{
+  unidades.forEach((u,iu)=>{
     rows.push([String(iu+1),u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
     u.etapas.forEach((e,ie)=>{
       rows.push([`${iu+1}.${ie+1}`,'   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
@@ -260,7 +366,7 @@ function exportarExcel(){
   rows.push(['','TOTAL GERAL','','','',num2(totalOrcamento(o))]);
 
   const mrows=[['CÓDIGO DO SERVIÇO','SERVIÇO','DESCRIÇÃO','QTD','COEF.','COMPR.','ALTURA','LARGURA','RESULTADO']];
-  o.unidades.forEach((u,iu)=>{
+  unidades.forEach((u,iu)=>{
     u.etapas.forEach((e,ie)=>{
       e.subEtapas.forEach((s,is)=>{
         s.servicos.forEach((sv,isv)=>{
@@ -300,7 +406,10 @@ function exportarPdf(){window.print();}
 
 /* ---------- eventos ---------- */
 $('#listaOrcamentos').addEventListener('click',(ev)=>{
-  const b=ev.target.closest('[data-acao="del-orcamento"]');if(b){excluirOrcamento(b.dataset.id);return;}
+  const b=ev.target.closest('[data-acao]');if(b){
+    if(b.dataset.acao==='del-orcamento'){excluirOrcamento(b.dataset.id);return;}
+    if(b.dataset.acao==='dup-orcamento'){duplicarOrcamento(b.dataset.id);return;}
+  }
   const item=ev.target.closest('.orcamento-item');if(item)ativarOrcamento(item.dataset.orcamentoId);
 });
 
@@ -381,6 +490,11 @@ $('#btnNovoVazio').addEventListener('click',criarOrcamento);
 $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
 $('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
+$('#btnDuplicar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o)duplicarOrcamento(o.id);});
+$('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)return;renderVersoes(o);$('#comparacaoVersoes').innerHTML='';$('#modalVersoes').showModal();});
+$('#btnGerarVersao').addEventListener('click',gerarVersao);
+$('#btnCompararVersoes').addEventListener('click',compararVersoes);
+$('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarExcel').addEventListener('click',exportarExcel);
 $('#btnExportarPdf').addEventListener('click',exportarPdf);
 $('#btnExportar').addEventListener('click',()=>{
@@ -390,7 +504,7 @@ $('#btnExportar').addEventListener('click',()=>{
 });
 $('#inputImportar').addEventListener('change',(ev)=>{
   const file=ev.target.files&&ev.target.files[0];ev.target.value='';if(!file)return;
-  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
+  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&(Array.isArray(o.unidades)||Array.isArray(o.versoes))))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados.map(migrarOrcamento);state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
 });
 
 renderTudo();
