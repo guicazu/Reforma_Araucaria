@@ -1,5 +1,5 @@
 'use strict';
-const DB_KEY='ibuild_orcamentos_v2';
+const DB_KEY='ibuild_orcamentos_v3';
 const $=(s,c=document)=>c.querySelector(s);
 const fmtBRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
@@ -8,41 +8,48 @@ function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
 
-function estadoInicial(){return{orcamentos:[],ativoId:null};}
-function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)return estadoInicial();const s=JSON.parse(raw);return{orcamentos:Array.isArray(s.orcamentos)?s.orcamentos:[],ativoId:s.ativoId||null};}catch(e){return estadoInicial();}}
+function estadoInicial(){return{orcamentos:[],ativoId:null,expandidos:{}};}
+function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)return estadoInicial();const s=JSON.parse(raw);return{orcamentos:Array.isArray(s.orcamentos)?s.orcamentos:[],ativoId:s.ativoId||null,expandidos:s.expandidos||{}};}catch(e){return estadoInicial();}}
 const state=carregarEstado();
 function salvar(){localStorage.setItem(DB_KEY,JSON.stringify(state));}
 
 function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
+
+/* ---------- expansão/recolhimento ---------- */
+function estaAberto(key){return state.expandidos[key]!==false;}
+function alternar(key){state.expandidos[key]=!estaAberto(key);salvar();renderTudo();}
+function seta(aberto){return aberto?'▾':'▸';}
 
 /* ---------- navegação na árvore ---------- */
 function acharUnidade(o,uid_){return o.unidades.find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
 function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
 function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
-function acharServicoPorId(o,svid){
-  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){
-    const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;
-  }
-  return null;
-}
-function acharServicoPorLinha(o,lid){
-  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){
-    if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;
-  }
-  return null;
-}
-function acharSubPorId(o,sid){
-  for(const u of o.unidades)for(const e of u.etapas){
-    const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;
-  }
-  return null;
-}
+function acharServicoPorId(o,svid){for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;}return null;}
+function acharServicoPorLinha(o,lid){for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}return null;}
+function acharSubPorId(o,sid){for(const u of o.unidades)for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
 
 /* ---------- orçamentos ---------- */
-function criarOrcamento(nome){const o={id:uid(),nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};state.orcamentos.push(o);state.ativoId=o.id;salvar();renderTudo();}
-function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
-function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
+function criarOrcamento(){
+  const o=orcamentoAtivo();
+  const codigo=prompt('Código do orçamento (ex.: ARA-2026-001):','');
+  if(codigo===null)return;
+  const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
+  if(nome===null)return;
+  const novo={id:uid(),codigo:codigo.trim()||'SEM-COD',nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};
+  state.orcamentos.push(novo);state.ativoId=novo.id;salvar();renderTudo();
+}
+function renomearOrcamento(){
+  const o=orcamentoAtivo();if(!o)return;
+  const codigo=prompt('Código do orçamento:',o.codigo||'');
+  if(codigo===null)return;
+  const nome=prompt('Nome do orçamento:',o.nome);
+  if(nome===null)return;
+  o.codigo=codigo.trim()||o.codigo||'SEM-COD';
+  o.nome=nome.trim()||o.nome;
+  salvar();renderTudo();
+}
+function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
 
 /* ---------- CRUD níveis ---------- */
@@ -88,25 +95,42 @@ function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.s
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
 
-function renderLista(){const ul=$('#listaOrcamentos');if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
-ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
+function renderLista(){
+  const ul=$('#listaOrcamentos');
+  if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
+  ul.innerHTML=state.orcamentos.map(o=>{
+    const ativo=o.id===state.ativoId?' ativo':'';
+    return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}">
+      <div class="oi-info">
+        <strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong>
+        <span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span>
+      </div>
+      <button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button>
+    </li>`;
+  }).join('');
+}
 
-function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
-$('#orcamentoNome').textContent=o.nome;
-$('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
-$('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
-$('#totalServicos').textContent=contarServicos(o);
-$('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
-$('#corpoTabela').innerHTML=renderTabela(o);}
+function renderConteudo(){
+  const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');
+  if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}
+  vazio.classList.add('hidden');orc.classList.remove('hidden');
+  $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
+  $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
+  $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
+  $('#totalServicos').textContent=contarServicos(o);
+  $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+  $('#corpoTabela').innerHTML=renderTabela(o);
+}
 
 function renderTabela(o){
   if(!o.unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
   let html='';
   o.unidades.forEach((u,iu)=>{
     const cU=iu+1;
+    const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
       <td class="col-codigo codigo">${cU}</td>
-      <td><strong>${esc(u.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button></td>
+      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
       <td class="col-num total">${fmtBRL.format(subtotalUnidade(o,u))}</td>
       <td class="col-acoes">
@@ -116,11 +140,13 @@ function renderTabela(o){
         <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir unidade">🗑</button>
       </td>
     </tr>`;
+    if(!abertaU)return;
     u.etapas.forEach((e,ie)=>{
       const cE=cU+'.'+(ie+1);
+      const abertaE=estaAberto('e-'+e.id);
       html+=`<tr class="grupo n2">
         <td class="col-codigo codigo">${cE}</td>
-        <td><strong>${esc(e.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button></td>
+        <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(e.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button></td>
         <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
         <td class="col-num total">${fmtBRL.format(subtotalEtapa(e))}</td>
         <td class="col-acoes">
@@ -130,11 +156,13 @@ function renderTabela(o){
           <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir etapa">🗑</button>
         </td>
       </tr>`;
+      if(!abertaE)return;
       e.subEtapas.forEach((s,is)=>{
         const cS=cE+'.'+(is+1);
+        const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
           <td class="col-codigo codigo">${cS}</td>
-          <td><strong>${esc(s.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button></td>
+          <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(s.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button></td>
           <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
           <td class="col-num total">${fmtBRL.format(subtotalSub(s))}</td>
           <td class="col-acoes">
@@ -144,25 +172,29 @@ function renderTabela(o){
             <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir sub etapa">🗑</button>
           </td>
         </tr>`;
+        if(!abertaS)return;
         s.servicos.forEach((sv,isv)=>{
           const cSv=cS+'.'+(isv+1);
           const qtd=qtdServico(sv);
+          const temMemo=sv.memo&&sv.memo.length;
+          const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            <td><strong>${esc(sv.nome)}</strong>${sv.memo&&sv.memo.length?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+            <td><strong>${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
             <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
             <td class="col-acoes">
-              <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Memória de cálculo">🧮</button>
+              ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
+              <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
               <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
               <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
               <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
               <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
             </td>
           </tr>`;
-          if(sv.memo&&sv.memo.length)html+=renderMemo(sv);
+          if(temMemo&&memoAberta)html+=renderMemo(sv);
         });
       });
     });
@@ -233,6 +265,8 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
   const uid_=b.dataset.uid,eid=b.dataset.eid,sid=b.dataset.sid,svid=b.dataset.svid,lid=b.dataset.lid;
   const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=acharServico(o,uid_,eid,sid,svid);
 
+  if(acao==='toggle'){alternar(b.dataset.key);return;}
+
   switch(acao){
     case 'up-un':moverUnidade(o,u,-1);break;
     case 'down-un':moverUnidade(o,u,1);break;
@@ -259,7 +293,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
 
     case 'memo-sv':case 'add-linha':{
       const svx=acharServicoPorId(o,svid);
-      if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
+      if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});state.expandidos['sv-'+svid]=true;salvar();renderTudo();}
       break;
     }
     case 'clear-memo':{
@@ -296,8 +330,8 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
   $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 });
 
-$('#btnNovoOrcamento').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
-$('#btnNovoVazio').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
+$('#btnNovoOrcamento').addEventListener('click',criarOrcamento);
+$('#btnNovoVazio').addEventListener('click',criarOrcamento);
 $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
 $('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
@@ -308,7 +342,7 @@ $('#btnExportar').addEventListener('click',()=>{
 });
 $('#inputImportar').addEventListener('change',(ev)=>{
   const file=ev.target.files&&ev.target.files[0];ev.target.value='';if(!file)return;
-  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.ativoId=dados.length?dados[0].id:null;salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
+  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
 });
 
 renderTudo();
