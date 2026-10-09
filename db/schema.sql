@@ -1,15 +1,11 @@
--- iBuild Obras — schema do banco Cloudflare D1
--- Cria a tabela única que guarda o snapshot dos orçamentos.
--- Execute este conteúdo no console do banco D1 (passo 6 abaixo).
+-- iBuild Obras — Cloudflare D1
+-- Tabela única guardando o snapshot dos orçamentos (registro "atual").
 
-CREATE TABLE IF NOT EXISTS app_state (
-  chave          TEXT PRIMARY KEY,
-  valor          TEXT NOT NULL,
-  atualizado_por TEXT,
-  atualizado_em  INTEGER NOT NULL
+CREATE TABLE IF NOT EXISTS orcamentos (
+  id            TEXT PRIMARY KEY,
+  codigo        TEXT,
+  nome          TEXT,
+  criadoEm      TEXT,
+  conteudo      TEXT NOT NULL,
+  atualizadoEm  TEXT
 );
-
--- Estado inicial (orçamentos vazios)
-INSERT INTO app_state (chave, valor, atualizado_em)
-VALUES ('orcamentos', '[]', 0)
-ON CONFLICT(chave) DO NOTHING;
