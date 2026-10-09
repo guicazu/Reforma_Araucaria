@@ -20,7 +20,18 @@ function acharUnidade(o,uid_){return o.unidades.find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
 function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
 function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
-function acharSubPorId(o,sid){for(const u of o.unidades)for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
+function acharServicoPorId(o,svid){
+  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){
+    const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;
+  }
+  return null;
+}
+function acharServicoPorLinha(o,lid){
+  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){
+    if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;
+  }
+  return null;
+}
 
 /* ---------- orçamentos ---------- */
 function criarOrcamento(nome){const o={id:uid(),nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};state.orcamentos.push(o);state.ativoId=o.id;salvar();renderTudo();}
@@ -51,12 +62,14 @@ function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(
 
 /* ---------- memória de cálculo ---------- */
 function calcularLinha(l){
-  const c=num(l.comprimento),a=num(l.altura),w=num(l.largura),q=num(l.quantidade);
-  const coef=num(l.coeficiente)??1;
-  if(c!=null&&a!=null&&w!=null)return{valor:c*a*w*coef,tipo:'m³'};
-  if(c!=null&&a!=null)return{valor:c*a*coef,tipo:'m²'};
-  if(q!=null)return{valor:q*coef,tipo:'qtd'};
-  return{valor:null,tipo:''};
+  const c=num(l.comprimento),a=num(l.altura),w=num(l.largura);
+  const q=num(l.quantidade),coef=num(l.coeficiente);
+  let base,tipo;
+  if(c!=null&&a!=null&&w!=null){base=c*a*w;tipo='m³';}
+  else if(c!=null&&a!=null){base=c*a;tipo='m²';}
+  else{base=1;tipo='qtd';}
+  if(c==null&&a==null&&w==null&&q==null&&coef==null)return{valor:null,tipo:''};
+  return{valor:base*(q??1)*(coef??1),tipo};
 }
 function qtdServico(sv){
   if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}
@@ -65,10 +78,6 @@ function qtdServico(sv){
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
 function totalOrcamento(o){let t=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function contarServicos(o){let n=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
-
-function addLinhaMemo(sv){sv.memo=sv.memo||[];sv.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
-function delLinhaMemo(sv,lid){sv.memo=sv.memo.filter(l=>l.id!==lid);salvar();renderTudo();}
-function atualizarLinhaMemo(sv,lid,campo,valor){const l=sv.memo.find(x=>x.id===lid);if(!l)return;l[campo]=valor;salvar();renderTudo();}
 
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
@@ -163,12 +172,12 @@ function renderMemo(sv){
   const linhas=sv.memo.map(l=>{const r=calcularLinha(l);return `
   <tr>
     <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição (ex.: Divisória sala 1º andar)" /></td>
+    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="Qtd" /></td>
+    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="Coef." /></td>
     <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="Comp." /></td>
     <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="Alt." /></td>
     <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="Larg." /></td>
-    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="Coef." /></td>
-    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="Qtd" /></td>
-    <td class="res">${r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
+    <td class="res" id="res_${l.id}">${r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
     <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover">✕</button></td>
   </tr>`;}).join('');
   const soma=qtdServico(sv);
@@ -176,17 +185,17 @@ function renderMemo(sv){
   <div class="memo">
     <div class="memo-head">
       <h4>🧮 Memória de cálculo</h4>
-      <span class="memo-soma">Soma: <strong>${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
+      <span class="memo-soma">Soma: <strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
     </div>
     <table class="memo-tabela">
-      <thead><tr><th>Descrição</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Coef.</th><th>Qtd</th><th>Resultado</th><th></th></tr></thead>
+      <thead><tr><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
       <tbody>${linhas}</tbody>
     </table>
     <div class="memo-add">
       <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Adicionar linha</button>
       <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Apagar memória</button>
     </div>
-    <p class="memo-aviso">ℹ️ Preencha <b>comprimento + altura</b> → m² · <b>+ largura</b> → m³ · só <b>quantidade</b> → qtd. O <b>coeficiente</b> multiplica (opcional).</p>
+    <p class="memo-aviso">ℹ️ Preencha <b>comprimento + altura</b> → m² · <b>+ largura</b> → m³ · só <b>Qtd</b> → qtd. A <b>Qtd</b> e o <b>Coef.</b> multiplicam o resultado.</p>
   </div>`;
 }
 
@@ -202,6 +211,13 @@ function abrirModalServico(sv,sub){
   $('#fNome').focus();
 }
 
+function acharSubPorId(o,sid){
+  for(const u of o.unidades)for(const e of u.etapas){
+    const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;
+  }
+  return null;
+}
+
 $('#formServico').addEventListener('submit',(ev)=>{
   ev.preventDefault();
   const o=orcamentoAtivo();if(!o)return;
@@ -209,8 +225,8 @@ $('#formServico').addEventListener('submit',(ev)=>{
   const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value)};
   if(!dados.nome){alert('Informe o nome do serviço.');return;}
   if(svid){
-    // localizar serviço
-    for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}}
+    const sv=acharServicoPorId(o,svid);
+    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}
   }else{
     const sub=acharSubPorId(o,$('#fSubId').value);
     if(sub){sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});}
@@ -254,11 +270,26 @@ $('#arvore').addEventListener('click',(ev)=>{
     case 'down-sv':moverServico(s,sv,1);break;
     case 'edit-sv':abrirModalServico(sv);break;
     case 'del-sv':excluirServico(s,sv);break;
-    case 'memo-sv':addLinhaMemo(sv);break;
-
-    case 'add-linha':addLinhaMemo(sv);break;
-    case 'clear-memo':if(sv.memo&&sv.memo.length&&confirm('Apagar toda a memória de cálculo deste serviço?')){sv.memo=[];salvar();renderTudo();}break;
-    case 'del-linha':delLinhaMemo(sv,lid);break;
+    case 'memo-sv':{
+      const svx=acharServicoPorId(o,svid);
+      if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
+      break;
+    }
+    case 'add-linha':{
+      const svx=acharServicoPorId(o,svid);
+      if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
+      break;
+    }
+    case 'clear-memo':{
+      const svx=acharServicoPorId(o,svid);
+      if(svx&&svx.memo&&svx.memo.length&&confirm('Apagar toda a memória de cálculo deste serviço?')){svx.memo=[];salvar();renderTudo();}
+      break;
+    }
+    case 'del-linha':{
+      const svx=acharServicoPorLinha(o,lid);
+      if(svx){svx.memo=svx.memo.filter(l=>l.id!==lid);salvar();renderTudo();}
+      break;
+    }
   }
 });
 
@@ -266,9 +297,15 @@ $('#arvore').addEventListener('input',(ev)=>{
   const inp=ev.target.closest('input[data-lid]');if(!inp)return;
   const o=orcamentoAtivo();if(!o)return;
   const lid=inp.dataset.lid,campo=inp.dataset.campo;
-  for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){
-    if(sv.memo){const l=sv.memo.find(x=>x.id===lid);if(l){l[campo]=inp.value;salvar();renderTudo();return;}}
-  }
+  const sv=acharServicoPorLinha(o,lid);if(!sv)return;
+  const l=sv.memo.find(x=>x.id===lid);if(!l)return;
+  l[campo]=inp.value;
+  salvar();
+  const r=calcularLinha(l);
+  const res=document.getElementById('res_'+lid);
+  if(res)res.textContent=(r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo);
+  const somaEl=document.getElementById('soma_'+sv.id);
+  if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv))+' '+sv.unidadeMedida;
 });
 
 $('#btnNovoOrcamento').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
