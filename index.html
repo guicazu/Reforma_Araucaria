@@ -4,19 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>iBuild Obras — Orçamentos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="logo">iB</span>
+    <span class="logo" id="logoFallback">iB</span>
+    <img id="logoImg" src="logo.png" alt="Logo" class="logo-img"
+         onerror="document.getElementById('logoImg').style.display='none';document.getElementById('logoFallback').style.display='grid';" />
     <div>
       <h1>iBuild Obras</h1>
-      <p>Orçamento com EAP hierárquica e memória de cálculo</p>
+      <p>Orçamento e gestão de obras</p>
     </div>
   </div>
   <div class="topbar-actions">
+    <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual">⧉ Duplicar</button>
+    <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação">🕘 Versões</button>
     <button id="btnExportar" class="btn btn-ghost">⬇ Backup</button>
     <label class="btn btn-ghost">⬆ Importar
       <input type="file" id="inputImportar" accept=".json,application/json" hidden />
@@ -64,6 +71,10 @@
       <div class="resumo-card">
         <span>Serviços</span>
         <strong id="totalServicos">0</strong>
+      </div>
+      <div class="resumo-card">
+        <span>Versão ativa</span>
+        <strong id="versaoAtivaLabel">V1</strong>
       </div>
     </div>
 
@@ -124,6 +135,18 @@
       <button type="submit" class="btn btn-primary">Salvar serviço</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="modalVersoes" class="modal modal-lg">
+  <h3 id="versoesTitulo">Versões do orçamento</h3>
+  <p class="memo-aviso">A versão <b>ATIVA</b> é sempre a que você está editando agora. Use <b>+ Gerar nova versão</b> para congelar uma cópia do estado atual e continuar editando a partir dela. Depois, marque <b>2 versões</b> e clique em <b>Comparar</b>.</p>
+  <div id="listaVersoes" class="versoes-list"></div>
+  <div id="comparacaoVersoes"></div>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-primary" id="btnGerarVersao">+ Gerar nova versão</button>
+    <button type="button" class="btn btn-ghost" id="btnCompararVersoes">Comparar selecionadas (2)</button>
+    <button type="button" class="btn btn-ghost" id="btnFecharVersoes">Fechar</button>
+  </div>
 </dialog>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
