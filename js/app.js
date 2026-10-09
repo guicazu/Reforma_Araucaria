@@ -32,6 +32,12 @@ function acharServicoPorLinha(o,lid){
   }
   return null;
 }
+function acharSubPorId(o,sid){
+  for(const u of o.unidades)for(const e of u.etapas){
+    const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;
+  }
+  return null;
+}
 
 /* ---------- orçamentos ---------- */
 function criarOrcamento(nome){const o={id:uid(),nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};state.orcamentos.push(o);state.ativoId=o.id;salvar();renderTudo();}
@@ -39,7 +45,7 @@ function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=promp
 function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
 
-/* ---------- criar/renomear/excluir/reordenar níveis ---------- */
+/* ---------- CRUD níveis ---------- */
 function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;o.unidades.push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
 function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=n.trim()||u.nome;salvar();renderTudo();}
 function excluirUnidade(o,u){if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;o.unidades=o.unidades.filter(x=>x.id!==u.id);salvar();renderTudo();}
@@ -55,7 +61,7 @@ function renomearSub(s){const n=prompt('Renomear sub etapa:',s.nome);if(n===null
 function excluirSub(e,s){if(!confirm(`Excluir a sub etapa "${s.nome}" e seus serviços?`))return;e.subEtapas=e.subEtapas.filter(x=>x.id!==s.id);salvar();renderTudo();}
 function moverSub(e,s,dir){const i=e.subEtapas.indexOf(s);const j=i+dir;if(j<0||j>=e.subEtapas.length)return;[e.subEtapas[i],e.subEtapas[j]]=[e.subEtapas[j],e.subEtapas[i]];salvar();renderTudo();}
 
-function addServico(s){abrirModalServico(null,s);}
+function abrirModalServico(sv,sub){$('#fServicoId').value=sv?sv.id:'';$('#fSubId').value=sub?sub.id:'';$('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';$('#fNome').value=sv?sv.nome:'';$('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';$('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';$('#modalServico').showModal();$('#fNome').focus();}
 function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
 function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
 function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
@@ -71,13 +77,13 @@ function calcularLinha(l){
   if(c==null&&a==null&&w==null&&q==null&&coef==null)return{valor:null,tipo:''};
   return{valor:base*(q??1)*(coef??1),tipo};
 }
-function qtdServico(sv){
-  if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}
-  return num(sv.qtdManual)||0;
-}
+function qtdServico(sv){if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}return num(sv.qtdManual)||0;}
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
 function totalOrcamento(o){let t=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function contarServicos(o){let n=0;for(const u of o.unidades)for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
+function subtotalSub(s){return s.servicos.reduce((a,sv)=>a+totalServico(sv),0);}
+function subtotalEtapa(e){let t=0;for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
@@ -90,91 +96,87 @@ $('#orcamentoNome').textContent=o.nome;
 $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
 $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
-$('#arvore').innerHTML=renderArvore(o);}
+$('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+$('#corpoTabela').innerHTML=renderTabela(o);}
 
-function renderArvore(o){
-  if(!o.unidades.length)return `<div class="empty-inline">Nenhuma unidade construtiva ainda. Clique em <strong>+ Unidade construtiva</strong> para começar.</div>`;
-  return o.unidades.map((u,iu)=>`
-  <div class="unidade">
-    <div class="unidade-head">
-      <span class="rotulo">Unidade ${iu+1}</span>
-      <strong>${esc(u.nome)}</strong>
-      <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
-      <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
-      <button class="btn btn-primary btn-sm" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button>
-      <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
-      <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir">🗑</button>
-    </div>
-    <div class="etapas">${renderEtapas(o,u)}</div>
-  </div>`).join('');
-}
-
-function renderEtapas(o,u){
-  if(!u.etapas.length)return `<div class="empty-inline">Nenhuma etapa. Use <strong>+ Etapa</strong> acima.</div>`;
-  return u.etapas.map((e,ie)=>`
-  <div class="etapa">
-    <div class="etapa-head">
-      <span class="rotulo">Etapa ${ie+1}</span>
-      <strong>${esc(e.nome)}</strong>
-      <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
-      <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
-      <button class="btn btn-primary btn-sm" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
-      <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
-      <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir">🗑</button>
-    </div>
-    <div class="subs">${renderSubs(o,u,e)}</div>
-  </div>`).join('');
-}
-
-function renderSubs(o,u,e){
-  if(!e.subEtapas.length)return `<div class="empty-inline">Nenhuma sub etapa. Use <strong>+ Sub Etapa</strong> acima.</div>`;
-  return e.subEtapas.map((s,is)=>`
-  <div class="sub">
-    <div class="sub-head">
-      <span class="rotulo">Sub ${is+1}</span>
-      <strong>${esc(s.nome)}</strong>
-      <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
-      <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
-      <button class="btn btn-primary btn-sm" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button>
-      <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
-      <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir">🗑</button>
-    </div>
-    <div class="servicos">${renderServicos(o,u,e,s)}</div>
-  </div>`).join('');
-}
-
-function renderServicos(o,u,e,s){
-  if(!s.servicos.length)return `<div class="empty-inline">Nenhum serviço. Use <strong>+ Serviço</strong> acima.</div>`;
-  return s.servicos.map((sv,isv)=>{
-    const qtd=qtdServico(sv);
-    return `
-    <div class="servico">
-      <div class="servico-head">
-        <strong>${esc(sv.nome)}</strong>
-        <span class="servico-un">${esc(sv.unidadeMedida)}</span>
-        <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
-        <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
-        <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Memória de cálculo">🧮</button>
-        <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
-        <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
-      </div>
-      <div class="servico-valores">
-        <span>Quantidade: <b>${fmtNum.format(qtd)} ${esc(sv.unidadeMedida)}</b></span>
-        <span>Valor unit.: <b>${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</b></span>
-        <span class="total">Total: <b>${fmtBRL.format(totalServico(sv))}</b></span>
-      </div>
-      ${sv.memo&&sv.memo.length?renderMemo(sv):''}
-    </div>`;
-  }).join('');
+function renderTabela(o){
+  if(!o.unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
+  let html='';
+  o.unidades.forEach((u,iu)=>{
+    const cU=iu+1;
+    html+=`<tr class="grupo n1">
+      <td class="col-codigo codigo">${cU}</td>
+      <td><strong>${esc(u.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button></td>
+      <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
+      <td class="col-num total">${fmtBRL.format(subtotalUnidade(o,u))}</td>
+      <td class="col-acoes">
+        <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
+        <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
+        <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
+        <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir unidade">🗑</button>
+      </td>
+    </tr>`;
+    u.etapas.forEach((e,ie)=>{
+      const cE=cU+'.'+(ie+1);
+      html+=`<tr class="grupo n2">
+        <td class="col-codigo codigo">${cE}</td>
+        <td><strong>${esc(e.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button></td>
+        <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
+        <td class="col-num total">${fmtBRL.format(subtotalEtapa(e))}</td>
+        <td class="col-acoes">
+          <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
+          <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
+          <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
+          <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir etapa">🗑</button>
+        </td>
+      </tr>`;
+      e.subEtapas.forEach((s,is)=>{
+        const cS=cE+'.'+(is+1);
+        html+=`<tr class="grupo n3">
+          <td class="col-codigo codigo">${cS}</td>
+          <td><strong>${esc(s.nome)}</strong><button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button></td>
+          <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
+          <td class="col-num total">${fmtBRL.format(subtotalSub(s))}</td>
+          <td class="col-acoes">
+            <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
+            <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
+            <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
+            <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir sub etapa">🗑</button>
+          </td>
+        </tr>`;
+        s.servicos.forEach((sv,isv)=>{
+          const cSv=cS+'.'+(isv+1);
+          const qtd=qtdServico(sv);
+          html+=`<tr class="linha-servico">
+            <td class="col-codigo codigo">${cSv}</td>
+            <td><strong>${esc(sv.nome)}</strong>${sv.memo&&sv.memo.length?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+            <td class="col-un">${esc(sv.unidadeMedida)}</td>
+            <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
+            <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
+            <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
+            <td class="col-acoes">
+              <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Memória de cálculo">🧮</button>
+              <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
+              <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
+              <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
+              <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
+            </td>
+          </tr>`;
+          if(sv.memo&&sv.memo.length)html+=renderMemo(sv);
+        });
+      });
+    });
+  });
+  return html;
 }
 
 function renderMemo(sv){
   const linhas=sv.memo.map(l=>{const r=calcularLinha(l);return `
   <tr>
-    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição (ex.: Divisória sala 1º andar)" /></td>
+    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição" /></td>
     <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="Qtd" /></td>
     <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="Coef." /></td>
-    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="Comp." /></td>
+    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="Compr." /></td>
     <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="Alt." /></td>
     <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="Larg." /></td>
     <td class="res" id="res_${l.id}">${r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
@@ -182,42 +184,26 @@ function renderMemo(sv){
   </tr>`;}).join('');
   const soma=qtdServico(sv);
   return `
-  <div class="memo">
-    <div class="memo-head">
-      <h4>🧮 Memória de cálculo</h4>
-      <span class="memo-soma">Soma: <strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
+  <tr class="linha-memo"><td colspan="7">
+    <div class="memo-box">
+      <div class="memo-head">
+        <h4>🧮 Memória de cálculo — ${esc(sv.nome)}</h4>
+        <span class="memo-soma">Soma: <strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
+      </div>
+      <table class="tabela-memo">
+        <thead><tr><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+      <div class="memo-add">
+        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Adicionar linha</button>
+        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Apagar memória</button>
+      </div>
+      <p class="memo-aviso">ℹ️ <b>Comprimento + Altura</b> → m² · <b>+ Largura</b> → m³ · só <b>Qtd</b> → qtd. A <b>Qtd</b> e o <b>Coef.</b> multiplicam o resultado.</p>
     </div>
-    <table class="memo-tabela">
-      <thead><tr><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
-      <tbody>${linhas}</tbody>
-    </table>
-    <div class="memo-add">
-      <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Adicionar linha</button>
-      <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Apagar memória</button>
-    </div>
-    <p class="memo-aviso">ℹ️ Preencha <b>comprimento + altura</b> → m² · <b>+ largura</b> → m³ · só <b>Qtd</b> → qtd. A <b>Qtd</b> e o <b>Coef.</b> multiplicam o resultado.</p>
-  </div>`;
+  </td></tr>`;
 }
 
-/* ---------- modal serviço ---------- */
-function abrirModalServico(sv,sub){
-  $('#fServicoId').value=sv?sv.id:'';
-  $('#fSubId').value=sub?sub.id:'';
-  $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
-  $('#fNome').value=sv?sv.nome:'';
-  $('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';
-  $('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';
-  $('#modalServico').showModal();
-  $('#fNome').focus();
-}
-
-function acharSubPorId(o,sid){
-  for(const u of o.unidades)for(const e of u.etapas){
-    const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;
-  }
-  return null;
-}
-
+/* ---------- formulário serviço ---------- */
 $('#formServico').addEventListener('submit',(ev)=>{
   ev.preventDefault();
   const o=orcamentoAtivo();if(!o)return;
@@ -240,7 +226,7 @@ $('#listaOrcamentos').addEventListener('click',(ev)=>{
   const item=ev.target.closest('.orcamento-item');if(item)ativarOrcamento(item.dataset.orcamentoId);
 });
 
-$('#arvore').addEventListener('click',(ev)=>{
+$('#corpoTabela').addEventListener('click',(ev)=>{
   const b=ev.target.closest('[data-acao]');if(!b)return;
   const o=orcamentoAtivo();if(!o)return;
   const acao=b.dataset.acao;
@@ -264,18 +250,14 @@ $('#arvore').addEventListener('click',(ev)=>{
     case 'down-sub':moverSub(e,s,1);break;
     case 'ren-sub':renomearSub(s);break;
     case 'del-sub':excluirSub(e,s);break;
-    case 'add-servico':addServico(s);break;
+    case 'add-servico':abrirModalServico(null,s);break;
 
     case 'up-sv':moverServico(s,sv,-1);break;
     case 'down-sv':moverServico(s,sv,1);break;
     case 'edit-sv':abrirModalServico(sv);break;
     case 'del-sv':excluirServico(s,sv);break;
-    case 'memo-sv':{
-      const svx=acharServicoPorId(o,svid);
-      if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
-      break;
-    }
-    case 'add-linha':{
+
+    case 'memo-sv':case 'add-linha':{
       const svx=acharServicoPorId(o,svid);
       if(svx){svx.memo=svx.memo||[];svx.memo.push({id:uid(),descricao:'',comprimento:'',altura:'',largura:'',coeficiente:'',quantidade:''});salvar();renderTudo();}
       break;
@@ -293,7 +275,7 @@ $('#arvore').addEventListener('click',(ev)=>{
   }
 });
 
-$('#arvore').addEventListener('input',(ev)=>{
+$('#corpoTabela').addEventListener('input',(ev)=>{
   const inp=ev.target.closest('input[data-lid]');if(!inp)return;
   const o=orcamentoAtivo();if(!o)return;
   const lid=inp.dataset.lid,campo=inp.dataset.campo;
@@ -304,8 +286,14 @@ $('#arvore').addEventListener('input',(ev)=>{
   const r=calcularLinha(l);
   const res=document.getElementById('res_'+lid);
   if(res)res.textContent=(r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo);
+  const qCell=document.getElementById('qtdsv_'+sv.id);
+  if(qCell)qCell.textContent=fmtNum.format(qtdServico(sv));
+  const tCell=document.getElementById('totalsv_'+sv.id);
+  if(tCell)tCell.textContent=fmtBRL.format(totalServico(sv));
   const somaEl=document.getElementById('soma_'+sv.id);
   if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv))+' '+sv.unidadeMedida;
+  $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
+  $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 });
 
 $('#btnNovoOrcamento').addEventListener('click',()=>{const n=prompt('Nome do novo orçamento:','');if(n===null)return;criarOrcamento(n);});
