@@ -63,7 +63,8 @@ button{font:inherit}
 .col-codigo{width:110px;white-space:nowrap}
 .col-un{width:60px;text-align:center}
 .col-num{width:130px;text-align:right;white-space:nowrap}
-.col-acoes{width:190px;text-align:right;white-space:nowrap}
+.col-acoes{width:300px;text-align:right;white-space:nowrap}
+.col-acoes .btn-xs{margin-left:0;margin-right:6px}
 .codigo{font-family:Consolas,'Courier New',monospace;color:var(--navy-2);font-weight:600;font-size:13px}
 .total{font-weight:700;color:var(--navy-escuro)}
 
