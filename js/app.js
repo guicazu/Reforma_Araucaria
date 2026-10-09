@@ -1,5 +1,5 @@
 'use strict';
-const DB_KEY='ibuild_orcamentos_v3';
+const DB_KEY='ibuild_orcamentos_v4';
 const $=(s,c=document)=>c.querySelector(s);
 const fmtBRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
@@ -7,10 +7,25 @@ const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
 function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
+function num2(n){return Math.round((Number(n)||0)*100)/100;}
 
 function estadoInicial(){return{orcamentos:[],ativoId:null,expandidos:{}};}
 function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)return estadoInicial();const s=JSON.parse(raw);return{orcamentos:Array.isArray(s.orcamentos)?s.orcamentos:[],ativoId:s.ativoId||null,expandidos:s.expandidos||{}};}catch(e){return estadoInicial();}}
 const state=carregarEstado();
+
+/* códigos sequenciais automáticos */
+function proximoCodigo(){
+  const ano=new Date().getFullYear();
+  let max=0;
+  for(const o of state.orcamentos){
+    const m=(o.codigo||'').match(/^ORC-(\d{4})-(\d+)$/);
+    if(m&&Number(m[1])===ano)max=Math.max(max,Number(m[2]));
+  }
+  return 'ORC-'+ano+'-'+String(max+1).padStart(3,'0');
+}
+state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
+salvar();
+
 function salvar(){localStorage.setItem(DB_KEY,JSON.stringify(state));}
 
 function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
@@ -31,24 +46,12 @@ function acharSubPorId(o,sid){for(const u of o.unidades)for(const e of u.etapas)
 
 /* ---------- orçamentos ---------- */
 function criarOrcamento(){
-  const o=orcamentoAtivo();
-  const codigo=prompt('Código do orçamento (ex.: ARA-2026-001):','');
-  if(codigo===null)return;
   const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
   if(nome===null)return;
-  const novo={id:uid(),codigo:codigo.trim()||'SEM-COD',nome:(nome||'').trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};
+  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:new Date().toISOString(),unidades:[]};
   state.orcamentos.push(novo);state.ativoId=novo.id;salvar();renderTudo();
 }
-function renomearOrcamento(){
-  const o=orcamentoAtivo();if(!o)return;
-  const codigo=prompt('Código do orçamento:',o.codigo||'');
-  if(codigo===null)return;
-  const nome=prompt('Nome do orçamento:',o.nome);
-  if(nome===null)return;
-  o.codigo=codigo.trim()||o.codigo||'SEM-COD';
-  o.nome=nome.trim()||o.nome;
-  salvar();renderTudo();
-}
+function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
 function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
 
@@ -95,32 +98,16 @@ function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.s
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
 
-function renderLista(){
-  const ul=$('#listaOrcamentos');
-  if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
-  ul.innerHTML=state.orcamentos.map(o=>{
-    const ativo=o.id===state.ativoId?' ativo':'';
-    return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}">
-      <div class="oi-info">
-        <strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong>
-        <span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span>
-      </div>
-      <button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button>
-    </li>`;
-  }).join('');
-}
+function renderLista(){const ul=$('#listaOrcamentos');if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
+ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
 
-function renderConteudo(){
-  const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');
-  if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}
-  vazio.classList.add('hidden');orc.classList.remove('hidden');
-  $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
-  $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
-  $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
-  $('#totalServicos').textContent=contarServicos(o);
-  $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
-  $('#corpoTabela').innerHTML=renderTabela(o);
-}
+function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
+$('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
+$('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s)';
+$('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
+$('#totalServicos').textContent=contarServicos(o);
+$('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+$('#corpoTabela').innerHTML=renderTabela(o);}
 
 function renderTabela(o){
   if(!o.unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
@@ -252,6 +239,65 @@ $('#formServico').addEventListener('submit',(ev)=>{
   salvar();renderTudo();$('#modalServico').close();
 });
 
+/* ---------- exportar Excel / PDF ---------- */
+function exportarExcel(){
+  const o=orcamentoAtivo();if(!o)return;
+  const rows=[];
+  rows.push(['CÓDIGO','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
+  o.unidades.forEach((u,iu)=>{
+    rows.push([String(iu+1),u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
+    u.etapas.forEach((e,ie)=>{
+      rows.push([`${iu+1}.${ie+1}`,'   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
+      e.subEtapas.forEach((s,is)=>{
+        rows.push([`${iu+1}.${ie+1}.${is+1}`,'      '+s.nome,'',null,null,num2(subtotalSub(s))]);
+        s.servicos.forEach((sv,isv)=>{
+          rows.push([`${iu+1}.${ie+1}.${is+1}.${isv+1}`,'         '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
+        });
+      });
+    });
+  });
+  rows.push([]);
+  rows.push(['','TOTAL GERAL','','','',num2(totalOrcamento(o))]);
+
+  const mrows=[['CÓDIGO DO SERVIÇO','SERVIÇO','DESCRIÇÃO','QTD','COEF.','COMPR.','ALTURA','LARGURA','RESULTADO']];
+  o.unidades.forEach((u,iu)=>{
+    u.etapas.forEach((e,ie)=>{
+      e.subEtapas.forEach((s,is)=>{
+        s.servicos.forEach((sv,isv)=>{
+          if(sv.memo&&sv.memo.length){
+            const cod=`${iu+1}.${ie+1}.${is+1}.${isv+1}`;
+            sv.memo.forEach(l=>{
+              const r=calcularLinha(l);
+              mrows.push([cod,sv.nome,l.descricao||'',num2(num(l.quantidade)),num2(num(l.coeficiente)),num2(num(l.comprimento)),num2(num(l.altura)),num2(num(l.largura)),r.valor==null?'':num2(r.valor)+' '+r.tipo]);
+            });
+          }
+        });
+      });
+    });
+  });
+
+  const nomeArquivo=((o.codigo||'orcamento')+'-'+o.nome).replace(/[^a-zA-Z0-9\-_]+/g,'_');
+  try{
+    if(typeof XLSX!=='undefined'){
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:14},{wch:50},{wch:6},{wch:14},{wch:14},{wch:16}];
+      const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Orçamento');
+      if(mrows.length>1){
+        const ws2=XLSX.utils.aoa_to_sheet(mrows);
+        ws2['!cols']=[{wch:14},{wch:36},{wch:36},{wch:8},{wch:8},{wch:10},{wch:8},{wch:9},{wch:14}];
+        XLSX.utils.book_append_sheet(wb,ws2,'Memória de cálculo');
+      }
+      XLSX.writeFile(wb,nomeArquivo+'.xlsx');
+      return;
+    }
+  }catch(err){}
+  const csv='\uFEFF'+rows.map(r=>r.map(c=>{if(c==null)return'';const s=String(c).replace(/"/g,'""');return /[";]/.test(s)?'"'+s+'"':s;}).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nomeArquivo+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+}
+function exportarPdf(){window.print();}
+
 /* ---------- eventos ---------- */
 $('#listaOrcamentos').addEventListener('click',(ev)=>{
   const b=ev.target.closest('[data-acao="del-orcamento"]');if(b){excluirOrcamento(b.dataset.id);return;}
@@ -335,6 +381,8 @@ $('#btnNovoVazio').addEventListener('click',criarOrcamento);
 $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
 $('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
+$('#btnExportarExcel').addEventListener('click',exportarExcel);
+$('#btnExportarPdf').addEventListener('click',exportarPdf);
 $('#btnExportar').addEventListener('click',()=>{
   if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
   const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
@@ -342,7 +390,7 @@ $('#btnExportar').addEventListener('click',()=>{
 });
 $('#inputImportar').addEventListener('change',(ev)=>{
   const file=ev.target.files&&ev.target.files[0];ev.target.value='';if(!file)return;
-  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
+  const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&Array.isArray(o.unidades)))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados;state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
 });
 
 renderTudo();
