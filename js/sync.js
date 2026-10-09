@@ -2,7 +2,7 @@
    js/sync.js — Sincronização dos orçamentos com Cloudflare D1
    REGRA: carregar DEPOIS do app.js (ver edição no index.html).
    Fonte da verdade: servidor. localStorage continua como cache
-   offline (o app continua funcionando sem internet).
+   offline (o app continua funcionando s/ internet).
    ───────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
