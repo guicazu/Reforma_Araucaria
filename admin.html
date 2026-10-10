@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin — Usuários</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f4f5f7; margin: 0; padding: 1.5rem; }
+  h1 { font-size: 1.2rem; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: .6rem .5rem; font-size: .85rem; border-bottom: 1px solid #eee; }
+  th { background: #fafafa; }
+  .tag { padding: .15rem .5rem; border-radius: 99px; font-size: .75rem; font-weight: 600; }
+  .pendente { background: #fff3cd; color: #856404; }
+  .aprovado { background: #d4edda; color: #155724; }
+  .bloqueado { background: #f8d7da; color: #721c24; }
+  button { border: none; padding: .35rem .6rem; border-radius: 6px; font-size: .75rem; cursor: pointer; margin-right: .3rem; }
+  .btn-aprovar { background: #2e7d32; color: #fff; }
+  .btn-bloquear { background: #c62828; color: #fff; }
+  .vazio { color: #777; font-size: .85rem; padding: 1rem 0; }
+</style>
+</head>
+<body>
+  <h1>Usuários cadastrados</h1>
+  <div id="conteudo">Carregando...</div>
+
+  <script>
+    function carregar() {
+      fetch('/api/admin/usuarios')
+        .then(function (r) {
+          if (r.status === 403) throw new Error('Você não é administrador.');
+          return r.json();
+        })
+        .then(function (data) {
+          var usuarios = data.usuarios || [];
+          if (!usuarios.length) {
+            document.getElementById('conteudo').innerHTML = '<p class="vazio">Nenhum usuário ainda.</p>';
+            return;
+          }
+          var linhas = usuarios.map(function (u) {
+            return '<tr>' +
+              '<td>' + u.nome + '<br><small>' + u.email + '</small></td>' +
+              '<td>' + u.provedor + '</td>' +
+              '<td><span class="tag ' + u.status + '">' + u.status + '</span></td>' +
+              '<td>' +
+                (u.status !== 'aprovado' ? '<button class="btn-aprovar" onclick="agir(\'' + u.id + '\',\'aprovar\')">Aprovar</button>' : '') +
+                (u.status !== 'bloqueado' ? '<button class="btn-bloquear" onclick="agir(\'' + u.id + '\',\'bloquear\')">Bloquear</button>' : '') +
+              '</td>' +
+            '</tr>';
+          }).join('');
+          document.getElementById('conteudo').innerHTML =
+            '<table><thead><tr><th>Usuário</th><th>Login</th><th>Status</th><th>Ação</th></tr></thead><tbody>' +
+            linhas + '</tbody></table>';
+        })
+        .catch(function (e) {
+          document.getElementById('conteudo').innerHTML = '<p class="vazio">' + e.message + '</p>';
+        });
+    }
+
+    window.agir = function (id, acao) {
+      fetch('/api/admin/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, acao: acao })
+      }).then(carregar);
+    };
+
+    carregar();
+  </script>
+</body>
+</html>

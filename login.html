@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Entrar — Reforma Araucária</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f4f5f7; display: flex;
+         align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .card { background: #fff; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08);
+          width: 90%; max-width: 360px; text-align: center; }
+  h1 { font-size: 1.25rem; margin-bottom: 1.5rem; color: #1a1a1a; }
+  a.botao { display: flex; align-items: center; justify-content: center; gap: .6rem;
+            padding: .75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;
+            margin-bottom: .75rem; border: 1px solid #ddd; color: #1a1a1a; }
+  a.google:hover { background: #f8f8f8; }
+  a.microsoft:hover { background: #f8f8f8; }
+  .erro { color: #c0392b; font-size: .85rem; margin-top: 1rem; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Acessar Reforma Araucária</h1>
+    <a class="botao google" href="/api/auth/google">Entrar com Google</a>
+    <a class="botao microsoft" href="/api/auth/microsoft">Entrar com Microsoft</a>
+    <div class="erro" id="erro"></div>
+  </div>
+  <script>
+    var params = new URLSearchParams(location.search);
+    var erro = params.get('erro');
+    if (erro) {
+      var msgs = {
+        bloqueado: 'Seu acesso foi bloqueado. Fale com o administrador.',
+        state: 'Falha na validação do login. Tente novamente.',
+        token: 'Não foi possível confirmar seu login. Tente novamente.',
+        sem_email: 'Não conseguimos obter seu e-mail. Tente outra conta.'
+      };
+      document.getElementById('erro').textContent = msgs[erro] || 'Erro ao entrar.';
+    }
+  </script>
+</body>
+</html>
