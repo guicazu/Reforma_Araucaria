@@ -5,26 +5,92 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Entrar — Reforma Araucária</title>
 <style>
-  body { font-family: system-ui, sans-serif; background: #f4f5f7; display: flex;
-         align-items: center; justify-content: center; height: 100vh; margin: 0; }
-  .card { background: #fff; padding: 2.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08);
-          width: 90%; max-width: 360px; text-align: center; }
-  h1 { font-size: 1.25rem; margin-bottom: 1.5rem; color: #1a1a1a; }
-  a.botao { display: flex; align-items: center; justify-content: center; gap: .6rem;
-            padding: .75rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600;
-            margin-bottom: .75rem; border: 1px solid #ddd; color: #1a1a1a; }
-  a.google:hover { background: #f8f8f8; }
-  a.microsoft:hover { background: #f8f8f8; }
-  .erro { color: #c0392b; font-size: .85rem; margin-top: 1rem; }
+  :root {
+    --petroleo-profundo: #052d33;
+    --petroleo-escuro: #072f34;
+    --verde-acinzentado: #1a3f44;
+    --limao: #b1e445;
+    --limao-claro: #aadf3d;
+    --cinza-azulado: #6f8789;
+    --cinza-azulado-medio: #586774;
+    --branco-acinzentado: #f5f8f7;
+    --branco-puro: #fefefe;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: var(--branco-acinzentado);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+  .card {
+    background: var(--branco-puro);
+    padding: 2.5rem;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(5, 45, 51, 0.1);
+    width: 90%;
+    max-width: 360px;
+    text-align: center;
+  }
+  .logo {
+    width: 76px;
+    height: auto;
+    margin-bottom: 1.25rem;
+  }
+  h1 {
+    font-size: 1.2rem;
+    margin: 0 0 1.75rem;
+    color: var(--petroleo-profundo);
+    font-weight: 700;
+  }
+  a.botao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    padding: .8rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: .75rem;
+    border: 1.5px solid var(--cinza-azulado);
+    color: var(--verde-acinzentado);
+    transition: all .15s ease;
+  }
+  a.botao:hover {
+    border-color: var(--limao-claro);
+    background: var(--branco-acinzentado);
+  }
+  .erro {
+    color: #c0392b;
+    font-size: .85rem;
+    margin-top: 1rem;
+  }
+  .admin-link {
+    display: block;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--branco-acinzentado);
+    font-size: .8rem;
+    color: var(--cinza-azulado-medio);
+    text-decoration: none;
+  }
+  .admin-link:hover {
+    color: var(--petroleo-profundo);
+  }
 </style>
 </head>
 <body>
   <div class="card">
-    <img src="/logo.png" alt="Reforma Araucária" style="width: 72px; height: auto; margin-bottom: 1rem;">
+    <img class="logo" src="/logo.png" alt="Reforma Araucária" />
     <h1>Acessar Reforma Araucária</h1>
     <a class="botao google" href="/api/auth/google">Entrar com Google</a>
     <a class="botao microsoft" href="/api/auth/microsoft">Entrar com Microsoft</a>
     <div class="erro" id="erro"></div>
+    <a class="admin-link" href="/admin.html">É administrador? Acessar painel →</a>
   </div>
   <script>
     var params = new URLSearchParams(location.search);
