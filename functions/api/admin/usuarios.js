@@ -1,42 +1,65 @@
-import { criarSessao, cookieHeader } from './session.js';
+// functions/api/admin/usuarios.js
+// Endpoint de administração: lista, aprova e bloqueia usuários.
+// Só funciona para e-mails listados em ADMIN_EMAILS.
+import { lerCookie, validarSessao } from '../../_lib/session.js';
 
-// Chamado pelos callbacks do Google e Microsoft depois de confirmar o e-mail da pessoa.
-export async function autorizarOuRegistrarUsuario({ env, url, email, nome, provedor }) {
-  const agora = new Date().toISOString();
-  email = (email || '').toLowerCase().trim();
+function ehAdmin(payload, env) {
+  if (!payload || !payload.email) return false;
+  const admins = (env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return admins.includes(payload.email.toLowerCase());
+}
 
-  if (!email) {
-    return Response.redirect(`${url.origin}/login.html?erro=sem_email`, 302);
+async function listar(env) {
+  const { results } = await env.DB.prepare(
+    'SELECT id, email, nome, provedor, status, criadoEm, aprovadoEm FROM usuarios ORDER BY criadoEm DESC'
+  ).all();
+  return Response.json({ usuarios: results });
+}
+
+export async function onRequestGet({ request, env }) {
+  const token = lerCookie(request, 'sessao');
+  const payload = token ? await validarSessao(token, env.SESSION_SECRET) : null;
+  if (!ehAdmin(payload, env)) {
+    return Response.json({ erro: 'nao_autorizado' }, { status: 403 });
+  }
+  return listar(env);
+}
+
+export async function onRequestPost({ request, env }) {
+  const token = lerCookie(request, 'sessao');
+  const payload = token ? await validarSessao(token, env.SESSION_SECRET) : null;
+  if (!ehAdmin(payload, env)) {
+    return Response.json({ erro: 'nao_autorizado' }, { status: 403 });
   }
 
-  let usuario = await env.DB.prepare(
-    'SELECT * FROM usuarios WHERE email = ?'
-  ).bind(email).first();
+  let corpo = {};
+  try {
+    corpo = await request.json();
+  } catch (e) {
+    corpo = {};
+  }
 
-  if (!usuario) {
-    const id = crypto.randomUUID();
+  const { id, acao } = corpo || {};
+  if (!id || !['aprovar', 'bloquear'].includes(acao)) {
+    return Response.json({ erro: 'parametros_invalidos' }, { status: 400 });
+  }
+
+  if (acao === 'aprovar') {
     await env.DB.prepare(
-      `INSERT INTO usuarios (id, email, nome, provedor, status, criadoEm)
-       VALUES (?, ?, ?, ?, 'pendente', ?)`
-    ).bind(id, email, nome, provedor, agora).run();
-    return Response.redirect(`${url.origin}/aguardando-aprovacao.html`, 302);
+      "UPDATE usuarios SET status = 'aprovado', aprovadoEm = ? WHERE id = ?"
+    )
+      .bind(new Date().toISOString(), id)
+      .run();
+  } else {
+    await env.DB.prepare(
+      "UPDATE usuarios SET status = 'bloqueado' WHERE id = ?"
+    )
+      .bind(id)
+      .run();
   }
 
-  if (usuario.status === 'bloqueado') {
-    return Response.redirect(`${url.origin}/login.html?erro=bloqueado`, 302);
-  }
-
-  if (usuario.status === 'pendente') {
-    return Response.redirect(`${url.origin}/aguardando-aprovacao.html`, 302);
-  }
-
-  // status === 'aprovado' -> cria sessão de 30 dias
-  const token = await criarSessao(
-    { email: usuario.email, nome: usuario.nome, exp: Date.now() + 1000 * 60 * 60 * 24 * 30 },
-    env.SESSION_SECRET
-  );
-
-  const resposta = Response.redirect(`${url.origin}/`, 302);
-  resposta.headers.append('Set-Cookie', cookieHeader('sessao', token, { maxAge: 60 * 60 * 24 * 30 }));
-  return resposta;
+  return listar(env);
 }
