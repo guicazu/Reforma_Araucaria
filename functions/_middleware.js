@@ -27,7 +27,7 @@ export async function onRequest({ request, env, next }) {
   const payload = token ? await validarSessao(token, env.SESSION_SECRET) : null;
 
   if (!payload) {
-    return Response.redirect(`${url.origin}/login.html`, 302);
+    return Response.redirect(`${url.origin}/login`, 302);
   }
 
   return next();
