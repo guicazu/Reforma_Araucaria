@@ -36,7 +36,8 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
     env.SESSION_SECRET
   );
 
-  const resposta = Response.redirect(`${url.origin}/`, 302);
-  resposta.headers.append('Set-Cookie', cookieHeader('sessao', token, { maxAge: 60 * 60 * 24 * 30 }));
-  return resposta;
+    const headers = new Headers();
+  headers.set('Location', `${url.origin}/`);
+  headers.append('Set-Cookie', cookieHeader('sessao', token, { maxAge: 60 * 60 * 24 * 30 }));
+  return new Response(null, { status: 302, headers });
 }

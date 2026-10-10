@@ -14,10 +14,9 @@ export async function onRequestGet({ request, env }) {
     prompt: 'select_account'
   });
 
-  const resposta = Response.redirect(
-    `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
-    302
-  );
-  resposta.headers.append('Set-Cookie', cookieHeader('oauth_state', state, { maxAge: 600 }));
-  return resposta;
+  const headers = new Headers();
+  headers.set('Location', `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  headers.append('Set-Cookie', cookieHeader('oauth_state', state, { maxAge: 600 }));
+
+  return new Response(null, { status: 302, headers });
 }

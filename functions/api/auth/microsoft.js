@@ -14,10 +14,9 @@ export async function onRequestGet({ request, env }) {
     state
   });
 
-  const resposta = Response.redirect(
-    `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`,
-    302
-  );
-  resposta.headers.append('Set-Cookie', cookieHeader('oauth_state', state, { maxAge: 600 }));
-  return resposta;
+  const headers = new Headers();
+  headers.set('Location', `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`);
+  headers.append('Set-Cookie', cookieHeader('oauth_state', state, { maxAge: 600 }));
+
+  return new Response(null, { status: 302, headers });
 }
