@@ -8,7 +8,7 @@ export async function onRequestGet({ request, env }) {
   const stateCookie = lerCookie(request, 'oauth_state');
 
   if (!code || !state || state !== stateCookie) {
-    return Response.redirect(`${url.origin}/login.html?erro=state`, 302);
+    return Response.redirect(`${url.origin}/login?erro=state`, 302);
   }
 
   const redirectUri = `${url.origin}/api/auth/microsoft-callback`;

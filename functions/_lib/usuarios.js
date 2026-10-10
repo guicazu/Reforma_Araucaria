@@ -19,15 +19,15 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
       `INSERT INTO usuarios (id, email, nome, provedor, status, criadoEm)
        VALUES (?, ?, ?, ?, 'pendente', ?)`
     ).bind(id, email, nome, provedor, agora).run();
-    return Response.redirect(`${url.origin}/aguardando-aprovacao.html`, 302);
+    return Response.redirect(`${url.origin}/aguardando-aprovacao`, 302);
   }
 
   if (usuario.status === 'bloqueado') {
-    return Response.redirect(`${url.origin}/login.html?erro=bloqueado`, 302);
+    return Response.redirect(`${url.origin}/login?erro=bloqueado`, 302);
   }
 
   if (usuario.status === 'pendente') {
-    return Response.redirect(`${url.origin}/aguardando-aprovacao.html`, 302);
+    return Response.redirect(`${url.origin}/aguardando-aprovacao`, 302);
   }
 
   // status === 'aprovado' -> cria sessão de 30 dias

@@ -2,8 +2,8 @@ import { lerCookie, validarSessao } from './_lib/session.js';
 
 // Caminhos que continuam acessíveis sem login
 const CAMINHOS_PUBLICOS = [
-  '/login.html',
-  '/aguardando-aprovacao.html',
+  '/login',
+  '/aguardando-aprovacao',
   '/api/auth/google',
   '/api/auth/google-callback',
   '/api/auth/microsoft',
