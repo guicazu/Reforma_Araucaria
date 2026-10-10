@@ -69,18 +69,6 @@
     font-size: .85rem;
     margin-top: 1rem;
   }
-  .admin-link {
-    display: block;
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--branco-acinzentado);
-    font-size: .8rem;
-    color: var(--cinza-azulado-medio);
-    text-decoration: none;
-  }
-  .admin-link:hover {
-    color: var(--petroleo-profundo);
-  }
 </style>
 </head>
 <body>
@@ -90,7 +78,6 @@
     <a class="botao google" href="/api/auth/google">Entrar com Google</a>
     <a class="botao microsoft" href="/api/auth/microsoft">Entrar com Microsoft</a>
     <div class="erro" id="erro"></div>
-    <a class="admin-link" href="/admin.html">É administrador? Acessar painel →</a>
   </div>
   <script>
     var params = new URLSearchParams(location.search);
