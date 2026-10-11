@@ -11,6 +11,33 @@
 </head>
 <body>
 
+<nav class="app-sidebar" id="appSidebar">
+  <button class="app-sidebar-toggle" id="btnToggleSidebar" title="Recolher menu">☰</button>
+  <div class="app-sidebar-logo">
+    <img src="logo.png" alt="Logo" onerror="this.style.display='none'" />
+  </div>
+  <div class="app-sidebar-nav">
+    <div class="app-sidebar-group">
+      <span class="app-sidebar-group-label">Engenharia</span>
+      <button class="app-sidebar-item ativo" data-view="orcamento" title="Orçamento">
+        <span class="icone">🏗️</span><span class="rotulo">Orçamento</span>
+      </button>
+    </div>
+    <div class="app-sidebar-group">
+      <span class="app-sidebar-group-label">Apoio</span>
+      <a class="app-sidebar-item admin-only hidden" id="navUsuarios" href="/admin.html" title="Usuários">
+        <span class="icone">👥</span><span class="rotulo">Usuários</span>
+      </a>
+      <button class="app-sidebar-item" data-view="backup" title="Backup">
+        <span class="icone">💾</span><span class="rotulo">Backup</span>
+      </button>
+    </div>
+  </div>
+  <div class="app-sidebar-user" id="appSidebarUser"></div>
+</nav>
+
+<div class="app-main">
+
 <header class="topbar">
   <div class="brand">
     <span class="logo" id="logoFallback">iB</span>
@@ -21,17 +48,9 @@
       <p>Orçamento e gestão de obras</p>
     </div>
   </div>
-  <div class="topbar-actions">
-    <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual">⧉ Duplicar</button>
-    <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação">🕘 Versões</button>
-    <button id="btnExportar" class="btn btn-ghost">⬇ Backup</button>
-    <label class="btn btn-ghost">⬆ Importar
-      <input type="file" id="inputImportar" accept=".json,application/json" hidden />
-    </label>
-  </div>
 </header>
 
-<main class="layout">
+<main class="layout" id="viewOrcamento">
   <aside class="sidebar">
     <div class="sidebar-head">
       <h2>Orçamentos</h2>
@@ -56,6 +75,8 @@
         <p id="orcamentoMeta"></p>
       </div>
       <div class="orcamento-head-actions">
+        <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual">⧉ Duplicar</button>
+        <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação">🕘 Versões</button>
         <button id="btnExportarExcel" class="btn btn-ghost" title="Exportar planilha .xlsx">📊 Excel</button>
         <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF">📄 PDF</button>
         <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
@@ -103,6 +124,24 @@
     </div>
   </section>
 </main>
+
+<section class="content hidden view-backup" id="viewBackup">
+  <div class="orcamento-head">
+    <div>
+      <h2>Backup</h2>
+      <p>Exportar todos os orçamentos para um arquivo .json, ou importar um backup salvo anteriormente.</p>
+    </div>
+  </div>
+  <div class="backup-actions">
+    <button id="btnExportar" class="btn btn-primary">⬇ Exportar backup</button>
+    <label class="btn btn-ghost">⬆ Importar backup
+      <input type="file" id="inputImportar" accept=".json,application/json" hidden />
+    </label>
+  </div>
+  <p class="memo-aviso" style="margin-top:14px">⚠️ Importar um backup <b>substitui</b> todos os orçamentos atuais pelos do arquivo.</p>
+</section>
+
+</div>
 
 <dialog id="modalServico" class="modal">
   <form id="formServico">
@@ -153,5 +192,6 @@
   <script src="js/app.js"></script>
   <script src="js/sync.js"></script>
 <script src="/js/auth-ui.js"></script>
+<script src="/js/erp-nav.js"></script>
 </body>
 </html>
