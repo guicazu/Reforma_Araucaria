@@ -6,7 +6,7 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
   email = (email || '').toLowerCase().trim();
 
   if (!email) {
-    return Response.redirect(`${url.origin}/login.html?erro=sem_email`, 302);
+    return Response.redirect(`${url.origin}/login?erro=sem_email`, 302);
   }
 
   const admins = (env.ADMIN_EMAILS || '')
@@ -17,26 +17,37 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
   let usuario = await env.DB.prepare(
     'SELECT * FROM usuarios WHERE email = ?'
   ).bind(email).first();
+  const eAdminConfigurado = admins.includes(email);
 
   if (!usuario) {
     const id = crypto.randomUUID();
-    const eAdmin = admins.includes(email) ? 1 : 0;
+    const statusInicial = eAdminConfigurado ? 'aprovado' : 'pendente';
+    const adminInicial = eAdminConfigurado ? 1 : 0;
     await env.DB.prepare(
-      `INSERT INTO usuarios (id, email, nome, provedor, status, isAdmin, criadoEm)
-       VALUES (?, ?, ?, ?, 'pendente', ?, ?)`
-    ).bind(id, email, nome, provedor, eAdmin, agora).run();
-    return Response.redirect(`${url.origin}/aguardando-aprovacao`, 302);
+      `INSERT INTO usuarios (id, email, nome, provedor, status, isAdmin, criadoEm, aprovadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, email, nome, provedor, statusInicial, adminInicial, agora, eAdminConfigurado ? agora : null).run();
+    usuario = {id, email, nome, status: statusInicial, isAdmin: adminInicial};
+    if (!eAdminConfigurado) return Response.redirect(`${url.origin}/aguardando-aprovacao`, 302);
   }
 
   if (usuario.status === 'bloqueado') {
     return Response.redirect(`${url.origin}/login?erro=bloqueado`, 302);
   }
 
+  if (eAdminConfigurado && usuario.status === 'pendente') {
+    await env.DB.prepare(
+      "UPDATE usuarios SET status = 'aprovado', isAdmin = 1, aprovadoEm = ? WHERE email = ?"
+    ).bind(agora, email).run();
+    usuario.status = 'aprovado';
+    usuario.isAdmin = 1;
+  }
+
   if (usuario.status === 'pendente') {
     return Response.redirect(`${url.origin}/aguardando-aprovacao`, 302);
   }
 
-  if (!usuario.isAdmin && admins.includes(email)) {
+  if (!usuario.isAdmin && eAdminConfigurado) {
     await env.DB.prepare(
       'UPDATE usuarios SET isAdmin = 1 WHERE email = ?'
     ).bind(email).run();
