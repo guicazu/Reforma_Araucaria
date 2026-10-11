@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const usuario = await env.DB.prepare(
-    'SELECT nome, telefone FROM usuarios WHERE email = ?'
+    'SELECT nome, telefone, isAdmin FROM usuarios WHERE email = ?'
   ).bind(payload.email).first();
 
   const admins = (env.ADMIN_EMAILS || '')
@@ -17,7 +17,7 @@ export async function onRequestGet({ request, env }) {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  const isAdmin = admins.includes(payload.email.toLowerCase());
+  const isAdmin = Boolean(usuario && usuario.isAdmin) || admins.includes(payload.email.toLowerCase());
 
   return Response.json({
     email: payload.email,

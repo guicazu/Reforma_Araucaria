@@ -150,6 +150,9 @@
       if (btnUsar) {
         var r = JSON.parse(btnUsar.getAttribute('data-usar'));
         aplicarResultado(r);
+        if (window.registrarResultadoSinapiComoItem) {
+          window.registrarResultadoSinapiComoItem(r);
+        }
         modal.close();
       } else if (btnCopiar) {
         var codigo = btnCopiar.getAttribute('data-copiar');
