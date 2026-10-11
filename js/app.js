@@ -75,8 +75,9 @@ function acharUnidade(o,uid_){return uu(o).find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
 function acharSub(o,uid_,eid,sid){const e=acharEtapa(o,uid_,eid);return e?e.subEtapas.find(s=>s.id===sid):null;}
 function acharServico(o,uid_,eid,sid,svid){const s=acharSub(o,uid_,eid,sid);return s?s.servicos.find(x=>x.id===svid):null;}
-function acharServicoPorId(o,svid){for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas){const sv=s.servicos.find(x=>x.id===svid);if(sv)return sv;}return null;}
-function acharServicoPorLinha(o,lid){for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}return null;}
+function acharServicoDiretoEmEtapa(o,uid_,eid,svid){const e=acharEtapa(o,uid_,eid);if(!e||!Array.isArray(e.servicos))return null;return e.servicos.find(x=>x.id===svid)||null;}
+function acharServicoPorId(o,svid){for(const u of uu(o))for(const e of u.etapas){const sv=(e.servicos||[]).find(x=>x.id===svid);if(sv)return sv;for(const s of e.subEtapas){const x=s.servicos.find(y=>y.id===svid);if(x)return x;}}return null;}
+function acharServicoPorLinha(o,lid){for(const u of uu(o))for(const e of u.etapas){if(Array.isArray(e.servicos))for(const sv of e.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}for(const s of e.subEtapas)for(const sv of s.servicos){if(sv.memo&&sv.memo.find(x=>x.id===lid))return sv;}}return null;}
 function acharSubPorId(o,sid){for(const u of uu(o))for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
 
 /* ---------- orçamentos ---------- */
@@ -220,14 +221,6 @@ function abrirModalServico(sv, sub, etapa, unidade){
   $('#modalServico').showModal();
   $('#fNome').focus();
 }
-function garantirSubEtapaOpcional(etapa){
-  if(!etapa) return null;
-  if(!etapa.subEtapas || !etapa.subEtapas.length){
-    const nomePadrao = 'Sem subetapa';
-    etapa.subEtapas.push({id:uid(),nome:nomePadrao,servicos:[]});
-  }
-  return etapa.subEtapas[etapa.subEtapas.length - 1];
-}
 function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
 function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
 function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
@@ -261,11 +254,11 @@ function calcularLinha(l){
 }
 function qtdServico(sv){if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}return num(sv.qtdManual)||0;}
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
-function totalOrcamento(o){let t=0;for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
-function contarServicos(o){let n=0;for(const u of uu(o))for(const e of u.etapas)for(const s of e.subEtapas)n+=s.servicos.length;return n;}
+function totalOrcamento(o){let t=0;for(const u of uu(o))for(const e of u.etapas){for(const sv of (e.servicos||[]))t+=totalServico(sv);for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);}return t;}
+function contarServicos(o){let n=0;for(const u of uu(o))for(const e of u.etapas){n+= (e.servicos||[]).length;for(const s of e.subEtapas)n+=s.servicos.length;}return n;}
 function subtotalSub(s){return s.servicos.reduce((a,sv)=>a+totalServico(sv),0);}
-function subtotalEtapa(e){let t=0;for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
-function subtotalUnidade(o,u){let t=0;for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function subtotalEtapa(e){let t=0;for(const sv of (e.servicos||[]))t+=totalServico(sv);for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+function subtotalUnidade(o,u){let t=0;for(const e of u.etapas){t+=subtotalEtapa(e);}return t;}
 
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
@@ -321,6 +314,29 @@ function renderTabela(o){
 </td>
       </tr>`;
       if(!abertaE)return;
+      (e.servicos||[]).forEach((sv,isv)=>{
+        const cSv=cE+'.'+(isv+1);
+        const qtd=qtdServico(sv);
+        const temMemo=sv.memo&&sv.memo.length;
+        const memoAberta=estaAberto('sv-'+sv.id);
+        html+=`<tr class="linha-servico linha-direta">
+          <td class="col-codigo codigo">${cSv}</td>
+          <td><strong>${esc(sv.codigo||'')} ${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+          <td class="col-un">${esc(sv.unidadeMedida)}</td>
+          <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
+          <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
+          <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
+          <td class="col-acoes">
+            ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
+            <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
+            <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Editar">✏️</button>
+            <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
+            <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Subir">↑</button>
+            <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Descer">↓</button>
+          </td>
+        </tr>`;
+        if(temMemo&&memoAberta)html+=renderMemo(sv);
+      });
       e.subEtapas.forEach((s,is)=>{
         const cS=cE+'.'+(is+1);
         const abertaS=estaAberto('s-'+s.id);
@@ -414,14 +430,14 @@ $('#formServico').addEventListener('submit',(ev)=>{
     if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}
   }else{
     const etapa = etapaId ? acharEtapa(o, $('#fUnidadeId').value, etapaId) : null;
-    let sub = subId ? acharSubPorId(o, subId) : null;
-    if(!sub && etapa){
-      sub = garantirSubEtapaOpcional(etapa);
-    }
+    const sub = subId ? acharSubPorId(o, subId) : null;
     if(sub){
       sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});
+    } else if(etapa){
+      etapa.servicos = etapa.servicos || [];
+      etapa.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});
     } else {
-      alert('Não foi possível localizar a etapa ou a subetapa para salvar o serviço.');
+      alert('Não foi possível localizar a etapa para salvar o serviço.');
       return;
     }
   }
@@ -502,7 +518,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
   const o=orcamentoAtivo();if(!o)return;
   const acao=b.dataset.acao;
   const uid_=b.dataset.uid,eid=b.dataset.eid,sid=b.dataset.sid,svid=b.dataset.svid,lid=b.dataset.lid;
-  const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=acharServico(o,uid_,eid,sid,svid);
+  const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=(acharServicoDiretoEmEtapa(o,uid_,eid,svid) || acharServico(o,uid_,eid,sid,svid));
 
   if(acao==='toggle'){alternar(b.dataset.key);return;}
 
