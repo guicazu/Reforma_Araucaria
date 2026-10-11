@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   nome TEXT,
-  provedor TEXT NOT NULL,          -- 'google' ou 'microsoft'
-  status TEXT NOT NULL DEFAULT 'pendente', -- pendente | aprovado | bloqueado
+  telefone TEXT,
+  provedor TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pendente',
   isAdmin INTEGER NOT NULL DEFAULT 0,
   criadoEm TEXT NOT NULL,
   aprovadoEm TEXT
@@ -14,3 +15,4 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 CREATE INDEX IF NOT EXISTS idx_usuarios_status ON usuarios (status);
 CREATE INDEX IF NOT EXISTS idx_usuarios_is_admin ON usuarios (isAdmin);
+
