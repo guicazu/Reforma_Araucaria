@@ -13,9 +13,6 @@
 
 <nav class="app-sidebar" id="appSidebar">
   <button class="app-sidebar-toggle" id="btnToggleSidebar" title="Recolher menu">☰</button>
-  <div class="app-sidebar-logo">
-    <img src="logo.png" alt="Logo" onerror="this.style.display='none'" />
-  </div>
   <div class="app-sidebar-nav">
     <div class="app-sidebar-group">
       <button class="app-sidebar-item ativo" data-view="dashboard" title="Início">
@@ -30,9 +27,9 @@
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Apoio</span>
-      <a class="app-sidebar-item admin-only hidden" id="navUsuarios" href="/admin.html" title="Usuários">
+      <button class="app-sidebar-item admin-only hidden" id="navUsuarios" data-view="usuarios" title="Usuários">
         <span class="icone">👥</span><span class="rotulo">Usuários</span>
-      </a>
+      </button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
         <span class="icone">💾</span><span class="rotulo">Backup</span>
       </button>
@@ -77,7 +74,7 @@
   </div>
 </section>
 
-<main class="layout hidden" id="viewOrcamento">
+<main class="layout hidden" id="viewOrcamento" data-modo="lista">
   <aside class="sidebar">
     <div class="sidebar-head">
       <h2>Orçamentos</h2>
@@ -98,6 +95,7 @@
   <section class="content hidden" id="contentOrcamento">
     <div class="orcamento-head">
       <div>
+        <button id="btnVoltarLista" class="btn btn-ghost btn-sm" style="margin-bottom:10px">← Voltar para a lista</button>
         <h2 id="orcamentoNome"></h2>
         <p id="orcamentoMeta"></p>
       </div>
@@ -151,6 +149,16 @@
     </div>
   </section>
 </main>
+
+<section class="content hidden" id="viewUsuarios">
+  <div class="orcamento-head">
+    <div>
+      <h2>Usuários</h2>
+      <p>Aprove ou bloqueie o acesso de novas pessoas ao sistema.</p>
+    </div>
+  </div>
+  <div id="usuariosConteudo">Carregando...</div>
+</section>
 
 <section class="content hidden view-backup" id="viewBackup">
   <div class="orcamento-head">
@@ -220,5 +228,7 @@
   <script src="js/sync.js"></script>
 <script src="/js/auth-ui.js"></script>
 <script src="/js/erp-nav.js"></script>
+<script src="/js/orcamento-ui.js"></script>
+<script src="/js/admin-ui.js"></script>
 </body>
 </html>

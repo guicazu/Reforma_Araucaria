@@ -1,5 +1,6 @@
-/* Preenche o rodapé do menu lateral (nome + Sair), o avatar do topo
-   e a saudação do dashboard. Revela "Usuários" (Apoio) se for admin. */
+/* Preenche o rodapé do menu lateral (nome + Sair), o avatar com menu
+   (editar nome/telefone + sair) e a saudação do dashboard. Revela
+   "Usuários" (Apoio) se a pessoa for administradora. */
 (function () {
   'use strict';
 
@@ -14,6 +15,69 @@
   function primeiroNome(nome) {
     if (!nome) return '';
     return nome.trim().split(/\s+/)[0];
+  }
+
+  function montarMenuAvatar(usuario) {
+    var topbarUser = document.getElementById('topbarUser');
+    if (!topbarUser) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'avatar-wrap';
+
+    var botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'avatar';
+    botao.title = usuario.nome || usuario.email;
+    botao.textContent = iniciais(usuario.nome || usuario.email);
+
+    var painel = document.createElement('div');
+    painel.className = 'avatar-painel hidden';
+    painel.innerHTML =
+      '<label>Nome<input type="text" id="perfilNome"></label>' +
+      '<label>Telefone<input type="text" id="perfilTelefone" placeholder="(00) 00000-0000"></label>' +
+      '<button type="button" class="btn btn-primary btn-sm" id="btnSalvarPerfil" style="width:100%">Salvar</button>' +
+      '<div class="avatar-painel-msg" id="perfilMsg"></div>' +
+      '<hr>' +
+      '<a class="avatar-sair" href="/api/auth/logout">Sair</a>';
+
+    wrap.appendChild(botao);
+    wrap.appendChild(painel);
+    topbarUser.appendChild(wrap);
+
+    painel.querySelector('#perfilNome').value = usuario.nome || '';
+    painel.querySelector('#perfilTelefone').value = usuario.telefone || '';
+
+    botao.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      painel.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function (ev) {
+      if (!wrap.contains(ev.target)) painel.classList.add('hidden');
+    });
+
+    painel.querySelector('#btnSalvarPerfil').addEventListener('click', function () {
+      var nome = painel.querySelector('#perfilNome').value.trim();
+      var telefone = painel.querySelector('#perfilTelefone').value.trim();
+      var msg = painel.querySelector('#perfilMsg');
+      msg.textContent = 'Salvando...';
+      fetch('/api/auth/perfil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome, telefone: telefone })
+      })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function () {
+          msg.textContent = 'Salvo!';
+          botao.textContent = iniciais(nome);
+          botao.title = nome;
+          var nomeSidebar = document.querySelector('#appSidebarUser .nome');
+          if (nomeSidebar) nomeSidebar.textContent = nome;
+          var saud = document.getElementById('dashSaudacao');
+          if (saud) saud.textContent = 'Olá, ' + (primeiroNome(nome) || nome) + '! 👋';
+          setTimeout(function () { msg.textContent = ''; }, 2000);
+        })
+        .catch(function () { msg.textContent = 'Erro ao salvar.'; });
+    });
   }
 
   function montar(usuario) {
@@ -31,14 +95,7 @@
       container.appendChild(sair);
     }
 
-    var topbarUser = document.getElementById('topbarUser');
-    if (topbarUser) {
-      var avatar = document.createElement('div');
-      avatar.className = 'avatar';
-      avatar.title = usuario.nome || usuario.email;
-      avatar.textContent = iniciais(usuario.nome || usuario.email);
-      topbarUser.appendChild(avatar);
-    }
+    montarMenuAvatar(usuario);
 
     var saudacao = document.getElementById('dashSaudacao');
     if (saudacao) {
@@ -55,9 +112,7 @@
   function iniciar() {
     fetch('/api/auth/me')
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (usuario) {
-        if (usuario) montar(usuario);
-      })
+      .then(function (usuario) { if (usuario) montar(usuario); })
       .catch(function () { /* sem sessão, não mostra nada */ });
   }
 

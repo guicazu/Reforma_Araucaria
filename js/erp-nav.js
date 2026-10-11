@@ -1,5 +1,5 @@
 /* Controla o menu lateral: recolher/expandir e troca entre as views
-   (Início / Orçamento / Backup). Não depende do app.js nem mexe nele. */
+   (Início / Orçamento / Usuários / Backup). Não depende do app.js. */
 (function () {
   'use strict';
 
@@ -8,6 +8,7 @@
   var views = {
     dashboard: document.getElementById('viewDashboard'),
     orcamento: document.getElementById('viewOrcamento'),
+    usuarios: document.getElementById('viewUsuarios'),
     backup: document.getElementById('viewBackup')
   };
   var itens = document.querySelectorAll('.app-sidebar-item[data-view]');

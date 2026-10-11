@@ -252,3 +252,40 @@ body{display:flex}
 @media (max-width:860px){
   .dash-grid{grid-template-columns:1fr}
 }
+
+/* ===== Avatar com menu (nome/telefone + sair) ===== */
+.avatar-wrap{position:relative}
+.avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--gold);color:var(--navy-escuro);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+  border:none;cursor:pointer;
+}
+.avatar-painel{
+  position:absolute;top:40px;right:0;background:#fff;border:1px solid var(--borda);
+  border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:14px;width:220px;z-index:50;
+}
+.avatar-painel label{display:block;font-size:12px;color:var(--suave);margin-bottom:8px;font-weight:600}
+.avatar-painel input{margin-top:4px;font-weight:400}
+.avatar-painel-msg{font-size:11px;color:var(--suave);min-height:14px;margin-top:4px}
+.avatar-painel hr{border:none;border-top:1px solid var(--borda);margin:10px 0}
+.avatar-sair{display:block;text-align:center;color:var(--vermelho);font-weight:700;text-decoration:none;font-size:13px}
+.avatar-sair:hover{text-decoration:underline}
+
+/* ===== Orçamento: lista cheia vs. editor cheio ===== */
+#viewOrcamento[data-modo="lista"] .content{display:none}
+#viewOrcamento[data-modo="lista"] .sidebar{
+  width:100%;min-width:0;border-right:none;position:static;max-height:none;
+}
+#viewOrcamento[data-modo="editor"] .sidebar{display:none}
+
+/* ===== Tabela de Usuários (view embutida) ===== */
+.ua-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--borda);border-radius:10px;overflow:hidden}
+.ua-table th,.ua-table td{text-align:left;padding:.6rem .7rem;font-size:13px;border-bottom:1px solid var(--borda)}
+.ua-table th{background:#f3efe0;color:var(--navy-escuro)}
+.ua-tag{padding:.15rem .5rem;border-radius:99px;font-size:11px;font-weight:700}
+.ua-pendente{background:#fff3cd;color:#856404}
+.ua-aprovado{background:#d4edda;color:#155724}
+.ua-bloqueado{background:#f8d7da;color:#721c24}
+.ua-btn{border:none;padding:.3rem .6rem;border-radius:6px;font-size:11px;cursor:pointer;margin-right:.3rem;font-weight:700}
+.ua-aprovar{background:var(--verde);color:#fff}
+.ua-bloquear{background:var(--vermelho);color:#fff}
