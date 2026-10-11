@@ -12,6 +12,20 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 - Dados salvos no navegador (localStorage) **e sincronizados automaticamente** com um
   banco de dados compartilhado, pra equipe ver os mesmos orçamentos em qualquer aparelho
 - Login obrigatório, com cadastro aprovado manualmente pelo administrador
+- **Novidades:**
+  - Código do serviço exibido na tela de orçamento (formato: unidade.etapa.sub-etapa.sequencial)
+  - Estilização hierárquica na EAP (tamanhos e pesos de fonte diferenciados por nível)
+  - Possibilidade de mover serviços entre sub-etapas e entre etapas
+  - Possibilidade de mover sub-etapas entre etapas
+  - Adicionar serviço diretamente sob uma etapa (sub-etapa opcional)
+  - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais
+- **Novidades:**
+  - Código do serviço exibido na tela de orçamento (formato: unidade.etapa.sub-etapa.sequencial)
+  - Estilização hierárquica na EAP (tamanhos e pesos de fonte diferenciados por nível)
+  - Possibilidade de mover serviços entre sub-etapas e entre etapas
+  - Possibilidade de mover sub-etapas entre etapas
+  - Adicionar serviço diretamente sob uma etapa (sub-etapa opcional)
+  - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais
 
 ## Stack
 
