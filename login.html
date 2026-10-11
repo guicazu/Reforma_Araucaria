@@ -83,6 +83,12 @@
     var params = new URLSearchParams(location.search);
     var erro = params.get('erro');
     if (erro) {
+      var etapaMsgs = {
+        leitura_token: 'Leitura da resposta de autenticação Microsoft',
+        consulta_perfil: 'Consulta do perfil Microsoft',
+        usuario_sessao: 'Consulta do usuário no D1 ou criação da sessão',
+        callback: 'Processamento do retorno Microsoft'
+      };
       var msgs = {
         bloqueado: 'Seu acesso foi bloqueado. Fale com o administrador.',
         state: 'Falha na validação do login. Tente novamente.',
@@ -93,7 +99,10 @@
         interno: 'Ocorreu uma falha ao concluir o login. Tente novamente; se persistir, informe o administrador.',
         sem_email: 'Não conseguimos obter seu e-mail. Tente outra conta.'
       };
-      document.getElementById('erro').textContent = msgs[erro] || 'Erro ao entrar.';
+      var etapa = params.get('etapa');
+      var detalheEtapa = etapaMsgs[etapa];
+      document.getElementById('erro').textContent = (msgs[erro] || 'Erro ao entrar.') +
+        (erro === 'interno' && detalheEtapa ? ' Etapa: ' + detalheEtapa + '.' : '');
     }
   </script>
 </body>
