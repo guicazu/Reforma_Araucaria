@@ -58,10 +58,22 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
 
     if (!usuario.isAdmin && eAdminConfigurado) {
       etapa = 'marcar_admin';
-      await env.DB.prepare(
-        'UPDATE usuarios SET isAdmin = 1 WHERE email = ?'
-      ).bind(email).run();
-      usuario.isAdmin = 1;
+      try {
+        const result = await env.DB.prepare(
+          'UPDATE usuarios SET isAdmin = 1 WHERE email = ? AND isAdmin = 0'
+        ).bind(email).run();
+        if (result.meta && result.meta.changes === 0) {
+          console.warn(`[auth:${provedor}] Usuário ${email} já era admin ou não encontrado para promoção`);
+        } else {
+          console.log(`[auth:${provedor}] Usuário ${email} promovido a admin com sucesso`);
+        }
+        usuario.isAdmin = 1;
+      } catch (updateError) {
+        const erro = updateError instanceof Error ? updateError : new Error(String(updateError));
+        erro.authStage = 'marcar_admin';
+        console.error(`[auth:${provedor}] Falha ao promover usuário ${email} a admin:`, updateError);
+        throw erro;
+      }
     }
 
     etapa = 'criar_sessao';
