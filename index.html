@@ -338,35 +338,27 @@
     <input type="hidden" id="fCatalogoTipo" />
     <input type="hidden" id="fCatalogoId" />
     <input type="hidden" id="fCatalogoDetalheId" />
-    <label>Preencher pelo catálogo
-      <select id="fCatalogoItem"><option value="">Selecione uma composição ou insumo</option></select>
-    </label>
-      <div class="campo-com-botao">
-        <input type="text" id="fCodigoSinapi" placeholder="Ex.: 87529" inputmode="numeric" />
-        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost" title="Buscar composição SINAPI">🔍</button>
+    <input type="hidden" id="fCodigoSinapi" />
+    <div class="fonte-servico">
+      <div class="fonte-servico-head">
+        <div><strong>Composição do serviço</strong><span>Selecione uma composição própria ou busque uma composição SINAPI.</span></div>
+        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost"><span aria-hidden="true">⌕</span> Buscar SINAPI</button>
       </div>
-      <span class="sinapi-status" id="sinapiStatus"></span>
-    </label>
-
-    <label>Nome do serviço
-      <input type="text" id="fNome" placeholder="Preenchido ao escolher o código, ou escreva livremente" required />
-    </label>
-
-    <div class="grid-2">
-      <label>Unidade de medida
-        <input type="text" id="fUnidadeMedida" list="dlMedidas" value="m²" required />
+      <label>Composição própria
+        <select id="fCatalogoItem"><option value="">Selecione uma composição</option></select>
       </label>
-      <datalist id="dlMedidas">
-        <option value="m²"></option><option value="m³"></option>
-        <option value="m"></option><option value="un"></option>
-        <option value="kg"></option><option value="h"></option><option value="vb"></option>
-      </datalist>
-      <label>Valor unitário (R$)
-        <input type="text" id="fValor" inputmode="decimal" placeholder="Ex.: 85,00" />
-      </label>
+      <div id="fonteServicoResumo" class="fonte-servico-resumo" aria-live="polite">Selecione uma das fontes para preencher o serviço.</div>
+      <span class="sinapi-status" id="sinapiStatus" aria-live="polite"></span>
     </div>
-
-    <p class="dica">💡 Depois de salvar, use o botão <strong>🧮</strong> no serviço para adicionar a <strong>memória de cálculo</strong> (Qtd, Coef., Comprimento, Altura, Largura).</p>
+    <div class="grid-2">
+      <label>Serviço<input type="text" id="fNome" placeholder="Definido pela composição selecionada" readonly required /></label>
+      <label>Unidade de medida<input type="text" id="fUnidadeMedida" readonly required /></label>
+    </div>
+    <div class="servico-preco-fonte">
+      <span>Preço unitário da composição</span>
+      <strong id="fValorExibicao">R$ 0,00</strong>
+      <input type="hidden" id="fValor" />
+    </div>
 
     <div class="modal-actions">
       <button type="button" id="btnCancelarModal" class="btn btn-ghost">Cancelar</button>

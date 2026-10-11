@@ -49,6 +49,9 @@
     if (!fCodigo || !modal) return;
 
     function aplicarResultado(r) {
+      if (document.getElementById('modalServico').open && window.selecionarComposicaoSinapiServico) {
+        return window.selecionarComposicaoSinapiServico(r);
+      }
       if (fCatalogoItem) fCatalogoItem.value = '';
       if (fCatalogoTipo) fCatalogoTipo.value = '';
       if (fCatalogoId) fCatalogoId.value = '';
@@ -166,8 +169,8 @@
       var btnCopiar = ev.target.closest('[data-copiar]');
       if (btnUsar) {
         var r = JSON.parse(btnUsar.getAttribute('data-usar'));
-        aplicarResultado(r);
-        if (window.registrarResultadoSinapiComoItem) {
+        var aplicado = aplicarResultado(r);
+        if (!aplicado && window.registrarResultadoSinapiComoItem) {
           window.registrarResultadoSinapiComoItem(r);
         }
         modal.close();
