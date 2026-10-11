@@ -35,6 +35,12 @@ button{font:inherit}
 .orcamento-item{border:1px solid var(--borda);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px;cursor:pointer}
 .orcamento-item:hover{background:#fbf7ea}
 .orcamento-item.ativo{border-color:var(--gold);background:#fdf6e0}
+
+/* Estilos hierárquicos para a EAP */
+.grupo.n1 td strong {font-size: 18px; font-weight: 700; text-transform: uppercase;}
+.grupo.n2 td strong {font-size: 16px; font-weight: 600; text-transform: capitalize;}
+.grupo.n3 td strong {font-size: 14px; font-weight: 500; text-transform: capitalize;}
+.linha-servico td strong {font-size: 13px; font-weight: 400; text-transform: capitalize;}
 .oi-info{flex:1;min-width:0;display:flex;flex-direction:column}
 .oi-info strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .oi-info span{font-size:12px;color:var(--suave)}

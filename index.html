@@ -24,6 +24,12 @@
       <button class="app-sidebar-item" data-view="orcamento" title="Orçamento">
         <span class="icone">🏗️</span><span class="rotulo">Orçamento</span>
       </button>
+      <button class="app-sidebar-item" data-view="composicoes" title="Composições">
+        <span class="icone">🧱</span><span class="rotulo">Composições</span>
+      </button>
+      <button class="app-sidebar-item" data-view="insumos" title="Insumos">
+        <span class="icone">🔧</span><span class="rotulo">Insumos</span>
+      </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Apoio</span>
@@ -176,6 +182,26 @@
   <p class="memo-aviso" style="margin-top:14px">⚠️ Importar um backup <b>substitui</b> todos os orçamentos atuais pelos do arquivo.</p>
 </section>
 
+<section class="content hidden" id="viewComposicoes">
+  <div class="orcamento-head">
+    <div>
+      <h2>Composições</h2>
+      <p>Gerencie as composições de materiais e serviços.</p>
+    </div>
+  </div>
+  <div id="composicoesConteudo">Carregando...</div>
+</section>
+
+<section class="content hidden" id="viewInsumos">
+  <div class="orcamento-head">
+    <div>
+      <h2>Insumos</h2>
+      <p>Gerencie os insumos básicos utilizados nas composições.</p>
+    </div>
+  </div>
+  <div id="insumosConteudo">Carregando...</div>
+</section>
+
 </div>
 
 <dialog id="modalServico" class="modal">
@@ -183,8 +209,8 @@
     <h3 id="modalTitulo">Adicionar serviço</h3>
     <input type="hidden" id="fServicoId" />
     <input type="hidden" id="fSubId" />
-
-    <label>Código do serviço (SINAPI)
+<input type="hidden" id="fUnidadeId" />
+<input type="hidden" id="fEtapaId" />
       <div class="campo-com-botao">
         <input type="text" id="fCodigoSinapi" placeholder="Ex.: 87529" inputmode="numeric" />
         <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost" title="Buscar composição SINAPI">🔍</button>

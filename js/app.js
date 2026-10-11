@@ -190,7 +190,7 @@ function excluirUnidade(o,u){
   salvar();renderTudo();
 }function moverUnidade(o,u,dir){const arr=uu(o);const i=arr.indexOf(u);const j=i+dir;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];salvar();renderTudo();}
 
-function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[]});salvar();renderTudo();}
+function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[],servicos:[],servicos:[],servicos:[]});salvar();renderTudo();}
 function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=n.trim()||e.nome;salvar();renderTudo();}
 function excluirEtapa(u,e){if(!confirm(`Excluir a etapa "${e.nome}" e tudo dentro dela?`))return;u.etapas=u.etapas.filter(x=>x.id!==e.id);salvar();renderTudo();}
 function moverEtapa(u,e,dir){const i=u.etapas.indexOf(e);const j=i+dir;if(j<0||j>=u.etapas.length)return;[u.etapas[i],u.etapas[j]]=[u.etapas[j],u.etapas[i]];salvar();renderTudo();}
@@ -199,11 +199,35 @@ function addSub(e){const n=prompt('Nome da sub etapa (ex.: Paredes):','');if(n==
 function renomearSub(s){const n=prompt('Renomear sub etapa:',s.nome);if(n===null)return;s.nome=n.trim()||s.nome;salvar();renderTudo();}
 function excluirSub(e,s){if(!confirm(`Excluir a sub etapa "${s.nome}" e seus serviços?`))return;e.subEtapas=e.subEtapas.filter(x=>x.id!==s.id);salvar();renderTudo();}
 function moverSub(e,s,dir){const i=e.subEtapas.indexOf(s);const j=i+dir;if(j<0||j>=e.subEtapas.length)return;[e.subEtapas[i],e.subEtapas[j]]=[e.subEtapas[j],e.subEtapas[i]];salvar();renderTudo();}
+function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etapa para outra
+  if(!eOrigem || !eDestino) return;
+  const index = eOrigem.subEtapas.indexOf(s);
+  if(index === -1) return;
+  eOrigem.subEtapas.splice(index, 1);
+  eDestino.subEtapas.push(s);
+  salvar();renderTudo();
+}
 
 function abrirModalServico(sv,sub){$('#fServicoId').value=sv?sv.id:'';$('#fSubId').value=sub?sub.id:'';$('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';$('#fNome').value=sv?sv.nome:'';$('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';$('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';$('#modalServico').showModal();$('#fNome').focus();}
 function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
 function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
 function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
+function moverServicoEntreSub(sOrigem, sDestino, sv){// Move serviço de uma sub-étapa para outra
+  if(!sOrigem || !sDestino) return;
+  const index = sOrigem.servicos.indexOf(sv);
+  if(index === -1) return;
+  sOrigem.servicos.splice(index, 1);
+  sDestino.servicos.push(sv);
+  salvar();renderTudo();
+}
+function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etapa para outra
+  if(!eOrigem || !eDestino) return;
+  const index = eOrigem.subEtapas.indexOf(s);
+  if(index === -1) return;
+  eOrigem.subEtapas.splice(index, 1);
+  eDestino.subEtapas.push(s);
+  salvar();renderTudo();
+}
 
 /* ---------- memória de cálculo ---------- */
 function calcularLinha(l){
@@ -301,7 +325,7 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            <td><strong>${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+            <td><strong>${esc(sv.codigo||'')} ${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -474,6 +498,32 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
     case 'down-sv':moverServico(s,sv,1);break;
     case 'edit-sv':abrirModalServico(sv);break;
     case 'del-sv':excluirServico(s,sv);break;
+    case 'mover-sv-para':{
+      // Mover serviço para outra sub-étapa (precisa selecionar destino)
+      const subDestinoId = prompt('Digite o ID da sub-étapa destino:');
+      if(subDestinoId){
+        const subDestino = acharSubPorId(o, subDestinoId);
+        if(subDestino && subDestino !== s){
+          moverServicoEntreSub(s, subDestino, sv);
+        }else{
+          alert('Sub-étapa destino inválida ou mesma sub-étapa');
+        }
+      }
+      break;
+    }
+    case 'mover-sub-para':{
+      // Mover sub-étapa para outra etapa (precisa selecionar destino)
+      const etapaDestinoId = prompt('Digite o ID da etapa destino:');
+      if(etapaDestinoId){
+        const etapaDestino = acharEtapa(o, uid_, etapaDestinoId);
+        if(etapaDestino && etapaDestino !== e){
+          moverSubEntreEtapa(e, etapaDestino, s);
+        }else{
+          alert('Etapa destino inválida ou mesma etapa');
+        }
+      }
+      break;
+    }
 
     case 'memo-sv':case 'add-linha':{
       const svx=acharServicoPorId(o,svid);
