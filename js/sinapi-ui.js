@@ -94,6 +94,7 @@
     });
 
     var timer = null;
+    var buscaId = 0;
     function agendarBusca() {
       clearTimeout(timer);
       timer = setTimeout(executarBusca, 350);
@@ -103,6 +104,7 @@
     });
 
     function executarBusca() {
+      var buscaAtual = ++buscaId;
       var termo = incs.map(function (c) { return c ? c.value.trim() : ''; })
         .filter(Boolean).join(' ');
       var excluir = excs.map(function (c) { return c ? c.value.trim() : ''; })
@@ -119,8 +121,8 @@
 
       fetch(url)
         .then(function (r) { return r.json(); })
-        .then(function (data) { renderizarResultados(data.resultados || []); })
-        .catch(function () { renderizarResultados([], 'Não foi possível consultar o SINAPI agora.'); });
+        .then(function (data) { if (buscaAtual === buscaId) renderizarResultados(data.resultados || []); })
+        .catch(function () { if (buscaAtual === buscaId) renderizarResultados([], 'Não foi possível consultar o SINAPI agora.'); });
     }
 
     function renderizarResultados(lista, mensagem) {
@@ -143,6 +145,15 @@
         '</div>';
       }).join('');
     }
+
+    window.limparBuscaSinapi = function () {
+      clearTimeout(timer);
+      buscaId++;
+      fCodigo.value = '';
+      incs.concat(excs).forEach(function (campo) { if (campo) campo.value = ''; });
+      if (status) { status.textContent = ''; status.className = 'sinapi-status'; }
+      renderizarResultados([]);
+    };
 
     resultadosEl.addEventListener('click', function (ev) {
       var btnUsar = ev.target.closest('[data-usar]');

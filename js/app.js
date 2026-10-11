@@ -210,6 +210,7 @@ function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etap
 }
 
 function abrirModalServico(sv, sub, etapa, unidade){
+  if(!sv&&typeof window.limparBuscaSinapi==='function')window.limparBuscaSinapi();
   $('#fServicoId').value=sv?sv.id:'';
   $('#fSubId').value=sub?sub.id:'';
   $('#fEtapaId').value=etapa?etapa.id:'';
