@@ -25,7 +25,7 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
   - Possibilidade de mover serviços entre sub-etapas e entre etapas
   - Possibilidade de mover sub-etapas entre etapas
   - Adicionar serviço diretamente sob uma etapa (sub-etapa opcional)
-  - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais
+  - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais.
 
 ## Stack
 
