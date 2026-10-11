@@ -77,7 +77,8 @@ export async function onRequestGet({ request, env }) {
       provedor: 'microsoft'
     });
   } catch (error) {
-    console.error(`[auth:microsoft][${etapa}] Falha inesperada no callback:`, error);
-    return Response.redirect(`${url.origin}/login?erro=interno&etapa=${etapa}`, 302);
+    const etapaErro = error && error.authStage ? error.authStage : etapa;
+    console.error(`[auth:microsoft][${etapaErro}] Falha inesperada no callback:`, error);
+    return Response.redirect(`${url.origin}/login?erro=interno&etapa=${etapaErro}`, 302);
   }
 }
