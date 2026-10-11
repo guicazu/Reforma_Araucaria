@@ -11,7 +11,8 @@
     usuarios: document.getElementById('viewUsuarios'),
     backup: document.getElementById('viewBackup'),
     composicoes: document.getElementById('viewComposicoes'),
-    insumos: document.getElementById('viewInsumos')
+    insumos: document.getElementById('viewInsumos'),
+    unidades: document.getElementById('viewUnidades')
   };
   var itens = document.querySelectorAll('.app-sidebar-item[data-view]');
 

@@ -30,6 +30,9 @@
       <button class="app-sidebar-item" data-view="insumos" title="Insumos">
         <span class="icone">🔧</span><span class="rotulo">Insumos</span>
       </button>
+      <button class="app-sidebar-item" data-view="unidades" title="Unidades">
+        <span class="icone">📏</span><span class="rotulo">Unidades</span>
+      </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Apoio</span>
@@ -210,7 +213,7 @@
     <input type="hidden" id="fComposicaoId" />
     <div class="grid-2">
       <label>Nome<input id="fComposicaoNome" required /></label>
-      <label>Unidade da composição<input id="fComposicaoUnidade" value="un" required /></label>
+      <label>Unidade da composição<select id="fComposicaoUnidade" required></select></label>
     </div>
     <label>Descrição<textarea id="fComposicaoDescricao" rows="2"></textarea></label>
     <div class="componentes-head">
@@ -224,7 +227,7 @@
       </table>
     </div>
     <div class="composicao-valor">
-      <label>Preço unitário da composição (R$)<input id="fComposicaoValor" inputmode="decimal" placeholder="0,00" /></label>
+      <label>Preço unitário calculado (R$)<input id="fComposicaoValor" inputmode="decimal" placeholder="Calculado pelos insumos" readonly /></label>
       <p class="memo-aviso">Com insumos adicionados, o preço é calculado pela soma dos coeficientes multiplicados pelos preços unitários.</p>
     </div>
     <div class="modal-actions">
@@ -256,6 +259,73 @@
   </div>
 </section>
 
+<section class="content hidden" id="viewUnidades">
+  <div class="orcamento-head">
+    <div><h2>Unidades de medida</h2></div>
+    <button id="btnAddUnidadeMedida" class="btn btn-primary">+ Nova unidade</button>
+  </div>
+  <div class="table-wrap unidades-wrap">
+    <table class="unidades-tabela">
+      <thead><tr><th>Símbolo</th><th>Nome</th><th>Grupo</th><th>Tipo</th><th>Ações</th></tr></thead>
+      <tbody id="listaUnidades"></tbody>
+    </table>
+  </div>
+</section>
+
+<dialog id="modalInsumo" class="modal modal-lg">
+  <form id="formInsumo">
+    <h3 id="modalInsumoTitulo">Novo insumo</h3>
+    <input type="hidden" id="fInsumoId" />
+    <div class="grid-2">
+      <label>Nome do insumo<input id="fInsumoNome" required /></label>
+      <label>Unidade padrão
+        <select id="fInsumoUnidade" required></select>
+      </label>
+    </div>
+    <label>Descrição<textarea id="fInsumoDescricao" rows="2"></textarea></label>
+    <label>Preço unitário por unidade padrão (R$)<input id="fInsumoValor" inputmode="decimal" placeholder="0,00" required /></label>
+    <div class="componentes-head">
+      <h4>Detalhes ou variações</h4>
+      <button type="button" id="btnAdicionarDetalhe" class="btn btn-ghost btn-sm">+ Adicionar detalhe</button>
+    </div>
+    <div class="detalhes-insumo" id="detalhesInsumo"></div>
+    <div class="componentes-head">
+      <h4>Unidades de conversão</h4>
+      <button type="button" id="btnAdicionarConversao" class="btn btn-ghost btn-sm">+ Adicionar conversão</button>
+    </div>
+    <p class="memo-aviso">Informe quantas unidades padrão correspondem a uma unidade de conversão. Ex.: 1 sc = 50 kg.</p>
+    <div class="componentes-wrap">
+      <table class="componentes-tabela conversoes-tabela">
+        <thead><tr><th>Unidade de conversão</th><th>Equivalência em <span id="unidadeBaseLabel">—</span></th><th>Ações</th></tr></thead>
+        <tbody id="conversoesInsumo"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="btnCancelarInsumo" class="btn btn-ghost">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar insumo</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="modalUnidade" class="modal">
+  <form id="formUnidade">
+    <h3 id="modalUnidadeTitulo">Nova unidade</h3>
+    <input type="hidden" id="fUnidadeCadastroId" />
+    <label>Símbolo<input id="fUnidadeSimbolo" placeholder="ex.: sc" required /></label>
+    <label>Nome<input id="fUnidadeNome" placeholder="ex.: Saco" required /></label>
+    <label>Grupo
+      <select id="fUnidadeGrupo" required>
+        <option>Massa</option><option>Volume</option><option>Comprimento</option>
+        <option>Área</option><option>Quantidade</option><option>Embalagem</option><option>Tempo</option><option>Energia</option><option>Outros</option>
+      </select>
+    </label>
+    <div class="modal-actions">
+      <button type="button" id="btnCancelarUnidade" class="btn btn-ghost">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar unidade</button>
+    </div>
+  </form>
+</dialog>
+
 </div>
 
 <dialog id="modalServico" class="modal">
@@ -267,6 +337,7 @@
 <input type="hidden" id="fEtapaId" />
     <input type="hidden" id="fCatalogoTipo" />
     <input type="hidden" id="fCatalogoId" />
+    <input type="hidden" id="fCatalogoDetalheId" />
     <label>Preencher pelo catálogo
       <select id="fCatalogoItem"><option value="">Selecione uma composição ou insumo</option></select>
     </label>

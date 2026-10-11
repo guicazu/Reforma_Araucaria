@@ -117,6 +117,19 @@ button{font:inherit}
 .composicao-valor label{margin:0}
 .composicao-valor p{margin:0 0 8px}
 .item-acoes{display:flex;gap:6px;flex-wrap:wrap}
+.unidades-wrap{margin-top:4px}
+.unidades-tabela{width:100%;border-collapse:collapse;min-width:620px}
+.unidades-tabela th,.unidades-tabela td{padding:9px 12px;border-bottom:1px solid #e6e0d2;text-align:left}
+.unidades-tabela th{background:#f1ecdf;color:var(--suave);font-size:11px;text-transform:uppercase}
+.unidades-tabela td:first-child{font-weight:700;color:var(--navy-escuro)}
+.unidade-acoes{display:flex;gap:6px}
+.conversoes-tabela{min-width:420px}
+.conversoes-tabela input,.conversoes-tabela select{width:100%}
+.item-conversoes{display:block;color:var(--suave);font-size:11px;line-height:1.35}
+.item-detalhes{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.item-detalhes span{display:inline-block;padding:2px 7px;border:1px solid var(--borda);border-radius:6px;background:#f7f3ea;color:var(--navy-escuro);font-size:11px}
+.fator-conversao{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.fator-conversao input{max-width:110px}
 
 input,select,textarea{border:1px solid var(--borda);border-radius:8px;padding:8px 10px;font-size:14px;width:100%;background:#fff;color:var(--texto)}
 input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}

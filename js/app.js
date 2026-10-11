@@ -221,31 +221,37 @@ function preencherCatalogoServico(sv){
     const optgroup=document.createElement('optgroup');optgroup.label=grupo.rotulo;
     grupo.itens.forEach(item=>{
       const codigo=item.codigoReferencia||item.codigo||'';
-      const opcao=new Option(`${codigo?codigo+' — ':''}${item.nome} · ${fmtBRL.format(num(item.valorUnitario)||0)}/${item.unidade||'un'}`,grupo.tipo+':'+item.id);
-      optgroup.appendChild(opcao);
+      const detalhes=grupo.tipo==='insumo'?(item.detalhes||[]):[];
+      const opcoes=detalhes.length?[null].concat(detalhes):[null];
+      opcoes.forEach(detalhe=>{
+        const descricao=`${codigo?codigo+' — ':''}${item.nome}${detalhe?' — '+detalhe.nome:(detalhes.length?' — Principal':'')}`;
+        const opcao=new Option(`${descricao} · ${fmtBRL.format(num(item.valorUnitario)||0)}/${item.unidade||'un'}`,grupo.tipo+':'+item.id+(detalhe?':'+detalhe.id:''));
+        optgroup.appendChild(opcao);
+      });
     });
     select.appendChild(optgroup);
   });
-  select.value=sv&&sv.catalogoTipo&&sv.catalogoId?sv.catalogoTipo+':'+sv.catalogoId:'';
+  select.value=sv&&sv.catalogoTipo&&sv.catalogoId?sv.catalogoTipo+':'+sv.catalogoId+(sv.catalogoDetalheId?':'+sv.catalogoDetalheId:''):'';
 }
 
 function aplicarItemCatalogo(){
   const valor=$('#fCatalogoItem').value;
   const separador=valor.indexOf(':');
-  if(separador<0){$('#fCatalogoTipo').value='';$('#fCatalogoId').value='';return;}
-  const tipo=valor.slice(0,separador),id=valor.slice(separador+1);
+  if(separador<0){$('#fCatalogoTipo').value='';$('#fCatalogoId').value='';$('#fCatalogoDetalheId').value='';return;}
+  const [tipo,id,detalheId]=valor.split(':');
   const itens=tipo==='composicao'?(window.Composicoes&&window.Composicoes.carregar()):(window.Insumos&&window.Insumos.carregar());
   const item=itens&&itens.find(registro=>registro.id===id);
   if(!item)return;
-  $('#fCatalogoTipo').value=tipo;$('#fCatalogoId').value=id;
+  const detalhe=(item.detalhes||[]).find(variacao=>variacao.id===detalheId);
+  $('#fCatalogoTipo').value=tipo;$('#fCatalogoId').value=id;$('#fCatalogoDetalheId').value=detalhe?detalhe.id:'';
   $('#fCodigoSinapi').value=item.codigoReferencia||'';
-  $('#fNome').value=item.nome||'';
+  $('#fNome').value=(item.nome||'')+(detalhe?' — '+detalhe.nome:'');
   $('#fUnidadeMedida').value=item.unidade||'un';
   $('#fValor').value=Number(item.valorUnitario||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
 function desvincularCatalogoServico(){
-  $('#fCatalogoTipo').value='';$('#fCatalogoId').value='';$('#fCatalogoItem').value='';
+  $('#fCatalogoTipo').value='';$('#fCatalogoId').value='';$('#fCatalogoDetalheId').value='';$('#fCatalogoItem').value='';
 }
 
 function abrirModalServico(sv, sub, etapa, unidade){
@@ -256,6 +262,7 @@ function abrirModalServico(sv, sub, etapa, unidade){
   $('#fUnidadeId').value=unidade?unidade.id:'';
   $('#fCatalogoTipo').value=sv?sv.catalogoTipo||'':'';
   $('#fCatalogoId').value=sv?sv.catalogoId||'':'';
+  $('#fCatalogoDetalheId').value=sv?sv.catalogoDetalheId||'':'';
   $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
   $('#fNome').value=sv?sv.nome:'';
   $('#fCodigoSinapi').value=sv?sv.codigo||'':'';
@@ -467,11 +474,11 @@ $('#formServico').addEventListener('submit',(ev)=>{
   const svid=$('#fServicoId').value;
   const etapaId=$('#fEtapaId').value;
   const subId=$('#fSubId').value;
-  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null};
+  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null,catalogoDetalheId:$('#fCatalogoDetalheId').value||null};
   if(!dados.nome){alert('Informe o nome do serviço.');return;}
   if(svid){
     const sv=acharServicoPorId(o,svid);
-    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;sv.codigo=dados.codigo;sv.catalogoTipo=dados.catalogoTipo;sv.catalogoId=dados.catalogoId;}
+    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;sv.codigo=dados.codigo;sv.catalogoTipo=dados.catalogoTipo;sv.catalogoId=dados.catalogoId;sv.catalogoDetalheId=dados.catalogoDetalheId;}
   }else{
     const etapa = etapaId ? acharEtapa(o, $('#fUnidadeId').value, etapaId) : null;
     const sub = subId ? acharSubPorId(o, subId) : null;
