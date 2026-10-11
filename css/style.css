@@ -289,3 +289,41 @@ body{display:flex}
 .ua-btn{border:none;padding:.3rem .6rem;border-radius:6px;font-size:11px;cursor:pointer;margin-right:.3rem;font-weight:700}
 .ua-aprovar{background:var(--verde);color:#fff}
 .ua-bloquear{background:var(--vermelho);color:#fff}
+
+/* ===== Autocomplete SINAPI no campo "Nome do serviço" ===== */
+.sinapi-sugestoes{
+  margin-top:-6px;margin-bottom:10px;border:1px solid var(--borda);border-radius:8px;
+  background:#fff;max-height:220px;overflow-y:auto;box-shadow:var(--som);
+}
+.sinapi-item{
+  padding:8px 10px;font-size:13px;cursor:pointer;display:flex;align-items:center;
+  gap:8px;border-bottom:1px solid #f1ede0;
+}
+.sinapi-item:last-child{border-bottom:none}
+.sinapi-item:hover{background:#fbf7ea}
+.sinapi-codigo{
+  font-family:Consolas,'Courier New',monospace;font-size:11px;color:var(--navy-2);
+  background:#eef2f7;padding:1px 6px;border-radius:4px;
+}
+.sinapi-un{margin-left:auto;font-size:11px;color:var(--suave);text-transform:uppercase}
+
+/* ===== Busca SINAPI por código + pop-up avançado ===== */
+.campo-com-botao{display:flex;gap:6px}
+.campo-com-botao input{flex:1}
+.campo-com-botao .btn{padding:8px 12px}
+.sinapi-status{display:block;font-size:11px;margin-top:4px;color:var(--suave)}
+.sinapi-status.ok{color:var(--verde)}
+.sinapi-status.erro{color:var(--vermelho)}
+
+.sinapi-resultados{margin-top:14px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.sinapi-resultado-item{
+  border:1px solid var(--borda);border-radius:8px;padding:8px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;
+}
+.sinapi-resultado-info{flex:1;min-width:0}
+.sinapi-resultado-acoes{display:flex;gap:6px;flex-shrink:0}
+.sinapi-codigo{
+  font-family:Consolas,'Courier New',monospace;font-size:11px;color:var(--navy-2);
+  background:#eef2f7;padding:1px 6px;border-radius:4px;
+}
+.sinapi-un{display:block;font-size:11px;color:var(--suave);margin-top:2px}

@@ -184,8 +184,16 @@
     <input type="hidden" id="fServicoId" />
     <input type="hidden" id="fSubId" />
 
+    <label>Código do serviço (SINAPI)
+      <div class="campo-com-botao">
+        <input type="text" id="fCodigoSinapi" placeholder="Ex.: 87529" inputmode="numeric" />
+        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost" title="Buscar composição SINAPI">🔍</button>
+      </div>
+      <span class="sinapi-status" id="sinapiStatus"></span>
+    </label>
+
     <label>Nome do serviço
-      <input type="text" id="fNome" placeholder="Ex.: Execução de parede steel frame" required />
+      <input type="text" id="fNome" placeholder="Preenchido ao escolher o código, ou escreva livremente" required />
     </label>
 
     <div class="grid-2">
@@ -211,6 +219,23 @@
   </form>
 </dialog>
 
+<dialog id="modalBuscaSinapi" class="modal modal-lg">
+  <h3>Buscar composição SINAPI</h3>
+  <p class="dica">Preencha palavras que a composição <b>deve conter</b> e, se quiser, palavras que ela <b>não deve conter</b>. Os resultados aparecem automaticamente.</p>
+  <div class="grid-2">
+    <label>Deve conter #1<input type="text" id="buscaInc1" placeholder="ex.: alvenaria"></label>
+    <label>Não deve conter #1<input type="text" id="buscaExc1" placeholder="ex.: estrutural"></label>
+    <label>Deve conter #2<input type="text" id="buscaInc2" placeholder="ex.: bloco"></label>
+    <label>Não deve conter #2<input type="text" id="buscaExc2" placeholder="ex.: concreto"></label>
+    <label>Deve conter #3<input type="text" id="buscaInc3" placeholder="ex.: cerâmico"></label>
+    <label></label>
+  </div>
+  <div id="buscaSinapiResultados" class="sinapi-resultados"></div>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-ghost" id="btnFecharBuscaSinapi">Fechar</button>
+  </div>
+</dialog>
+
 <dialog id="modalVersoes" class="modal modal-lg">
   <h3 id="versoesTitulo">Versões do orçamento</h3>
   <p class="memo-aviso">A versão <b>ATIVA</b> é sempre a que você está editando agora. Use <b>+ Gerar nova versão</b> para congelar uma cópia do estado atual e continuar editando a partir dela. Depois, marque <b>2 versões</b> e clique em <b>Comparar</b>.</p>
@@ -230,5 +255,6 @@
 <script src="/js/erp-nav.js"></script>
 <script src="/js/orcamento-ui.js"></script>
 <script src="/js/admin-ui.js"></script>
+<script src="/js/sinapi-ui.js"></script>
 </body>
 </html>
