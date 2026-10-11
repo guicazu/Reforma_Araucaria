@@ -50,7 +50,8 @@
       fNome.value = tituloAmigavel(r.descricao);
       if (fUnidade) fUnidade.value = unidadeAmigavel(r.unidade);
       if (fValor && r.valor !== null) fValor.value = formatarValor(r.valor);
-      if (status) { status.textContent = '✓ composição encontrada'; status.className = 'sinapi-status ok'; }
+      var referenciaTexto = r.referencia ? ' (Referência: ' + r.referencia + ')' : '';
+      if (status) { status.textContent = '✓ composição encontrada' + referenciaTexto; status.className = 'sinapi-status ok'; }
     }
 
     // ---- Busca por código direto ----

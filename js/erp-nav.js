@@ -9,7 +9,9 @@
     dashboard: document.getElementById('viewDashboard'),
     orcamento: document.getElementById('viewOrcamento'),
     usuarios: document.getElementById('viewUsuarios'),
-    backup: document.getElementById('viewBackup')
+    backup: document.getElementById('viewBackup'),
+    composicoes: document.getElementById('viewComposicoes'),
+    insumos: document.getElementById('viewInsumos')
   };
   var itens = document.querySelectorAll('.app-sidebar-item[data-view]');
 
