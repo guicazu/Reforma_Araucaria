@@ -208,7 +208,26 @@ function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etap
   salvar();renderTudo();
 }
 
-function abrirModalServico(sv,sub){$('#fServicoId').value=sv?sv.id:'';$('#fSubId').value=sub?sub.id:'';$('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';$('#fNome').value=sv?sv.nome:'';$('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';$('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';$('#modalServico').showModal();$('#fNome').focus();}
+function abrirModalServico(sv, sub, etapa, unidade){
+  $('#fServicoId').value=sv?sv.id:'';
+  $('#fSubId').value=sub?sub.id:'';
+  $('#fEtapaId').value=etapa?etapa.id:'';
+  $('#fUnidadeId').value=unidade?unidade.id:'';
+  $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
+  $('#fNome').value=sv?sv.nome:'';
+  $('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';
+  $('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';
+  $('#modalServico').showModal();
+  $('#fNome').focus();
+}
+function garantirSubEtapaOpcional(etapa){
+  if(!etapa) return null;
+  if(!etapa.subEtapas || !etapa.subEtapas.length){
+    const nomePadrao = 'Sem subetapa';
+    etapa.subEtapas.push({id:uid(),nome:nomePadrao,servicos:[]});
+  }
+  return etapa.subEtapas[etapa.subEtapas.length - 1];
+}
 function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
 function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
 function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
@@ -294,6 +313,7 @@ function renderTabela(o){
         <td class="col-num total">${fmtBRL.format(subtotalEtapa(e))}</td>
         <td class="col-acoes">
   <button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
+  <button class="btn btn-ghost btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}">+ Serviço</button>
   <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
   <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
   <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
@@ -385,14 +405,25 @@ $('#formServico').addEventListener('submit',(ev)=>{
   ev.preventDefault();
   const o=orcamentoAtivo();if(!o)return;
   const svid=$('#fServicoId').value;
+  const etapaId=$('#fEtapaId').value;
+  const subId=$('#fSubId').value;
   const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value)};
   if(!dados.nome){alert('Informe o nome do serviço.');return;}
   if(svid){
     const sv=acharServicoPorId(o,svid);
     if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}
   }else{
-    const sub=acharSubPorId(o,$('#fSubId').value);
-    if(sub){sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});}
+    const etapa = etapaId ? acharEtapa(o, $('#fUnidadeId').value, etapaId) : null;
+    let sub = subId ? acharSubPorId(o, subId) : null;
+    if(!sub && etapa){
+      sub = garantirSubEtapaOpcional(etapa);
+    }
+    if(sub){
+      sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});
+    } else {
+      alert('Não foi possível localizar a etapa ou a subetapa para salvar o serviço.');
+      return;
+    }
   }
   salvar();renderTudo();$('#modalServico').close();
 });
@@ -492,7 +523,14 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
     case 'down-sub':moverSub(e,s,1);break;
     case 'ren-sub':renomearSub(s);break;
     case 'del-sub':excluirSub(e,s);break;
-    case 'add-servico':abrirModalServico(null,s);break;
+    case 'add-servico':{
+      if(s){
+        abrirModalServico(null,s,e,u);
+      }else{
+        abrirModalServico(null,null,e,u);
+      }
+      break;
+    }
 
     case 'up-sv':moverServico(s,sv,-1);break;
     case 'down-sv':moverServico(s,sv,1);break;
