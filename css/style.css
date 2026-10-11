@@ -206,3 +206,49 @@ body{display:flex}
   .app-sidebar{display:none!important}
   .app-main{margin-left:0!important}
 }
+
+/* ===== Ajuste: sidebar clara (estilo Sienge) ===== */
+.app-sidebar{
+  background:#ffffff;
+  color:var(--texto);
+  border-right:1px solid var(--borda);
+}
+.app-sidebar-toggle{color:var(--navy)}
+.app-sidebar-toggle:hover{background:#f5f5f5}
+.app-sidebar-logo{border-bottom:1px solid var(--borda);padding-bottom:12px}
+.app-sidebar-group-label{color:var(--suave)}
+.app-sidebar-item{color:var(--texto)}
+.app-sidebar-item:hover{background:#f5f5f5}
+.app-sidebar-item.ativo{background:var(--gold);color:var(--navy-escuro)}
+.app-sidebar-user{border-top:1px solid var(--borda)}
+.app-sidebar-user .nome{color:var(--suave)}
+.app-sidebar-user a.sair{
+  color:var(--navy);background:#f5f5f5;border:1px solid var(--borda);
+}
+.app-sidebar-user a.sair:hover{background:#eee}
+
+/* Avatar/nome no topo direito do header (estilo Sienge) */
+.topbar-user{display:flex;align-items:center;gap:8px;margin-left:auto}
+.topbar-user .avatar{
+  width:32px;height:32px;border-radius:50%;background:var(--gold);color:var(--navy-escuro);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+}
+.topbar{justify-content:space-between}
+
+/* ===== Dashboard (tela inicial) ===== */
+.dash-greeting{margin-bottom:18px}
+.dash-greeting h2{margin:0 0 4px;font-size:22px;color:var(--navy-escuro)}
+.dash-greeting p{margin:0;color:var(--suave);font-size:13px}
+.dash-grid{
+  display:grid;gap:14px;
+  grid-template-columns:2fr 1fr 1fr;
+}
+.dash-card{
+  background:#fff;border:1px solid var(--borda);border-radius:12px;
+  padding:16px 18px;box-shadow:var(--som);
+}
+.dash-card h3{margin:0 0 10px;font-size:14px;color:var(--navy-escuro)}
+.dash-card-vazio{margin:0;color:var(--suave);font-size:13px}
+@media (max-width:860px){
+  .dash-grid{grid-template-columns:1fr}
+}

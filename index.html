@@ -18,8 +18,13 @@
   </div>
   <div class="app-sidebar-nav">
     <div class="app-sidebar-group">
+      <button class="app-sidebar-item ativo" data-view="dashboard" title="Início">
+        <span class="icone">🏠</span><span class="rotulo">Início</span>
+      </button>
+    </div>
+    <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Engenharia</span>
-      <button class="app-sidebar-item ativo" data-view="orcamento" title="Orçamento">
+      <button class="app-sidebar-item" data-view="orcamento" title="Orçamento">
         <span class="icone">🏗️</span><span class="rotulo">Orçamento</span>
       </button>
     </div>
@@ -48,9 +53,31 @@
       <p>Orçamento e gestão de obras</p>
     </div>
   </div>
+  <div class="topbar-user" id="topbarUser"></div>
 </header>
 
-<main class="layout" id="viewOrcamento">
+<section class="content" id="viewDashboard">
+  <div class="dash-greeting">
+    <h2 id="dashSaudacao">Olá! 👋</h2>
+    <p>Bem-vindo ao painel da Cazú Projetos e Construções.</p>
+  </div>
+  <div class="dash-grid">
+    <div class="dash-card dash-card-wide">
+      <h3>🏗️ Orçamentos</h3>
+      <p class="dash-card-vazio">Acesse <b>Engenharia → Orçamento</b> no menu lateral para começar.</p>
+    </div>
+    <div class="dash-card">
+      <h3>🔔 Avisos</h3>
+      <p class="dash-card-vazio">Tudo certo! Nenhum aviso pendente no momento.</p>
+    </div>
+    <div class="dash-card">
+      <h3>🕘 Acessados recentemente</h3>
+      <p class="dash-card-vazio">Em breve.</p>
+    </div>
+  </div>
+</section>
+
+<main class="layout hidden" id="viewOrcamento">
   <aside class="sidebar">
     <div class="sidebar-head">
       <h2>Orçamentos</h2>

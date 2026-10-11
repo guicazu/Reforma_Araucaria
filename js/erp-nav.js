@@ -1,17 +1,21 @@
 /* Controla o menu lateral: recolher/expandir e troca entre as views
-   (Orçamento / Backup). Não depende do app.js nem mexe nele. */
+   (Início / Orçamento / Backup). Não depende do app.js nem mexe nele. */
 (function () {
   'use strict';
 
   var sidebar = document.getElementById('appSidebar');
   var toggle = document.getElementById('btnToggleSidebar');
-  var viewOrcamento = document.getElementById('viewOrcamento');
-  var viewBackup = document.getElementById('viewBackup');
+  var views = {
+    dashboard: document.getElementById('viewDashboard'),
+    orcamento: document.getElementById('viewOrcamento'),
+    backup: document.getElementById('viewBackup')
+  };
   var itens = document.querySelectorAll('.app-sidebar-item[data-view]');
 
   function mostrarView(nome) {
-    if (viewOrcamento) viewOrcamento.classList.toggle('hidden', nome !== 'orcamento');
-    if (viewBackup) viewBackup.classList.toggle('hidden', nome !== 'backup');
+    Object.keys(views).forEach(function (key) {
+      if (views[key]) views[key].classList.toggle('hidden', key !== nome);
+    });
     itens.forEach(function (it) {
       it.classList.toggle('ativo', it.dataset.view === nome);
     });
