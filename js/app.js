@@ -338,7 +338,7 @@ function renderTabela(o){
         if(temMemo&&memoAberta)html+=renderMemo(sv);
       });
       e.subEtapas.forEach((s,is)=>{
-        const cS=cE+'.'+(is+1);
+        const cS=cE+'.'+((e.servicos||[]).length+is+1);
         const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
           <td class="col-codigo codigo">${cS}</td>
@@ -453,11 +453,16 @@ function exportarExcel(){
   unidades.forEach((u,iu)=>{
     rows.push([String(iu+1),u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
     u.etapas.forEach((e,ie)=>{
-      rows.push([`${iu+1}.${ie+1}`,'   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
+      const codigoEtapa=`${iu+1}.${ie+1}`;
+      rows.push([codigoEtapa,'   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
+      (e.servicos||[]).forEach((sv,isv)=>{
+        rows.push([`${codigoEtapa}.${isv+1}`,'      '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
+      });
       e.subEtapas.forEach((s,is)=>{
-        rows.push([`${iu+1}.${ie+1}.${is+1}`,'      '+s.nome,'',null,null,num2(subtotalSub(s))]);
+        const codigoSub=`${codigoEtapa}.${(e.servicos||[]).length+is+1}`;
+        rows.push([codigoSub,'      '+s.nome,'',null,null,num2(subtotalSub(s))]);
         s.servicos.forEach((sv,isv)=>{
-          rows.push([`${iu+1}.${ie+1}.${is+1}.${isv+1}`,'         '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
+          rows.push([`${codigoSub}.${isv+1}`,'         '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
         });
       });
     });
@@ -468,10 +473,21 @@ function exportarExcel(){
   const mrows=[['CÓDIGO DO SERVIÇO','SERVIÇO','DESCRIÇÃO','QTD','COEF.','COMPR.','ALTURA','LARGURA','RESULTADO']];
   unidades.forEach((u,iu)=>{
     u.etapas.forEach((e,ie)=>{
+      const codigoEtapa=`${iu+1}.${ie+1}`;
+      (e.servicos||[]).forEach((sv,isv)=>{
+        if(sv.memo&&sv.memo.length){
+          const cod=`${codigoEtapa}.${isv+1}`;
+          sv.memo.forEach(l=>{
+            const r=calcularLinha(l);
+            mrows.push([cod,sv.nome,l.descricao||'',num2(num(l.quantidade)),num2(num(l.coeficiente)),num2(num(l.comprimento)),num2(num(l.altura)),num2(num(l.largura)),r.valor==null?'':num2(r.valor)+' '+r.tipo]);
+          });
+        }
+      });
       e.subEtapas.forEach((s,is)=>{
+        const codigoSub=`${codigoEtapa}.${(e.servicos||[]).length+is+1}`;
         s.servicos.forEach((sv,isv)=>{
           if(sv.memo&&sv.memo.length){
-            const cod=`${iu+1}.${ie+1}.${is+1}.${isv+1}`;
+            const cod=`${codigoSub}.${isv+1}`;
             sv.memo.forEach(l=>{
               const r=calcularLinha(l);
               mrows.push([cod,sv.nome,l.descricao||'',num2(num(l.quantidade)),num2(num(l.coeficiente)),num2(num(l.comprimento)),num2(num(l.altura)),num2(num(l.largura)),r.valor==null?'':num2(r.valor)+' '+r.tipo]);
