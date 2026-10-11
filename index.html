@@ -189,7 +189,20 @@
       <p>Gerencie as composições de materiais e serviços.</p>
     </div>
   </div>
-  <div id="composicoesConteudo">Carregando...</div>
+  <div id="composicoesConteudo">
+    <div class="base-selection">
+      <label>Base de dados:
+        <input type="radio" name="baseComposicao" value="sinapi" checked> SINAPI
+        <input type="radio" name="baseComposicao" value="propria"> Própria
+      </label>
+    </div>
+    <div class="actions">
+      <button id="btnAddComposicao" class="btn btn-primary">+ Nova Composição</button>
+      <button id="btnAddItem" class="btn btn-ghost">+ Adicionar Item</button>
+      <button id="btnBuscarSinapi" class="btn btn-ghost">Buscar SINAPI</button>
+    </div>
+    <div id="listaComposicoes" class="lista-vazia">Nenhuma composição cadastrada.</div>
+  </div>
 </section>
 
 <section class="content hidden" id="viewInsumos">
@@ -199,7 +212,19 @@
       <p>Gerencie os insumos básicos utilizados nas composições.</p>
     </div>
   </div>
-  <div id="insumosConteudo">Carregando...</div>
+  <div id="insumosConteudo">
+    <div class="base-selection">
+      <label>Base de dados:
+        <input type="radio" name="baseInsumo" value="sinapi" checked> SINAPI
+        <input type="radio" name="baseInsumo" value="propria"> Própria
+      </label>
+    </div>
+    <div class="actions">
+      <button id="btnAddInsumo" class="btn btn-primary">+ Novo Insumo</button>
+      <button id="btnBuscarSinapiInsumo" class="btn btn-ghost">Buscar SINAPI</button>
+    </div>
+    <div id="listaInsumos" class="lista-vazia">Nenhum insumo cadastrado.</div>
+  </div>
 </section>
 
 </div>
