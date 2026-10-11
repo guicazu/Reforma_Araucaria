@@ -28,7 +28,21 @@
     botao.type = 'button';
     botao.className = 'avatar';
     botao.title = usuario.nome || usuario.email;
-    botao.textContent = iniciais(usuario.nome || usuario.email);
+    botao.setAttribute('aria-haspopup', 'true');
+    botao.setAttribute('aria-expanded', 'false');
+    var avatarIniciais = document.createElement('span');
+    avatarIniciais.className = 'avatar-iniciais';
+    avatarIniciais.textContent = iniciais(usuario.nome || usuario.email);
+    var avatarNome = document.createElement('span');
+    avatarNome.className = 'avatar-nome';
+    avatarNome.textContent = usuario.nome || usuario.email;
+    var avatarSeta = document.createElement('span');
+    avatarSeta.className = 'avatar-seta';
+    avatarSeta.setAttribute('aria-hidden', 'true');
+    avatarSeta.textContent = '⌄';
+    botao.appendChild(avatarIniciais);
+    botao.appendChild(avatarNome);
+    botao.appendChild(avatarSeta);
 
     var painel = document.createElement('div');
     painel.className = 'avatar-painel hidden';
@@ -50,9 +64,13 @@
     botao.addEventListener('click', function (ev) {
       ev.stopPropagation();
       painel.classList.toggle('hidden');
+      botao.setAttribute('aria-expanded', String(!painel.classList.contains('hidden')));
     });
     document.addEventListener('click', function (ev) {
-      if (!wrap.contains(ev.target)) painel.classList.add('hidden');
+      if (!wrap.contains(ev.target)) {
+        painel.classList.add('hidden');
+        botao.setAttribute('aria-expanded', 'false');
+      }
     });
 
     painel.querySelector('#btnSalvarPerfil').addEventListener('click', function () {
@@ -68,7 +86,8 @@
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function () {
           msg.textContent = 'Salvo!';
-          botao.textContent = iniciais(nome);
+          avatarIniciais.textContent = iniciais(nome);
+          avatarNome.textContent = nome;
           botao.title = nome;
           var nomeSidebar = document.querySelector('#appSidebarUser .nome');
           if (nomeSidebar) nomeSidebar.textContent = nome;

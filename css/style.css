@@ -345,9 +345,14 @@ body{display:flex}
 /* Avatar/nome no topo direito do header (estilo Sienge) */
 .topbar-user{display:flex;align-items:center;gap:8px;margin-left:auto}
 .topbar-user .avatar{
-  width:32px;height:32px;border-radius:50%;background:var(--gold);color:var(--navy-escuro);
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+  width:auto;max-width:280px;height:40px;padding:3px 10px 3px 4px;gap:8px;
+  border:1px solid var(--borda);border-radius:20px;background:#fff;color:var(--navy-escuro);
+  display:flex;align-items:center;font-weight:600;font-size:13px;cursor:pointer;
 }
+.avatar-iniciais{width:32px;height:32px;flex:0 0 32px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-size:12px;font-weight:800}
+.avatar-nome{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.avatar-seta{color:var(--suave);font-size:14px}
+.topbar-user .avatar:focus-visible{outline:2px solid var(--gold-2);outline-offset:2px}
 .topbar{justify-content:space-between}
 
 /* ===== Dashboard (tela inicial) ===== */
@@ -376,7 +381,7 @@ body{display:flex}
   border:none;cursor:pointer;
 }
 .avatar-painel{
-  position:absolute;top:40px;right:0;background:#fff;border:1px solid var(--borda);
+  position:absolute;top:46px;right:0;background:#fff;border:1px solid var(--borda);
   border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:14px;width:220px;z-index:50;
 }
 .avatar-painel label{display:block;font-size:12px;color:var(--suave);margin-bottom:8px;font-weight:600}
@@ -385,6 +390,10 @@ body{display:flex}
 .avatar-painel hr{border:none;border-top:1px solid var(--borda);margin:10px 0}
 .avatar-sair{display:block;text-align:center;color:var(--vermelho);font-weight:700;text-decoration:none;font-size:13px}
 .avatar-sair:hover{text-decoration:underline}
+@media (max-width:860px){
+  .topbar-user .avatar{max-width:190px}
+  .avatar-nome{max-width:115px}
+}
 
 /* ===== Orçamento: lista cheia vs. editor cheio ===== */
 #viewOrcamento[data-modo="lista"] .content{display:none}
