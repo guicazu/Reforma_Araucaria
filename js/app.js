@@ -6,6 +6,7 @@ const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
 
 function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+function primeiraMaiuscula(s){const texto=String(s??'');return texto?texto.charAt(0).toLocaleUpperCase('pt-BR')+texto.slice(1):'';}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
 function num2(n){return Math.round((Number(n)||0)*100)/100;}
 function clone(x){return JSON.parse(JSON.stringify(x));}
@@ -312,10 +313,12 @@ function calcularLinha(l){
   const c=num(l.comprimento),a=num(l.altura),w=num(l.largura);
   const q=num(l.quantidade),coef=num(l.coeficiente);
   let base,tipo;
-  if(c!=null&&a!=null&&w!=null){base=c*a*w;tipo='m³';}
-  else if(c!=null&&a!=null){base=c*a;tipo='m²';}
-  else{base=1;tipo='qtd';}
   if(c==null&&a==null&&w==null&&q==null&&coef==null)return{valor:null,tipo:''};
+  if(c!=null||a!=null||w!=null){
+    if(c==null||a==null)return{valor:null,tipo:'',incompleto:true};
+    if(w!=null){base=c*a*w;tipo='m³';}
+    else{base=c*a;tipo='m²';}
+  }else{base=1;tipo='qtd';}
   return{valor:base*(q??1)*(coef??1),tipo};
 }
 function qtdServico(sv){if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}return num(sv.qtdManual)||0;}
@@ -325,6 +328,17 @@ function contarServicos(o){let n=0;for(const u of uu(o))for(const e of u.etapas)
 function subtotalSub(s){return s.servicos.reduce((a,sv)=>a+totalServico(sv),0);}
 function subtotalEtapa(e){let t=0;for(const sv of (e.servicos||[]))t+=totalServico(sv);for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function subtotalUnidade(o,u){let t=0;for(const e of u.etapas){t+=subtotalEtapa(e);}return t;}
+function atualizarTotaisVisuais(o){
+  $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
+  $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+  for(const u of uu(o)){
+    const totalUn=document.getElementById('subtotalUnidade_'+u.id);if(totalUn)totalUn.textContent=fmtBRL.format(subtotalUnidade(o,u));
+    for(const e of u.etapas){
+      const totalEt=document.getElementById('subtotalEtapa_'+e.id);if(totalEt)totalEt.textContent=fmtBRL.format(subtotalEtapa(e));
+      for(const s of e.subEtapas){const totalS=document.getElementById('subtotalSub_'+s.id);if(totalS)totalS.textContent=fmtBRL.format(subtotalSub(s));}
+    }
+  }
+}
 
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
@@ -350,9 +364,9 @@ function renderTabela(o){
     const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
       <td class="col-codigo codigo">${cU}</td>
-      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome)}</strong></td>
+      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome.toLocaleUpperCase('pt-BR'))}</strong></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
-      <td class="col-num total">${fmtBRL.format(subtotalUnidade(o,u))}</td>
+      <td class="col-num total" id="subtotalUnidade_${u.id}">${fmtBRL.format(subtotalUnidade(o,u))}</td>
 <td class="col-acoes">
   <button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button>
   <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
@@ -367,9 +381,9 @@ function renderTabela(o){
       const abertaE=estaAberto('e-'+e.id);
       html+=`<tr class="grupo n2">
         <td class="col-codigo codigo">${cE}</td>
-        <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(e.nome)}</strong></td>
+        <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(primeiraMaiuscula(e.nome))}</strong></td>
         <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
-        <td class="col-num total">${fmtBRL.format(subtotalEtapa(e))}</td>
+        <td class="col-num total" id="subtotalEtapa_${e.id}">${fmtBRL.format(subtotalEtapa(e))}</td>
         <td class="col-acoes">
   <button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
   <button class="btn btn-ghost btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}">+ Serviço</button>
@@ -387,9 +401,9 @@ function renderTabela(o){
         const memoAberta=estaAberto('sv-'+sv.id);
         html+=`<tr class="linha-servico linha-direta">
           <td class="col-codigo codigo">${cSv}</td>
-          <td><strong>${esc(sv.codigo||'')} ${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+          <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
-          <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
+          <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo?'readonly title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
           <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
           <td class="col-acoes">
@@ -408,9 +422,9 @@ function renderTabela(o){
         const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
           <td class="col-codigo codigo">${cS}</td>
-          <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(s.nome)}</strong></td>
+          <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(primeiraMaiuscula(s.nome))}</strong></td>
           <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
-          <td class="col-num total">${fmtBRL.format(subtotalSub(s))}</td>
+          <td class="col-num total" id="subtotalSub_${s.id}">${fmtBRL.format(subtotalSub(s))}</td>
           <td class="col-acoes">
   <button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button>
   <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
@@ -427,9 +441,9 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            <td><strong>${esc(sv.codigo||'')} ${esc(sv.nome)}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+            <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
-            <td class="col-num" id="qtdsv_${sv.id}">${fmtNum.format(qtd)}</td>
+            <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo?'readonly title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
             <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
             <td class="col-acoes">
@@ -450,34 +464,35 @@ function renderTabela(o){
 }
 
 function renderMemo(sv){
-  const linhas=sv.memo.map(l=>{const r=calcularLinha(l);return `
+  const linhas=sv.memo.map((l,indice)=>{const r=calcularLinha(l);return `
   <tr>
-    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição" /></td>
-    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="Qtd" /></td>
-    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="Coef." /></td>
-    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="Compr." /></td>
-    <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="Alt." /></td>
-    <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="Larg." /></td>
-    <td class="res" id="res_${l.id}">${r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
-    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover">✕</button></td>
+    <td class="memo-indice">${indice+1}</td>
+    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Ex.: Trecho frontal" aria-label="Descrição da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="1" aria-label="Quantidade da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="1" aria-label="Coeficiente da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="m" aria-label="Comprimento da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="m" aria-label="Altura da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="m" aria-label="Largura da linha ${indice+1}" /></td>
+    <td class="res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
+    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover linha ${indice+1}" aria-label="Remover linha ${indice+1}">×</button></td>
   </tr>`;}).join('');
   const soma=qtdServico(sv);
   return `
   <tr class="linha-memo"><td colspan="7">
     <div class="memo-box">
       <div class="memo-head">
-        <h4>🧮 Memória de cálculo — ${esc(sv.nome)}</h4>
-        <span class="memo-soma">Soma: <strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></span>
+        <div><h4>Memória de cálculo</h4><p>${esc(sv.nome)} · ${sv.memo.length} linha(s)</p></div>
+        <div class="memo-head-total"><span>Quantidade calculada</span><strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></div>
       </div>
-      <table class="tabela-memo">
-        <thead><tr><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
+      <div class="memo-table-wrap"><table class="tabela-memo">
+        <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
         <tbody>${linhas}</tbody>
-      </table>
+      </table></div>
       <div class="memo-add">
-        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Adicionar linha</button>
-        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Apagar memória</button>
+        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Linha</button>
+        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Voltar à quantidade manual</button>
       </div>
-      <p class="memo-aviso">ℹ️ <b>Comprimento + Altura</b> → m² · <b>+ Largura</b> → m³ · só <b>Qtd</b> → qtd. A <b>Qtd</b> e o <b>Coef.</b> multiplicam o resultado.</p>
+      <p class="memo-aviso">Comprimento × altura gera m²; com largura, gera m³. Sem dimensões, quantidade × coeficiente gera quantidade. Enquanto a memória existir, ela substitui a quantidade manual.</p>
     </div>
   </td></tr>`;
 }
@@ -685,6 +700,17 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
 });
 
 $('#corpoTabela').addEventListener('input',(ev)=>{
+  const qtdInput=ev.target.closest('input.qtd-servico');
+  if(qtdInput){
+    const o=orcamentoAtivo();if(!o)return;
+    const sv=acharServicoPorId(o,qtdInput.dataset.svid);if(!sv||sv.memo&&sv.memo.length)return;
+    const quantidade=num(qtdInput.value);
+    sv.qtdManual=Math.max(0,quantidade||0);
+    salvar();
+    const totalEl=document.getElementById('totalsv_'+sv.id);if(totalEl)totalEl.textContent=fmtBRL.format(totalServico(sv));
+    atualizarTotaisVisuais(o);
+    return;
+  }
   const inp=ev.target.closest('input[data-lid]');if(!inp)return;
   const o=orcamentoAtivo();if(!o)return;
   const lid=inp.dataset.lid,campo=inp.dataset.campo;
@@ -694,15 +720,21 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
   salvar();
   const r=calcularLinha(l);
   const res=document.getElementById('res_'+lid);
-  if(res)res.textContent=(r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo);
+  if(res){res.textContent=r.incompleto?'Incompleta':(r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo);res.classList.toggle('memo-incompleto',!!r.incompleto);res.title=r.incompleto?'Informe comprimento e altura para calcular dimensões.':'';}
   const qCell=document.getElementById('qtdsv_'+sv.id);
-  if(qCell)qCell.textContent=fmtNum.format(qtdServico(sv));
+  if(qCell)qCell.value=fmtNum.format(qtdServico(sv));
   const tCell=document.getElementById('totalsv_'+sv.id);
   if(tCell)tCell.textContent=fmtBRL.format(totalServico(sv));
   const somaEl=document.getElementById('soma_'+sv.id);
   if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv))+' '+sv.unidadeMedida;
-  $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
-  $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+  atualizarTotaisVisuais(o);
+});
+
+$('#corpoTabela').addEventListener('change',(ev)=>{
+  const qtdInput=ev.target.closest('input.qtd-servico');if(!qtdInput||qtdInput.readOnly)return;
+  const o=orcamentoAtivo();if(!o)return;
+  const sv=acharServicoPorId(o,qtdInput.dataset.svid);if(!sv||sv.memo&&sv.memo.length)return;
+  qtdInput.value=fmtNum.format(qtdServico(sv));
 });
 
 $('#btnNovoOrcamento').addEventListener('click',criarOrcamento);
