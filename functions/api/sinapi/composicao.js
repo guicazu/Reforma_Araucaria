@@ -1,6 +1,6 @@
 // Busca uma composição SINAPI específica pelo código, via API pública SINPRES.
 
-const ESTADO_PADRAO = 'SP';
+const ESTADO_PADRAO = 'PR';
 const DESONERADO_PADRAO = 'false';
 
 export async function onRequestGet({ request }) {

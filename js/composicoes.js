@@ -29,8 +29,25 @@
 
   function parseReal(valor) {
     if (valor === null || valor === undefined || valor === '') return 0;
-    const n = Number(String(valor).replace(/\./g, '').replace(',', '.').trim());
+    if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0;
+    let texto = String(valor).trim();
+    if (texto.includes(',')) {
+      texto = texto.replace(/\./g, '').replace(',', '.');
+    } else if ((texto.match(/\./g) || []).length > 1 || /^\d{1,3}\.\d{3}$/.test(texto)) {
+      texto = texto.replace(/\./g, '');
+    }
+    const n = Number(texto);
     return Number.isFinite(n) ? n : 0;
+  }
+
+  function escaparHtml(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, function (caractere) {
+      return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[caractere];
+    });
+  }
+
+  function formatarReal(valor) {
+    return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   }
 
   function proximoCodigoComposicao() {
@@ -65,7 +82,7 @@
   window.Composicoes = {
     carregar: carregarComposicoes,
     salvar: salvarComposicoes,
-    adicionar: function (nome, descricao, unidade, valorUnitario, base) {
+    adicionar: function (nome, descricao, unidade, valorUnitario, base, extras) {
       const comp = carregarComposicoes();
       const item = {
         id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'c-' + Date.now()),
@@ -75,9 +92,23 @@
         unidade: unidade || 'un',
         valorUnitario: parseReal(valorUnitario),
         base: base || 'propria',
+        codigoReferencia: extras && extras.codigoReferencia || '',
+        componentes: extras && Array.isArray(extras.componentes) ? extras.componentes : [],
         criadoEm: new Date().toISOString()
       };
       comp.push(item);
+      salvarComposicoes(comp);
+      return item;
+    },
+    atualizar: function (id, dados) {
+      const comp = carregarComposicoes();
+      const item = comp.find(function (c) { return c.id === id; });
+      if (!item) return null;
+      item.nome = (dados.nome || '').trim();
+      item.descricao = dados.descricao || '';
+      item.unidade = dados.unidade || 'un';
+      item.valorUnitario = parseReal(dados.valorUnitario);
+      item.componentes = Array.isArray(dados.componentes) ? dados.componentes : [];
       salvarComposicoes(comp);
       return item;
     },
@@ -142,16 +173,17 @@
     container.innerHTML = itens.map(function (item) {
       return '<div class="item-catalogo">' +
         '<div class="item-header">' +
-          '<span class="item-codigo">' + (item.codigo || '—') + '</span>' +
+          '<span class="item-codigo">' + escaparHtml(item.codigoReferencia || item.codigo || '—') + '</span>' +
           '<span class="item-base">' + (item.base === 'sinapi' ? 'SINAPI' : 'Própria') + '</span>' +
         '</div>' +
-        '<div class="item-nome">' + (item.nome || 'Sem nome') + '</div>' +
-        '<div class="item-meta">' + (item.descricao || 'Sem descrição') + '</div>' +
+        '<div class="item-nome">' + escaparHtml(item.nome || 'Sem nome') + '</div>' +
+        '<div class="item-meta">' + escaparHtml(item.descricao || 'Sem descrição') + '</div>' +
         '<div class="item-footer">' +
-          '<span>' + (item.unidade || 'un') + '</span>' +
-          '<strong>R$ ' + Number(item.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</strong>' +
+          '<span>' + escaparHtml(item.unidade || 'un') + (item.componentes && item.componentes.length ? ' · ' + item.componentes.length + ' insumo(s)' : '') + '</span>' +
+          '<strong>R$ ' + formatarReal(item.valorUnitario) + '</strong>' +
         '</div>' +
         '<div class="item-acoes">' +
+          (item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-composicao">Editar</button>' : '') +
           '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="composicao" data-acao="remover">Remover</button>' +
         '</div>' +
       '</div>';
@@ -178,14 +210,14 @@
     container.innerHTML = itens.map(function (item) {
       return '<div class="item-catalogo">' +
         '<div class="item-header">' +
-          '<span class="item-codigo">' + (item.codigo || '—') + '</span>' +
+          '<span class="item-codigo">' + escaparHtml(item.codigoReferencia || item.codigo || '—') + '</span>' +
           '<span class="item-base">' + (item.base === 'sinapi' ? 'SINAPI' : 'Própria') + '</span>' +
         '</div>' +
-        '<div class="item-nome">' + (item.nome || 'Sem nome') + '</div>' +
-        '<div class="item-meta">' + (item.descricao || 'Sem descrição') + '</div>' +
+        '<div class="item-nome">' + escaparHtml(item.nome || 'Sem nome') + '</div>' +
+        '<div class="item-meta">' + escaparHtml(item.descricao || 'Sem descrição') + '</div>' +
         '<div class="item-footer">' +
-          '<span>' + (item.unidade || 'un') + '</span>' +
-          '<strong>R$ ' + Number(item.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</strong>' +
+          '<span>' + escaparHtml(item.unidade || 'un') + '</span>' +
+          '<strong>R$ ' + formatarReal(item.valorUnitario) + '</strong>' +
         '</div>' +
         '<div class="item-acoes">' +
           '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="insumo" data-acao="remover">Remover</button>' +
@@ -221,12 +253,87 @@
     const valor = resultado.valor !== null && resultado.valor !== undefined ? resultado.valor : 0;
 
     if (view.id === 'viewComposicoes') {
-      window.Composicoes.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi');
+      window.Composicoes.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
+      document.querySelectorAll('input[name="baseComposicao"]').forEach(function (radio) { radio.checked = radio.value === 'sinapi'; });
       renderComposicoes();
     } else if (view.id === 'viewInsumos') {
       window.Insumos.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi');
       renderInsumos();
     }
+  }
+
+  function linhaComponente(componente) {
+    const tbody = document.getElementById('componentesComposicao');
+    if (!tbody) return;
+    const insumos = window.Insumos.carregar();
+    const selecionado = componente && componente.insumoId || '';
+    const opcoes = ['<option value="">Selecione um insumo</option>'].concat(insumos.map(function (insumo) {
+      return '<option value="' + escaparHtml(insumo.id) + '">' + escaparHtml((insumo.codigo || '') + ' — ' + insumo.nome) + '</option>';
+    }));
+    if (componente && selecionado && !insumos.some(function (i) { return i.id === selecionado; })) {
+      opcoes.push('<option value="' + escaparHtml(selecionado) + '">' + escaparHtml(componente.nome + ' (sem cadastro)') + '</option>');
+    }
+    const linha = document.createElement('tr');
+    linha.dataset.insumoNome = componente && componente.nome || '';
+    linha.dataset.insumoUnidade = componente && componente.unidade || '';
+    linha.dataset.insumoValor = componente && componente.valorUnitario != null ? componente.valorUnitario : '';
+    linha.innerHTML = '<td><select class="componente-insumo">' + opcoes.join('') + '</select></td>' +
+      '<td class="componente-unidade">—</td>' +
+      '<td><input class="componente-coeficiente" inputmode="decimal" placeholder="1,00" value="' + escaparHtml(componente && componente.coeficiente != null ? componente.coeficiente : '') + '"></td>' +
+      '<td class="componente-preco">—</td><td class="componente-parcial">—</td>' +
+      '<td><button type="button" class="btn-icon btn-danger" data-remover-componente title="Remover insumo">×</button></td>';
+    tbody.appendChild(linha);
+    linha.querySelector('.componente-insumo').value = selecionado;
+    atualizarLinhaComponente(linha);
+  }
+
+  function atualizarLinhaComponente(linha) {
+    const id = linha.querySelector('.componente-insumo').value;
+    const insumo = window.Insumos.carregar().find(function (i) { return i.id === id; });
+    if (insumo) {
+      linha.dataset.insumoNome = insumo.nome;
+      linha.dataset.insumoUnidade = insumo.unidade || 'un';
+      linha.dataset.insumoValor = insumo.valorUnitario || 0;
+    }
+    const unidade = linha.dataset.insumoUnidade || '—';
+    const preco = parseReal(linha.dataset.insumoValor);
+    const coeficiente = parseReal(linha.querySelector('.componente-coeficiente').value);
+    linha.querySelector('.componente-unidade').textContent = unidade;
+    linha.querySelector('.componente-preco').textContent = 'R$ ' + formatarReal(preco);
+    linha.querySelector('.componente-parcial').textContent = 'R$ ' + formatarReal(preco * coeficiente);
+    atualizarTotalComposicao();
+  }
+
+  function atualizarTotalComposicao() {
+    const tbody = document.getElementById('componentesComposicao');
+    const campoValor = document.getElementById('fComposicaoValor');
+    if (!tbody || !campoValor) return;
+    const linhas = Array.from(tbody.querySelectorAll('tr'));
+    if (linhas.length) {
+      const total = linhas.reduce(function (soma, linha) {
+        return soma + parseReal(linha.dataset.insumoValor) * parseReal(linha.querySelector('.componente-coeficiente').value);
+      }, 0);
+      campoValor.value = formatarReal(total);
+      campoValor.readOnly = true;
+    } else {
+      campoValor.readOnly = false;
+    }
+  }
+
+  function abrirEditorComposicao(item) {
+    const form = document.getElementById('formComposicao');
+    if (!form) return;
+    form.reset();
+    document.getElementById('fComposicaoId').value = item ? item.id : '';
+    document.getElementById('fComposicaoNome').value = item ? item.nome : '';
+    document.getElementById('fComposicaoDescricao').value = item ? item.descricao : '';
+    document.getElementById('fComposicaoUnidade').value = item ? item.unidade : 'un';
+    document.getElementById('fComposicaoValor').value = item ? formatarReal(item.valorUnitario) : '';
+    const tbody = document.getElementById('componentesComposicao');
+    tbody.replaceChildren();
+    (item && item.componentes || []).forEach(linhaComponente);
+    atualizarTotalComposicao();
+    document.getElementById('modalComposicao').showModal();
   }
 
   function init() {
@@ -241,17 +348,75 @@
 
     const btnAddComposicao = document.getElementById('btnAddComposicao');
     const btnAddInsumo = document.getElementById('btnAddInsumo');
-    const btnAddItem = document.getElementById('btnAddItem');
     const btnBuscarSinapi = document.getElementById('btnBuscarSinapi');
     const btnBuscarSinapiInsumo = document.getElementById('btnBuscarSinapiInsumo');
 
-    if (btnAddComposicao) btnAddComposicao.addEventListener('click', function () { adicionarItemPorPrompt('composicao'); });
+    if (btnAddComposicao) btnAddComposicao.addEventListener('click', function () {
+      const propria = document.querySelector('input[name="baseComposicao"][value="propria"]');
+      if (propria) propria.checked = true;
+      renderComposicoes();
+      abrirEditorComposicao(null);
+    });
     if (btnAddInsumo) btnAddInsumo.addEventListener('click', function () { adicionarItemPorPrompt('insumo'); });
-    if (btnAddItem) btnAddItem.addEventListener('click', function () { adicionarItemPorPrompt('composicao'); });
     if (btnBuscarSinapi) btnBuscarSinapi.addEventListener('click', function () { var modal = document.getElementById('modalBuscaSinapi'); if (modal) modal.showModal(); });
     if (btnBuscarSinapiInsumo) btnBuscarSinapiInsumo.addEventListener('click', function () { var modal = document.getElementById('modalBuscaSinapi'); if (modal) modal.showModal(); });
 
+    document.getElementById('btnAdicionarComponente').addEventListener('click', function () { linhaComponente(null); });
+    document.getElementById('btnCancelarComposicao').addEventListener('click', function () { document.getElementById('modalComposicao').close(); });
+    document.getElementById('componentesComposicao').addEventListener('change', function (ev) {
+      if (ev.target.matches('.componente-insumo')) atualizarLinhaComponente(ev.target.closest('tr'));
+    });
+    document.getElementById('componentesComposicao').addEventListener('input', function (ev) {
+      if (ev.target.matches('.componente-coeficiente')) atualizarLinhaComponente(ev.target.closest('tr'));
+    });
+    document.getElementById('componentesComposicao').addEventListener('click', function (ev) {
+      if (ev.target.closest('[data-remover-componente]')) {
+        ev.target.closest('tr').remove();
+        atualizarTotalComposicao();
+      }
+    });
+    document.getElementById('formComposicao').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      const linhas = Array.from(document.querySelectorAll('#componentesComposicao tr'));
+      const componentes = linhas.map(function (linha) {
+        const insumo = window.Insumos.carregar().find(function (i) { return i.id === linha.querySelector('.componente-insumo').value; });
+        return {
+          insumoId: linha.querySelector('.componente-insumo').value,
+          nome: insumo ? insumo.nome : linha.dataset.insumoNome,
+          unidade: insumo ? insumo.unidade : linha.dataset.insumoUnidade,
+          valorUnitario: insumo ? parseReal(insumo.valorUnitario) : parseReal(linha.dataset.insumoValor),
+          coeficiente: parseReal(linha.querySelector('.componente-coeficiente').value)
+        };
+      });
+      if (componentes.some(function (c) { return !c.insumoId || !c.nome || c.coeficiente <= 0; })) {
+        alert('Selecione um insumo e informe um coeficiente maior que zero em cada linha.');
+        return;
+      }
+      const dados = {
+        nome: document.getElementById('fComposicaoNome').value.trim(),
+        descricao: document.getElementById('fComposicaoDescricao').value.trim(),
+        unidade: document.getElementById('fComposicaoUnidade').value.trim() || 'un',
+        valorUnitario: document.getElementById('fComposicaoValor').value,
+        componentes: componentes
+      };
+      if (!dados.nome) { alert('Informe o nome da composição.'); return; }
+      const id = document.getElementById('fComposicaoId').value;
+      if (id) {
+        window.Composicoes.atualizar(id, dados);
+      } else {
+        window.Composicoes.adicionar(dados.nome, dados.descricao, dados.unidade, dados.valorUnitario, 'propria', {componentes: dados.componentes});
+      }
+      renderComposicoes();
+      document.getElementById('modalComposicao').close();
+    });
+
     document.addEventListener('click', function (ev) {
+      const editBtn = ev.target.closest('[data-acao="editar-composicao"]');
+      if (editBtn) {
+        const item = window.Composicoes.carregar().find(function (c) { return c.id === editBtn.getAttribute('data-item-id'); });
+        if (item) abrirEditorComposicao(item);
+        return;
+      }
       const actionBtn = ev.target.closest('[data-acao="remover"]');
       if (!actionBtn) return;
       const tipo = actionBtn.getAttribute('data-item-tipo');

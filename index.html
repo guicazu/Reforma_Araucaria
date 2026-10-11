@@ -197,13 +197,42 @@
       </label>
     </div>
     <div class="actions">
-      <button id="btnAddComposicao" class="btn btn-primary">+ Nova Composição</button>
-      <button id="btnAddItem" class="btn btn-ghost">+ Adicionar Item</button>
+      <button id="btnAddComposicao" class="btn btn-primary">+ Nova composição própria</button>
       <button id="btnBuscarSinapi" class="btn btn-ghost">Buscar SINAPI</button>
     </div>
     <div id="listaComposicoes" class="lista-vazia">Nenhuma composição cadastrada.</div>
   </div>
 </section>
+
+<dialog id="modalComposicao" class="modal modal-lg">
+  <form id="formComposicao">
+    <h3>Composição própria</h3>
+    <input type="hidden" id="fComposicaoId" />
+    <div class="grid-2">
+      <label>Nome<input id="fComposicaoNome" required /></label>
+      <label>Unidade da composição<input id="fComposicaoUnidade" value="un" required /></label>
+    </div>
+    <label>Descrição<textarea id="fComposicaoDescricao" rows="2"></textarea></label>
+    <div class="componentes-head">
+      <h4>Insumos e coeficientes</h4>
+      <button type="button" id="btnAdicionarComponente" class="btn btn-ghost btn-sm">+ Adicionar insumo</button>
+    </div>
+    <div class="componentes-wrap">
+      <table class="componentes-tabela">
+        <thead><tr><th>Insumo</th><th>Un.</th><th>Coeficiente</th><th>Preço unitário</th><th>Parcial</th><th></th></tr></thead>
+        <tbody id="componentesComposicao"></tbody>
+      </table>
+    </div>
+    <div class="composicao-valor">
+      <label>Preço unitário da composição (R$)<input id="fComposicaoValor" inputmode="decimal" placeholder="0,00" /></label>
+      <p class="memo-aviso">Com insumos adicionados, o preço é calculado pela soma dos coeficientes multiplicados pelos preços unitários.</p>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="btnCancelarComposicao" class="btn btn-ghost">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar composição</button>
+    </div>
+  </form>
+</dialog>
 
 <section class="content hidden" id="viewInsumos">
   <div class="orcamento-head">
@@ -236,6 +265,11 @@
     <input type="hidden" id="fSubId" />
 <input type="hidden" id="fUnidadeId" />
 <input type="hidden" id="fEtapaId" />
+    <input type="hidden" id="fCatalogoTipo" />
+    <input type="hidden" id="fCatalogoId" />
+    <label>Preencher pelo catálogo
+      <select id="fCatalogoItem"><option value="">Selecione uma composição ou insumo</option></select>
+    </label>
       <div class="campo-com-botao">
         <input type="text" id="fCodigoSinapi" placeholder="Ex.: 87529" inputmode="numeric" />
         <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost" title="Buscar composição SINAPI">🔍</button>

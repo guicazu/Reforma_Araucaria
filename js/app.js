@@ -35,6 +35,7 @@ function proximoCodigo(){
   return 'ORC-'+ano+'-'+String(max+1).padStart(3,'0');
 }
 state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
+let salvando = false;
 salvar();
 
 function salvar(){
@@ -43,7 +44,6 @@ function salvar(){
   // 2) Envia para o D1 (sincronização entre dispositivos)
   enviarParaServidor();
 }
-let salvando = false;
 async function enviarParaServidor(){
   if(salvando) return;              // evita disparos em sequência
   salvando = true;
@@ -209,16 +209,59 @@ function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etap
   salvar();renderTudo();
 }
 
+function preencherCatalogoServico(sv){
+  const select=$('#fCatalogoItem');
+  select.replaceChildren(new Option('Selecione uma composição ou insumo',''));
+  const grupos=[
+    {tipo:'composicao',rotulo:'Composições',itens:window.Composicoes?window.Composicoes.carregar():[]},
+    {tipo:'insumo',rotulo:'Insumos',itens:window.Insumos?window.Insumos.carregar():[]}
+  ];
+  grupos.forEach(grupo=>{
+    if(!grupo.itens.length)return;
+    const optgroup=document.createElement('optgroup');optgroup.label=grupo.rotulo;
+    grupo.itens.forEach(item=>{
+      const codigo=item.codigoReferencia||item.codigo||'';
+      const opcao=new Option(`${codigo?codigo+' — ':''}${item.nome} · ${fmtBRL.format(num(item.valorUnitario)||0)}/${item.unidade||'un'}`,grupo.tipo+':'+item.id);
+      optgroup.appendChild(opcao);
+    });
+    select.appendChild(optgroup);
+  });
+  select.value=sv&&sv.catalogoTipo&&sv.catalogoId?sv.catalogoTipo+':'+sv.catalogoId:'';
+}
+
+function aplicarItemCatalogo(){
+  const valor=$('#fCatalogoItem').value;
+  const separador=valor.indexOf(':');
+  if(separador<0){$('#fCatalogoTipo').value='';$('#fCatalogoId').value='';return;}
+  const tipo=valor.slice(0,separador),id=valor.slice(separador+1);
+  const itens=tipo==='composicao'?(window.Composicoes&&window.Composicoes.carregar()):(window.Insumos&&window.Insumos.carregar());
+  const item=itens&&itens.find(registro=>registro.id===id);
+  if(!item)return;
+  $('#fCatalogoTipo').value=tipo;$('#fCatalogoId').value=id;
+  $('#fCodigoSinapi').value=item.codigoReferencia||'';
+  $('#fNome').value=item.nome||'';
+  $('#fUnidadeMedida').value=item.unidade||'un';
+  $('#fValor').value=Number(item.valorUnitario||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function desvincularCatalogoServico(){
+  $('#fCatalogoTipo').value='';$('#fCatalogoId').value='';$('#fCatalogoItem').value='';
+}
+
 function abrirModalServico(sv, sub, etapa, unidade){
   if(!sv&&typeof window.limparBuscaSinapi==='function')window.limparBuscaSinapi();
   $('#fServicoId').value=sv?sv.id:'';
   $('#fSubId').value=sub?sub.id:'';
   $('#fEtapaId').value=etapa?etapa.id:'';
   $('#fUnidadeId').value=unidade?unidade.id:'';
+  $('#fCatalogoTipo').value=sv?sv.catalogoTipo||'':'';
+  $('#fCatalogoId').value=sv?sv.catalogoId||'':'';
   $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
   $('#fNome').value=sv?sv.nome:'';
+  $('#fCodigoSinapi').value=sv?sv.codigo||'':'';
   $('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';
   $('#fValor').value=sv&&sv.valorUnitario!=null?sv.valorUnitario:'';
+  preencherCatalogoServico(sv);
   $('#modalServico').showModal();
   $('#fNome').focus();
 }
@@ -424,19 +467,19 @@ $('#formServico').addEventListener('submit',(ev)=>{
   const svid=$('#fServicoId').value;
   const etapaId=$('#fEtapaId').value;
   const subId=$('#fSubId').value;
-  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value)};
+  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null};
   if(!dados.nome){alert('Informe o nome do serviço.');return;}
   if(svid){
     const sv=acharServicoPorId(o,svid);
-    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;}
+    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;sv.codigo=dados.codigo;sv.catalogoTipo=dados.catalogoTipo;sv.catalogoId=dados.catalogoId;}
   }else{
     const etapa = etapaId ? acharEtapa(o, $('#fUnidadeId').value, etapaId) : null;
     const sub = subId ? acharSubPorId(o, subId) : null;
     if(sub){
-      sub.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});
+      sub.servicos.push({id:uid(),...dados,qtdManual:null,memo:[]});
     } else if(etapa){
       etapa.servicos = etapa.servicos || [];
-      etapa.servicos.push({id:uid(),nome:dados.nome,unidadeMedida:dados.unidadeMedida,valorUnitario:dados.valorUnitario,qtdManual:null,memo:[]});
+      etapa.servicos.push({id:uid(),...dados,qtdManual:null,memo:[]});
     } else {
       alert('Não foi possível localizar a etapa para salvar o serviço.');
       return;
@@ -640,6 +683,8 @@ $('#btnNovoVazio').addEventListener('click',criarOrcamento);
 $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
 $('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
+$('#fCatalogoItem').addEventListener('change',aplicarItemCatalogo);
+['fCodigoSinapi','fNome','fUnidadeMedida','fValor'].forEach(id=>$('#'+id).addEventListener('input',desvincularCatalogoServico));
 $('#btnDuplicar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o)duplicarOrcamento(o.id);});
 $('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)return;renderVersoes(o);$('#comparacaoVersoes').innerHTML='';$('#modalVersoes').showModal();});
 $('#btnGerarVersao').addEventListener('click',gerarVersao);

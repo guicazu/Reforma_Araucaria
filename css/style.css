@@ -104,6 +104,20 @@ button{font:inherit}
 .memo-aviso{color:var(--suave);font-size:12px;margin:8px 0 0}
 .memo-aviso b{color:var(--texto)}
 
+.componentes-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}
+.componentes-head h4{margin:0;color:var(--navy-escuro);font-size:14px}
+.componentes-wrap{overflow-x:auto;border:1px solid var(--borda);border-radius:8px}
+.componentes-tabela{width:100%;min-width:620px;border-collapse:collapse;font-size:12px}
+.componentes-tabela th,.componentes-tabela td{padding:7px 8px;border-bottom:1px solid #e6e0d2;text-align:left}
+.componentes-tabela th{background:#f1ecdf;color:var(--suave);font-size:11px;text-transform:uppercase}
+.componentes-tabela input,.componentes-tabela select{min-width:90px;padding:6px 7px;font-size:12px}
+.componentes-tabela td:nth-child(2),.componentes-tabela td:nth-child(4),.componentes-tabela td:nth-child(5){white-space:nowrap}
+.componentes-tabela .componente-parcial{font-weight:700;color:var(--navy-escuro)}
+.composicao-valor{display:grid;grid-template-columns:minmax(190px,280px) 1fr;align-items:end;gap:12px;margin-top:12px}
+.composicao-valor label{margin:0}
+.composicao-valor p{margin:0 0 8px}
+.item-acoes{display:flex;gap:6px;flex-wrap:wrap}
+
 input,select,textarea{border:1px solid var(--borda);border-radius:8px;padding:8px 10px;font-size:14px;width:100%;background:#fff;color:var(--texto)}
 input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}
 
@@ -142,6 +156,7 @@ input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}
 .sidebar{width:100%;min-width:0;position:static;max-height:none;border-right:none;border-bottom:1px solid var(--borda)}
 .topbar{flex-wrap:wrap;gap:8px}
 .grid-2{grid-template-columns:1fr}
+.composicao-valor{grid-template-columns:1fr}
 }
 
 /* impressão / PDF */

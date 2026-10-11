@@ -2,7 +2,7 @@
 // que a descrição deve conter (q) e palavras que não deve conter (excluir).
 // UF e regime fixos em SP / não desonerado.
 
-const ESTADO_PADRAO = 'SP';
+const ESTADO_PADRAO = 'PR';
 const DESONERADO_PADRAO = 'false';
 
 export async function onRequestGet({ request }) {

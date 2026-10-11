@@ -31,6 +31,9 @@
     var fNome = document.getElementById('fNome');
     var fUnidade = document.getElementById('fUnidadeMedida');
     var fValor = document.getElementById('fValor');
+    var fCatalogoItem = document.getElementById('fCatalogoItem');
+    var fCatalogoTipo = document.getElementById('fCatalogoTipo');
+    var fCatalogoId = document.getElementById('fCatalogoId');
     var status = document.getElementById('sinapiStatus');
     var btnAbrir = document.getElementById('btnAbrirBuscaSinapi');
     var modal = document.getElementById('modalBuscaSinapi');
@@ -46,6 +49,9 @@
     if (!fCodigo || !modal) return;
 
     function aplicarResultado(r) {
+      if (fCatalogoItem) fCatalogoItem.value = '';
+      if (fCatalogoTipo) fCatalogoTipo.value = '';
+      if (fCatalogoId) fCatalogoId.value = '';
       fCodigo.value = r.codigo;
       fNome.value = tituloAmigavel(r.descricao);
       if (fUnidade) fUnidade.value = unidadeAmigavel(r.unidade);
