@@ -491,9 +491,25 @@ function abrirModalServico(sv, sub, etapa, unidade){
   $('#modalServico').showModal();
   if(!sv||!sv.catalogoTipo)$('#fCatalogoItem').focus();
 }
-function renomearServico(sv){const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
-function excluirServico(s,sv){if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;s.servicos=s.servicos.filter(x=>x.id!==sv.id);salvar();renderTudo();}
-function moverServico(s,sv,dir){const i=s.servicos.indexOf(sv);const j=i+dir;if(j<0||j>=s.servicos.length)return;[s.servicos[i],s.servicos[j]]=[s.servicos[j],s.servicos[i]];salvar();renderTudo();}
+function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
+function colecaoDeServicos(etapa,sub){return sub?sub.servicos:(etapa&&Array.isArray(etapa.servicos)?etapa.servicos:null);}
+function excluirServico(etapa,sub,sv){
+  const servicos=colecaoDeServicos(etapa,sub);
+  if(!servicos||!sv)return;
+  if(!confirm(`Excluir o serviço "${sv.nome}"?`))return;
+  const indice=servicos.findIndex(x=>x.id===sv.id);
+  if(indice<0)return;
+  servicos.splice(indice,1);
+  salvar();renderTudo();
+}
+function moverServico(etapa,sub,sv,dir){
+  const servicos=colecaoDeServicos(etapa,sub);
+  if(!servicos||!sv)return;
+  const i=servicos.findIndex(x=>x.id===sv.id),j=i+dir;
+  if(i<0||j<0||j>=servicos.length)return;
+  [servicos[i],servicos[j]]=[servicos[j],servicos[i]];
+  salvar();renderTudo();
+}
 function moverServicoEntreSub(sOrigem, sDestino, sv){// Move serviço de uma sub-étapa para outra
   if(!sOrigem || !sDestino) return;
   const index = sOrigem.servicos.indexOf(sv);
@@ -870,10 +886,10 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
       break;
     }
 
-    case 'up-sv':moverServico(s,sv,-1);break;
-    case 'down-sv':moverServico(s,sv,1);break;
+    case 'up-sv':moverServico(e,s,sv,-1);break;
+    case 'down-sv':moverServico(e,s,sv,1);break;
     case 'edit-sv':abrirModalServico(sv);break;
-    case 'del-sv':excluirServico(s,sv);break;
+    case 'del-sv':excluirServico(e,s,sv);break;
     case 'mover-sv-para':{
       // Mover serviço para outra sub-étapa (precisa selecionar destino)
       const subDestinoId = prompt('Digite o ID da sub-étapa destino:');
