@@ -62,17 +62,17 @@ function atualizarStatusSalvamento(){
   const botao = $('#btnSalvarOrcamento');
   if(botao)botao.disabled = carregandoDoServidor || salvandoNoServidor;
   if(carregandoDoServidor || !carregamentoConcluido){
-    definirStatusSalvamento('Carregando dados do banco...', 'save-status-pending');
+    definirStatusSalvamento('⏳ Carregando último orçamento...', 'save-status-pending');
   }else if(salvandoNoServidor){
-    definirStatusSalvamento('Aguardando confirmação do banco...', 'save-status-pending');
+    definirStatusSalvamento('💾 Salvando alterações no banco...', 'save-status-pending');
   }else if(snapshotServidor === null){
-    definirStatusSalvamento('Não foi possível carregar o banco. Clique em Salvar para tentar novamente.', 'save-status-error');
+    definirStatusSalvamento('⚠️ Não foi possível carregar o orçamento do banco. Clique em Salvar para tentar novamente.', 'save-status-error');
   }else if(erroSalvamento){
-    definirStatusSalvamento('Falha ao salvar. Há alterações não salvas; tente novamente.', 'save-status-error');
+    definirStatusSalvamento('⚠️ Não foi possível salvar. Suas alterações continuam pendentes; tente novamente.', 'save-status-error');
   }else if(JSON.stringify(state.orcamentos) !== snapshotServidor){
-    definirStatusSalvamento('Alterações não salvas', 'save-status-unsaved');
+    definirStatusSalvamento('📝 Foram feitas alterações que ainda não foram salvas.', 'save-status-unsaved');
   }else{
-    definirStatusSalvamento('Últimas alterações salvas no banco', 'save-status-saved');
+    definirStatusSalvamento('✅ Orçamento salvo com sucesso. As últimas alterações estão no banco.', 'save-status-saved');
   }
 }
 
