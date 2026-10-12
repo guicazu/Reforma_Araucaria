@@ -36,30 +36,67 @@ function proximoCodigo(){
   return 'ORC-'+ano+'-'+String(max+1).padStart(3,'0');
 }
 state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
-let salvando = false;
+let snapshotServidor = null;
+let carregamentoConcluido = false;
+let salvandoNoServidor = false;
+let erroSalvamento = false;
 salvar();
 
 function salvar(){
-  // 1) Sempre grava no cache local (funciona offline)
   localStorage.setItem(DB_KEY, JSON.stringify(state));
-  // 2) Envia para o D1 (sincronização entre dispositivos)
-  enviarParaServidor();
+  if(snapshotServidor !== null && JSON.stringify(state.orcamentos) !== snapshotServidor){
+    erroSalvamento = false;
+  }
+  atualizarStatusSalvamento();
 }
-async function enviarParaServidor(){
-  if(salvando) return;              // evita disparos em sequência
-  salvando = true;
+
+function definirStatusSalvamento(texto, classe){
+  const status = $('#statusSalvamento');
+  if(!status)return;
+  status.textContent = texto;
+  status.className = 'save-status ' + classe;
+}
+
+function atualizarStatusSalvamento(){
+  const botao = $('#btnSalvarOrcamento');
+  if(botao)botao.disabled = !carregamentoConcluido || salvandoNoServidor;
+  if(!carregamentoConcluido){
+    definirStatusSalvamento('Carregando dados do banco...', 'save-status-pending');
+  }else if(salvandoNoServidor){
+    definirStatusSalvamento('Aguardando confirmação do banco...', 'save-status-pending');
+  }else if(snapshotServidor === null){
+    definirStatusSalvamento('Não foi possível verificar o banco. Salve para tentar novamente.', 'save-status-error');
+  }else if(erroSalvamento){
+    definirStatusSalvamento('Falha ao salvar. Há alterações não salvas; tente novamente.', 'save-status-error');
+  }else if(JSON.stringify(state.orcamentos) !== snapshotServidor){
+    definirStatusSalvamento('Alterações não salvas', 'save-status-unsaved');
+  }else{
+    definirStatusSalvamento('Últimas alterações salvas no banco', 'save-status-saved');
+  }
+}
+
+async function salvarNoServidor(){
+  if(!carregamentoConcluido || salvandoNoServidor)return;
+  const snapshot = JSON.stringify(state.orcamentos);
+  erroSalvamento = false;
+  salvandoNoServidor = true;
+  atualizarStatusSalvamento();
   try{
-    await fetch('/api/orcamentos', {
+    const resposta = await fetch('/api/orcamentos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orcamentos: state.orcamentos })
+      body: JSON.stringify({ orcamentos: JSON.parse(snapshot) })
     });
-  }catch(e){
-    // Sem internet agora? Sem problema: o local já guardou.
-    // A próxima sincronização resolve.
-    console.warn('Sincronização adiada (offline):', e);
+    if(!resposta.ok)throw new Error('API retornou ' + resposta.status);
+    const resultado = await resposta.json();
+    if(!resultado || resultado.ok !== true)throw new Error('A API não confirmou a gravação');
+    snapshotServidor = snapshot;
+  }catch(erro){
+    console.error('Não foi possível salvar as alterações no banco:', erro);
+    erroSalvamento = true;
   }finally{
-    salvando = false;
+    salvandoNoServidor = false;
+    atualizarStatusSalvamento();
   }
 }
 function orcamentoAtivo(){return state.orcamentos.find(o=>o.id===state.ativoId)||null;}
@@ -750,6 +787,7 @@ $('#btnCompararVersoes').addEventListener('click',compararVersoes);
 $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarExcel').addEventListener('click',exportarExcel);
 $('#btnExportarPdf').addEventListener('click',exportarPdf);
+$('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
 $('#btnExportar').addEventListener('click',()=>{
   if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
   const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
@@ -762,25 +800,34 @@ $('#inputImportar').addEventListener('change',(ev)=>{
 
 renderTudo();
 async function carregarDoServidor(){
+  const snapshotLocalInicial = JSON.stringify(state.orcamentos);
   try{
     const res = await fetch('/api/orcamentos');
-    if(!res.ok) return;
-    const dados = await res.json();
-    // dados = [{ id, codigo, nome, criadoEm, conteudo, atualizadoEm }]
-    const ultimo = dados[0]; // o registro "atual" que salvamos
-    if(ultimo && ultimo.conteudo){
-      const remoto = JSON.parse(ultimo.conteudo);
-      // Se o servidor tem dados, usa-os; senão mantém o local
-      if(Array.isArray(remoto) && remoto.length){
-        state.orcamentos = remoto.map(migrarOrcamento);
-        state.orcamentos.forEach(o=>{ if(!o.codigo) o.codigo = proximoCodigo(); });
-        if(!state.ativoId && state.orcamentos.length) state.ativoId = state.orcamentos[0].id;
-        salvar();          // grava no local também
-        renderTudo();
-      }
+    if(!res.ok)throw new Error('API retornou ' + res.status);
+    const resposta = await res.json();
+    if(!resposta || !Array.isArray(resposta.dados)){
+      throw new Error('A API retornou um formato de dados inválido');
     }
-  }catch(e){
-    console.warn('Não foi possível carregar do servidor (offline):', e);
+    const remotos = resposta.dados.map(orcamento=>{
+      const copia = Object.assign({}, orcamento);
+      delete copia.bloqueio;
+      return migrarOrcamento(copia);
+    });
+    snapshotServidor = JSON.stringify(remotos);
+    if(JSON.stringify(state.orcamentos) === snapshotLocalInicial && remotos.length){
+      state.orcamentos = remotos;
+      if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
+        state.ativoId = state.orcamentos[0].id;
+      }
+      localStorage.setItem(DB_KEY, JSON.stringify(state));
+      renderTudo();
+    }
+  }catch(erro){
+    snapshotServidor = null;
+    console.error('Não foi possível carregar os dados do banco:', erro);
+  }finally{
+    carregamentoConcluido = true;
+    atualizarStatusSalvamento();
   }
 }
 carregarDoServidor();

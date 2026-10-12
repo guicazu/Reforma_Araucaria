@@ -5,7 +5,8 @@ export async function onRequestGet({ env }) {
   ).first();
   let dados = [];
   if (row && row.conteudo) {
-    try { dados = JSON.parse(row.conteudo); } catch (e) { dados = []; }
+    dados = JSON.parse(row.conteudo);
+    if (!Array.isArray(dados)) throw new Error('Snapshot de orçamentos inválido no D1');
   }
 
   // Anexa o bloqueio ativo de cada orçamento
@@ -25,14 +26,22 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const corpo = await request.json();
-  const orcamentos = corpo.orcamentos ?? corpo.dados ?? [];
+  let corpo;
+  try {
+    corpo = await request.json();
+  } catch (error) {
+    return Response.json({ erro: 'json_invalido' }, { status: 400 });
+  }
+  const orcamentos = corpo && (corpo.orcamentos ?? corpo.dados);
+  if (!Array.isArray(orcamentos)) {
+    return Response.json({ erro: 'orcamentos_invalidos' }, { status: 400 });
+  }
   const agora = new Date().toISOString();
   const payload = JSON.stringify(orcamentos);
   await env.DB.prepare(
-    `INSERT INTO orcamentos (id, codigo, nome, criadoEm, conteudo)
-     VALUES ('atual', 'SNAP', 'Estado atual', ?, ?)
+    `INSERT INTO orcamentos (id, codigo, nome, criadoEm, conteudo, atualizadoEm)
+     VALUES ('atual', 'SNAP', 'Estado atual', ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET conteudo = excluded.conteudo, atualizadoEm = excluded.atualizadoEm`
-  ).bind(agora, payload).run();
-  return Response.json({ ok: true });
+  ).bind(agora, payload, agora).run();
+  return Response.json({ ok: true, atualizadoEm: agora });
 }

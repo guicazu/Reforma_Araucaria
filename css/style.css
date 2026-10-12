@@ -56,6 +56,12 @@ button{font:inherit}
 .orcamento-head h2{margin:0;font-size:22px}
 .orcamento-head p{margin:4px 0 0;color:var(--suave);font-size:13px}
 .orcamento-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.save-status{align-self:center;border-radius:6px;padding:6px 9px;font-size:12px;font-weight:600}
+.save-status-pending{background:#fff4cf;color:#755b00}
+.save-status-unsaved{background:#fff0dc;color:#8a4b00}
+.save-status-saved{background:#e4f3e9;color:#1f6842}
+.save-status-error{background:#fde8e8;color:#9b2020}
+button:disabled{cursor:wait;opacity:.65}
 
 .resumo{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .resumo-card{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column}

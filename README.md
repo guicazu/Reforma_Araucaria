@@ -9,8 +9,8 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 - Colunas: EAP, descrição, quantidade, unidade, valor unitário, valor total
 - Memória de cálculo por serviço (soma automática das quantidades)
 - Subtotais por sub etapa, etapa e unidade construtiva
-- Dados salvos no navegador (localStorage) **e sincronizados automaticamente** com um
-  banco de dados compartilhado, pra equipe ver os mesmos orçamentos em qualquer aparelho
+- Dados salvos no navegador (localStorage) e enviados ao banco compartilhado ao clicar em
+  **Salvar**, com aviso de alterações pendentes, salvamento em andamento e confirmação
 - Login obrigatório, com cadastro aprovado manualmente pelo administrador
 - **Novidades:**
   - Código do serviço exibido na tela de orçamento (formato: unidade.etapa.sub-etapa.sequencial)
@@ -38,7 +38,7 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 
 ```
 css/                      estilos
-js/                       app.js (lógica dos orçamentos) e sync.js (sincronização com o servidor)
+js/                       app.js (lógica dos orçamentos e sincronização manual com o servidor)
 db/                       schema.sql dos orçamentos, schema-usuarios.sql dos usuários
 functions/
   _middleware.js          bloqueia todo o site pra quem não tem sessão aprovada
