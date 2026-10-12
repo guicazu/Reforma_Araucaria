@@ -456,13 +456,45 @@ body{display:flex}
 .sinapi-status.ok{color:var(--verde)}
 .sinapi-status.erro{color:var(--vermelho)}
 
-.sinapi-resultados{margin-top:14px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.sinapi-resultados{margin-top:12px;max-height:min(44vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.modal#modalBuscaSinapi{max-height:calc(100vh - 32px);overflow-y:auto}
 .sinapi-resultado-item{
-  border:1px solid var(--borda);border-radius:8px;padding:8px 10px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;
+  border:1px solid var(--borda);border-radius:10px;padding:12px 14px;background:#fff;
+  display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;font-size:13px;
 }
-.sinapi-resultado-info{flex:1;min-width:0}
-.sinapi-resultado-acoes{display:flex;gap:6px;flex-shrink:0}
+.sinapi-resultado-cabecalho{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;width:100%}
+.sinapi-resultado-info{flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.sinapi-resultado-descricao{flex-basis:100%;font-weight:600;color:var(--navy-escuro);line-height:1.45}
+.sinapi-resultado-preco{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap;color:var(--verde)}
+.sinapi-resultado-preco small{font-size:10px;color:var(--suave)}
+.sinapi-resultado-preco strong{font-size:15px}
+.sinapi-resultado-acoes{display:flex;gap:7px;flex-shrink:0;margin-left:auto}
+.sinapi-busca-codigo{display:flex;gap:8px;align-items:center}
+.sinapi-busca-codigo input{flex:1;min-width:0}
+.sinapi-modal-heading h3{margin-bottom:3px}
+.sinapi-modal-heading p{margin:0 0 14px;color:var(--suave);font-size:12px}
+.sinapi-busca-principal{padding:12px;background:#f6f8fa;border:1px solid var(--borda);border-radius:10px}
+.sinapi-busca-principal>label,.sinapi-label-principal{display:block;font-size:13px;font-weight:700;color:var(--navy-escuro);margin-bottom:7px}
+.sinapi-busca-separador{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--suave);font-size:11px}
+.sinapi-busca-separador::before,.sinapi-busca-separador::after{content:"";height:1px;background:var(--borda);flex:1}
+.sinapi-descricao-input{font-size:15px}
+.sinapi-ajuda-busca{margin:5px 0 0;color:var(--suave);font-size:11px}
+.sinapi-filtros{margin-top:10px;border:1px solid var(--borda);border-radius:8px;padding:9px 11px}
+.sinapi-filtros summary{cursor:pointer;color:var(--navy-2);font-size:12px;font-weight:600}
+.sinapi-filtros label{display:block;margin:10px 0 0;font-size:12px}
+.sinapi-composicao-detalhes{width:100%;max-height:260px;overflow:auto}
+.sinapi-composicao-detalhes[hidden]{display:none}
+.sinapi-itens{min-width:760px;margin-top:6px;font-size:11px}
+.sinapi-itens th,.sinapi-itens td{padding:6px 8px;text-align:left}
+.sinapi-itens td:nth-last-child(-n+2){text-align:right;white-space:nowrap}
+@media(max-width:600px){
+  .sinapi-busca-codigo{align-items:stretch;flex-direction:column}
+  .sinapi-busca-codigo .btn{width:100%}
+  .sinapi-resultado-cabecalho{flex-direction:column}
+  .sinapi-resultado-preco{align-items:flex-start}
+  .sinapi-resultado-acoes{width:100%;margin-left:0}
+  .sinapi-resultado-acoes .btn{flex:1}
+}
 .sinapi-codigo{
   font-family:Consolas,'Courier New',monospace;font-size:11px;color:var(--navy-2);
   background:#eef2f7;padding:1px 6px;border-radius:4px;

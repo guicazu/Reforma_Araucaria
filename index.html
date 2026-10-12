@@ -390,16 +390,30 @@
 </dialog>
 
 <dialog id="modalBuscaSinapi" class="modal modal-lg">
-  <h3>Buscar composição SINAPI</h3>
-  <p class="dica">Preencha palavras que a composição <b>deve conter</b> e, se quiser, palavras que ela <b>não deve conter</b>. Os resultados aparecem automaticamente.</p>
-  <div class="grid-2">
-    <label>Deve conter #1<input type="text" id="buscaInc1" placeholder="ex.: alvenaria"></label>
-    <label>Não deve conter #1<input type="text" id="buscaExc1" placeholder="ex.: estrutural"></label>
-    <label>Deve conter #2<input type="text" id="buscaInc2" placeholder="ex.: bloco"></label>
-    <label>Não deve conter #2<input type="text" id="buscaExc2" placeholder="ex.: concreto"></label>
-    <label>Deve conter #3<input type="text" id="buscaInc3" placeholder="ex.: cerâmico"></label>
-    <label></label>
+  <div class="sinapi-modal-heading">
+    <div>
+      <h3>Buscar composição SINAPI</h3>
+      <p>Preços do Paraná · Não desonerado</p>
+    </div>
   </div>
+  <div class="sinapi-busca-principal">
+    <label for="buscaCodigo">Já tem o código SINAPI?</label>
+    <div class="sinapi-busca-codigo">
+      <input type="text" id="buscaCodigo" inputmode="numeric" autocomplete="off" placeholder="Digite o código, ex.: 87263" aria-label="Código SINAPI" />
+      <button type="button" class="btn btn-primary" id="btnBuscarCodigo">Buscar código</button>
+    </div>
+  </div>
+  <div class="sinapi-busca-separador"><span>ou busque pela descrição</span></div>
+  <label class="sinapi-label-principal" for="buscaInc1">O que você precisa executar?</label>
+  <input class="sinapi-descricao-input" type="search" id="buscaInc1" placeholder="Ex.: revestimento cerâmico para piso" autocomplete="off" />
+  <p class="sinapi-ajuda-busca">Digite uma descrição ou algumas palavras; os resultados são filtrados automaticamente.</p>
+  <details class="sinapi-filtros">
+    <summary>Filtros avançados</summary>
+    <label for="buscaExc1">Excluir resultados que contenham
+      <input type="text" id="buscaExc1" placeholder="Ex.: estrutural" autocomplete="off" />
+    </label>
+  </details>
+  <p id="sinapiBuscaStatus" class="sinapi-status" role="status" aria-live="polite"></p>
   <div id="buscaSinapiResultados" class="sinapi-resultados"></div>
   <div class="modal-actions">
     <button type="button" class="btn btn-ghost" id="btnFecharBuscaSinapi">Fechar</button>

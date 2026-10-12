@@ -16,6 +16,8 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
   entrar em **Editar**, que bloqueia o orçamento para os demais até liberação explícita
 - Novos usuários têm somente visualização; o administrador concede ou remove edição globalmente
   no painel de usuários. Bloqueios podem ser liberados pelo editor ou pelo painel administrativo
+- Busca de composições SINAPI por código ou descrição, com exibição dos insumos e
+  subcomposições, valores e coeficientes da referência do Paraná não desonerada
 - **Novidades:**
   - Código do serviço exibido na tela de orçamento (formato: unidade.etapa.sub-etapa.sequencial)
   - Estilização hierárquica na EAP (tamanhos e pesos de fonte diferenciados por nível)

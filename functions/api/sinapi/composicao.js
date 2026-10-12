@@ -22,11 +22,11 @@ export async function onRequestGet({ request }) {
       `https://api.sinpres.com.br/api/v1/sectors/civil-construction/compositions/${encodeURIComponent(codigo)}?${params.toString()}`
     );
   } catch (e) {
-    return Response.json({ encontrado: false });
+    return Response.json({ encontrado: false, erro: 'sinapi_indisponivel' }, { status: 502 });
   }
 
   if (!resp.ok) {
-    return Response.json({ encontrado: false });
+    return Response.json({ encontrado: false, erro: 'sinapi_erro' }, { status: 502 });
   }
 
   const dados = await resp.json();
@@ -38,6 +38,16 @@ export async function onRequestGet({ request }) {
     codigo: c.code,
     descricao: c.description,
     unidade: c.unit,
-    valor: typeof c.baseUnitCost === 'number' ? c.baseUnitCost / 100 : null
+    valor: typeof c.baseUnitCost === 'number' ? c.baseUnitCost / 100 : null,
+    referencia: c.referenceMonth || null,
+    itens: Array.isArray(c.items) ? c.items.map((item) => ({
+      tipo: item.itemType,
+      codigo: item.code,
+      descricao: item.description,
+      unidade: item.unit,
+      coeficiente: Number(item.coefficient),
+      valorUnitario: typeof item.unitPrice === 'number' ? item.unitPrice / 100 : null,
+      valorTotal: typeof item.totalPrice === 'number' ? item.totalPrice / 100 : null
+    })) : []
   });
 }
