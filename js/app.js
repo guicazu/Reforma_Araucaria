@@ -845,6 +845,7 @@ async function carregarDoServidor(){
     snapshotServidor = null;
     console.error('Não foi possível carregar os dados do banco:', erro);
   }finally{
+    carregamentoConcluido = true;
     carregandoDoServidor = false;
     atualizarStatusSalvamento();
   }
