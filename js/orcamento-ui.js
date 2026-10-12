@@ -20,8 +20,7 @@
   if (lista) {
     lista.addEventListener('click', function (ev) {
       var item = ev.target.closest('.orcamento-item');
-      var acao = ev.target.closest('[data-acao]');
-      if (item && !acao) irPara('editor');
+      if (item && ev.target.closest('[data-acao="ver-orcamento"], [data-acao="editar-orcamento"]')) irPara('editor');
     });
   }
   if (btnNovo) btnNovo.addEventListener('click', function () { irPara('editor'); });

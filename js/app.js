@@ -41,6 +41,10 @@ let carregamentoConcluido = false;
 let carregandoDoServidor = false;
 let salvandoNoServidor = false;
 let erroSalvamento = false;
+let usuarioPodeEditar = false;
+let bloqueiosPorOrcamento = {};
+let orcamentoEditandoId = null;
+let modoEdicao = false;
 salvar();
 
 function salvar(){
@@ -52,15 +56,36 @@ function salvar(){
 }
 
 function definirStatusSalvamento(texto, classe){
-  const status = $('#statusSalvamento');
-  if(!status)return;
-  status.textContent = texto;
-  status.className = 'save-status ' + classe;
+  ['#statusSalvamento', '#statusListaSalvamento'].forEach(seletor=>{
+    const status = $(seletor);
+    if(!status)return;
+    status.textContent = texto;
+    status.className = 'save-status ' + classe;
+  });
 }
 
 function atualizarStatusSalvamento(){
   const botao = $('#btnSalvarOrcamento');
-  if(botao)botao.disabled = carregandoDoServidor || salvandoNoServidor;
+  const botaoLista = $('#btnSalvarLista');
+  const pendente = snapshotServidor !== null && JSON.stringify(state.orcamentos) !== snapshotServidor;
+  if(botao)botao.disabled = carregandoDoServidor || salvandoNoServidor || !modoEdicao;
+  if(botaoLista)botaoLista.disabled = carregandoDoServidor || salvandoNoServidor || !pendente;
+  const painelLista = $('#listaStatusSalvamento');
+  const liberarLista = $('#btnLiberarBloqueioLista');
+  const removido = Boolean(orcamentoEditandoId && !state.orcamentos.some(o=>o.id === orcamentoEditandoId));
+  if(painelLista)painelLista.classList.toggle('hidden', modoEdicao || (!pendente && !removido));
+  if(botaoLista)botaoLista.classList.toggle('hidden', !pendente);
+  if(liberarLista){
+    liberarLista.classList.toggle('hidden', !removido || pendente);
+  }
+  $('#btnEntrarEdicao').classList.toggle('hidden', modoEdicao || !usuarioPodeEditar);
+  $('#btnLiberarBloqueio').classList.toggle('hidden', !modoEdicao || !orcamentoEditandoId);
+  $('#btnRenomear').classList.toggle('hidden', !modoEdicao);
+  $('#btnAddUnidade').classList.toggle('hidden', !modoEdicao);
+  $('#btnGerarVersao').classList.toggle('hidden', !modoEdicao);
+  $('#btnDuplicar').classList.toggle('hidden', !usuarioPodeEditar || modoEdicao || Boolean(orcamentoEditandoId));
+  $('#btnNovoOrcamento').classList.toggle('hidden', !usuarioPodeEditar);
+  $('#btnNovoVazio').classList.toggle('hidden', !usuarioPodeEditar);
   if(carregandoDoServidor || !carregamentoConcluido){
     definirStatusSalvamento('⏳ Carregando último orçamento...', 'save-status-pending');
   }else if(salvandoNoServidor){
@@ -69,7 +94,7 @@ function atualizarStatusSalvamento(){
     definirStatusSalvamento('⚠️ Não foi possível carregar o orçamento do banco. Clique em Salvar para tentar novamente.', 'save-status-error');
   }else if(erroSalvamento){
     definirStatusSalvamento('⚠️ Não foi possível salvar. Suas alterações continuam pendentes; tente novamente.', 'save-status-error');
-  }else if(JSON.stringify(state.orcamentos) !== snapshotServidor){
+  }else if(pendente){
     definirStatusSalvamento('📝 Foram feitas alterações que ainda não foram salvas.', 'save-status-unsaved');
   }else{
     definirStatusSalvamento('✅ Orçamento salvo com sucesso. As últimas alterações estão no banco.', 'save-status-saved');
@@ -92,6 +117,10 @@ async function salvarNoServidor(){
     await carregarDoServidor();
     return;
   }
+  if(!usuarioPodeEditar || !orcamentoEditandoId){
+    definirStatusSalvamento('⚠️ Entre em modo de edição antes de salvar.', 'save-status-error');
+    return;
+  }
   const snapshot = JSON.stringify(state.orcamentos);
   erroSalvamento = false;
   salvandoNoServidor = true;
@@ -100,7 +129,7 @@ async function salvarNoServidor(){
     const resposta = await fetchComTimeout('/api/orcamentos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orcamentos: JSON.parse(snapshot) })
+      body: JSON.stringify({ orcamentos: JSON.parse(snapshot), editandoId: orcamentoEditandoId })
     });
     if(!resposta.ok)throw new Error('API retornou ' + resposta.status);
     const resultado = await resposta.json();
@@ -134,22 +163,119 @@ function acharServicoPorLinha(o,lid){for(const u of uu(o))for(const e of u.etapa
 function acharSubPorId(o,sid){for(const u of uu(o))for(const e of u.etapas){const s=e.subEtapas.find(x=>x.id===sid);if(s)return s;}return null;}
 
 /* ---------- orçamentos ---------- */
-function criarOrcamento(){
+async function criarOrcamento(){
+  if(!usuarioPodeEditar)return;
+  if(orcamentoEditandoId){
+    alert('Libere o orçamento que está em edição antes de criar outro.');
+    return;
+  }
   const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
   if(nome===null)return;
   const agora=new Date().toISOString();
   const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,rotulo:'Versão 1',criadoEm:agora,unidades:[]}]};
-  state.orcamentos.push(novo);state.ativoId=novo.id;salvar();renderTudo();
+  try{
+    await window.bloquearOrcamento(novo.id);
+    orcamentoEditandoId=novo.id;
+    const usuario=window.usuarioAtual||{};
+    bloqueiosPorOrcamento[novo.id]={usuarioEmail:usuario.email,usuarioNome:usuario.nome};
+    modoEdicao=true;
+    state.orcamentos.push(novo);state.ativoId=novo.id;
+    $('#viewOrcamento').dataset.modo='editor';
+    salvar();renderTudo();
+  }catch(erro){
+    alert('Não foi possível criar o orçamento para edição: '+erro.message);
+  }
 }
 function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
-function excluirOrcamento(id){const o=state.orcamentos.find(x=>x.id===id);if(!o)return;if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;state.orcamentos=state.orcamentos.filter(x=>x.id!==id);if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;salvar();renderTudo();}
+async function excluirOrcamento(id){
+  const o=state.orcamentos.find(x=>x.id===id);
+  if(!o || !usuarioPodeEditar)return;
+  if(orcamentoEditandoId && orcamentoEditandoId!==id){
+    alert('Libere o orçamento que está em edição antes de excluir outro.');
+    return;
+  }
+  if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;
+  try{
+    await window.bloquearOrcamento(id);
+    orcamentoEditandoId=id;
+    bloqueiosPorOrcamento[id]={usuarioEmail:window.usuarioAtual&&window.usuarioAtual.email,usuarioNome:window.usuarioAtual&&window.usuarioAtual.nome};
+    modoEdicao=false;
+    state.orcamentos=state.orcamentos.filter(x=>x.id!==id);
+    if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;
+    $('#viewOrcamento').dataset.modo='lista';
+    salvar();renderTudo();
+  }catch(erro){
+    alert('Não foi possível excluir: '+erro.message);
+  }
+}
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
-function duplicarOrcamento(id){
-  const src=state.orcamentos.find(x=>x.id===id);if(!src)return;
+async function duplicarOrcamento(id){
+  const src=state.orcamentos.find(x=>x.id===id);if(!src||!usuarioPodeEditar)return;
+  if(orcamentoEditandoId){
+    alert('Libere o orçamento que está em edição antes de duplicar outro.');
+    return;
+  }
   const c=clone(src);
   c.id=uid();c.codigo=proximoCodigo();c.nome=src.nome+' (cópia)';c.criadoEm=new Date().toISOString();
   c.versoes.forEach(v=>{v.id=uid();});
-  state.orcamentos.push(c);state.ativoId=c.id;state.expandidos={};salvar();renderTudo();
+  try{
+    await window.bloquearOrcamento(c.id);
+    orcamentoEditandoId=c.id;
+    bloqueiosPorOrcamento[c.id]={usuarioEmail:window.usuarioAtual&&window.usuarioAtual.email,usuarioNome:window.usuarioAtual&&window.usuarioAtual.nome};
+    modoEdicao=true;
+    state.orcamentos.push(c);state.ativoId=c.id;state.expandidos={};
+    $('#viewOrcamento').dataset.modo='editor';
+    salvar();renderTudo();atualizarTotaisVisuais(c);
+  }catch(erro){
+    alert('Não foi possível criar a cópia para edição: '+erro.message);
+  }
+}
+
+function abrirParaVisualizar(id){
+  const orcamento=state.orcamentos.find(o=>o.id===id);
+  if(!orcamento)return;
+  state.ativoId=id;
+  modoEdicao=false;
+  $('#viewOrcamento').dataset.modo='editor';
+  renderTudo();
+}
+
+async function abrirParaEditar(id){
+  if(!usuarioPodeEditar){
+    alert('Sua conta tem permissão somente para visualizar.');
+    return;
+  }
+  if(orcamentoEditandoId && orcamentoEditandoId!==id){
+    alert('Libere o orçamento que está em edição antes de editar outro.');
+    return;
+  }
+  try{
+    await window.bloquearOrcamento(id);
+    orcamentoEditandoId=id;
+    const usuario=window.usuarioAtual||{};
+    bloqueiosPorOrcamento[id]={usuarioEmail:usuario.email,usuarioNome:usuario.nome};
+    modoEdicao=true;
+    state.ativoId=id;
+    $('#viewOrcamento').dataset.modo='editor';
+    renderTudo();
+  }catch(erro){
+    alert('Não foi possível abrir para edição: '+erro.message);
+  }
+}
+
+async function liberarEdicaoAtual(){
+  if(!orcamentoEditandoId)return;
+  const id=orcamentoEditandoId;
+  try{
+    await window.liberarOrcamento(id);
+    delete bloqueiosPorOrcamento[id];
+    orcamentoEditandoId=null;
+    modoEdicao=false;
+    $('#viewOrcamento').dataset.modo='editor';
+    renderTudo();
+  }catch(erro){
+    alert('Não foi possível liberar o orçamento: '+erro.message);
+  }
 }
 
 /* ---------- versões ---------- */
@@ -395,10 +521,25 @@ function atualizarTotaisVisuais(o){
 /* ---------- renderização ---------- */
 function renderTudo(){renderLista();renderConteudo();}
 
-function renderLista(){const ul=$('#listaOrcamentos');if(!state.orcamentos.length){ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';return;}
-ul.innerHTML=state.orcamentos.map(o=>{const ativo=o.id===state.ativoId?' ativo':'';return `<li class="orcamento-item${ativo}" data-orcamento-id="${o.id}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div><button class="btn-icon" data-acao="dup-orcamento" data-id="${o.id}" title="Duplicar">⧉</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${o.id}" title="Excluir">🗑</button></li>`;}).join('');}
+function renderLista(){
+  const ul=$('#listaOrcamentos');
+  if(!state.orcamentos.length){
+    ul.innerHTML='<li class="lista-vazia">Nenhum orçamento.<br>Crie com "+ Novo".</li>';
+    return;
+  }
+  ul.innerHTML=state.orcamentos.map(o=>{
+    const ativo=o.id===state.ativoId?' ativo':'';
+    const bloqueio=bloqueiosPorOrcamento[o.id];
+    const estado=bloqueio?`<span class="oi-bloqueio">🔒 Em edição por ${esc(bloqueio.usuarioNome||bloqueio.usuarioEmail)}</span>`:'';
+    const acoes=`<button class="btn btn-ghost btn-xs" data-acao="ver-orcamento" data-id="${esc(o.id)}" title="Abrir para visualizar">👁 Visualizar</button>`+
+      (usuarioPodeEditar?`<button class="btn btn-ghost btn-xs" data-acao="editar-orcamento" data-id="${esc(o.id)}" title="Abrir para editar">✏️ Editar</button>`:'')+
+      (usuarioPodeEditar?`<button class="btn-icon" data-acao="dup-orcamento" data-id="${esc(o.id)}" title="Duplicar">⧉</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${esc(o.id)}" title="Excluir">🗑</button>`:'');
+    return `<li class="orcamento-item${ativo}" data-orcamento-id="${esc(o.id)}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div>${estado}<div class="oi-acoes">${acoes}</div></li>`;
+  }).join('');
+}
 
 function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
+orc.dataset.somenteLeitura=String(!modoEdicao);
 $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
 $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s) · '+o.versoes.length+' versão(ões)';
 $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
@@ -409,7 +550,7 @@ $('#corpoTabela').innerHTML=renderTabela(o);}
 
 function renderTabela(o){
   const unidades=uu(o);
-  if(!unidades.length)return `<tr><td colspan="7" class="sem-servicos">Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.</td></tr>`;
+  if(!unidades.length)return `<tr><td colspan="7" class="sem-servicos">${modoEdicao?'Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.':'Este orçamento ainda não tem unidades construtivas.'}</td></tr>`;
   let html='';
   unidades.forEach((u,iu)=>{
     const cU=iu+1;
@@ -455,7 +596,7 @@ function renderTabela(o){
           <td class="col-codigo codigo">${cSv}</td>
           <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
-          <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo?'readonly title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
+          <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
           <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
           <td class="col-acoes">
@@ -495,7 +636,7 @@ function renderTabela(o){
             <td class="col-codigo codigo">${cSv}</td>
             <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
-            <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo?'readonly title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
+            <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
             <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
             <td class="col-acoes">
@@ -661,16 +802,18 @@ function exportarPdf(){window.print();}
 /* ---------- eventos ---------- */
 $('#listaOrcamentos').addEventListener('click',(ev)=>{
   const b=ev.target.closest('[data-acao]');if(b){
+    if(b.dataset.acao==='ver-orcamento'){abrirParaVisualizar(b.dataset.id);return;}
+    if(b.dataset.acao==='editar-orcamento'){abrirParaEditar(b.dataset.id);return;}
     if(b.dataset.acao==='del-orcamento'){excluirOrcamento(b.dataset.id);return;}
     if(b.dataset.acao==='dup-orcamento'){duplicarOrcamento(b.dataset.id);return;}
   }
-  const item=ev.target.closest('.orcamento-item');if(item)ativarOrcamento(item.dataset.orcamentoId);
 });
 
 $('#corpoTabela').addEventListener('click',(ev)=>{
   const b=ev.target.closest('[data-acao]');if(!b)return;
   const o=orcamentoAtivo();if(!o)return;
   const acao=b.dataset.acao;
+  if(!modoEdicao && acao!=='toggle')return;
   const uid_=b.dataset.uid,eid=b.dataset.eid,sid=b.dataset.sid,svid=b.dataset.svid,lid=b.dataset.lid;
   const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=(acharServicoDiretoEmEtapa(o,uid_,eid,svid) || acharServico(o,uid_,eid,sid,svid));
 
@@ -752,6 +895,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
 });
 
 $('#corpoTabela').addEventListener('input',(ev)=>{
+  if(!modoEdicao)return;
   const qtdInput=ev.target.closest('input.qtd-servico');
   if(qtdInput){
     const o=orcamentoAtivo();if(!o)return;
@@ -783,6 +927,7 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
 });
 
 $('#corpoTabela').addEventListener('change',(ev)=>{
+  if(!modoEdicao)return;
   const qtdInput=ev.target.closest('input.qtd-servico');if(!qtdInput||qtdInput.readOnly)return;
   const o=orcamentoAtivo();if(!o)return;
   const sv=acharServicoPorId(o,qtdInput.dataset.svid);if(!sv||sv.memo&&sv.memo.length)return;
@@ -803,6 +948,18 @@ $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarExcel').addEventListener('click',exportarExcel);
 $('#btnExportarPdf').addEventListener('click',exportarPdf);
 $('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
+$('#btnSalvarLista').addEventListener('click',salvarNoServidor);
+$('#btnEntrarEdicao').addEventListener('click',()=>{
+  const o=orcamentoAtivo();
+  if(o)abrirParaEditar(o.id);
+});
+$('#btnLiberarBloqueio').addEventListener('click',liberarEdicaoAtual);
+$('#btnLiberarBloqueioLista').addEventListener('click',liberarEdicaoAtual);
+$('#btnVoltarLista').addEventListener('click',()=>{
+  modoEdicao=false;
+  atualizarStatusSalvamento();
+  renderLista();
+});
 $('#btnExportar').addEventListener('click',()=>{
   if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
   const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
@@ -820,19 +977,31 @@ async function carregarDoServidor(){
   carregandoDoServidor = true;
   atualizarStatusSalvamento();
   try{
-    const res = await fetchComTimeout('/api/orcamentos');
+    const [res, perfilResposta] = await Promise.all([
+      fetchComTimeout('/api/orcamentos'),
+      fetchComTimeout('/api/auth/me')
+    ]);
     if(!res.ok)throw new Error('API retornou ' + res.status);
     const resposta = await res.json();
     if(!resposta || !Array.isArray(resposta.dados)){
       throw new Error('A API retornou um formato de dados inválido');
     }
+    if(perfilResposta.ok){
+      const perfil = await perfilResposta.json();
+      usuarioPodeEditar = Boolean(perfil.podeEditar || perfil.isAdmin);
+      window.usuarioAtual = perfil;
+    }else{
+      usuarioPodeEditar = false;
+    }
     const remotos = resposta.dados.map(orcamento=>{
       const copia = Object.assign({}, orcamento);
+      if(copia.bloqueio)bloqueiosPorOrcamento[copia.id]=copia.bloqueio;
+      else delete bloqueiosPorOrcamento[copia.id];
       delete copia.bloqueio;
       return migrarOrcamento(copia);
     });
     snapshotServidor = JSON.stringify(remotos);
-    if(JSON.stringify(state.orcamentos) === snapshotLocalInicial && remotos.length){
+    if(JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
       state.orcamentos = remotos;
       if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
         state.ativoId = state.orcamentos[0].id;

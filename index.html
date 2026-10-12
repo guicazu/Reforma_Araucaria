@@ -93,6 +93,11 @@
       <button id="btnNovoOrcamento" class="btn btn-primary btn-sm">+ Novo</button>
     </div>
     <ul class="orcamento-list" id="listaOrcamentos"></ul>
+    <div id="listaStatusSalvamento" class="lista-save-panel hidden">
+      <span id="statusListaSalvamento" class="save-status" role="status" aria-live="polite"></span>
+      <button id="btnSalvarLista" class="btn btn-primary btn-sm">💾 Salvar alterações</button>
+      <button id="btnLiberarBloqueioLista" class="btn btn-ghost btn-sm hidden">🔓 Liberar bloqueio</button>
+    </div>
   </aside>
 
   <section class="content" id="contentVazio">
@@ -119,6 +124,8 @@
         <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
         <button id="btnAddUnidade" class="btn btn-primary">+ Unidade construtiva</button>
         <button id="btnSalvarOrcamento" class="btn btn-primary" title="Salvar alterações no banco">💾 Salvar</button>
+        <button id="btnEntrarEdicao" class="btn btn-primary hidden">✏️ Editar</button>
+        <button id="btnLiberarBloqueio" class="btn btn-ghost hidden">🔓 Liberar orçamento</button>
         <span id="statusSalvamento" class="save-status save-status-pending" role="status" aria-live="polite">⏳ Carregando último orçamento...</span>
       </div>
     </div>

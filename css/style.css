@@ -61,6 +61,12 @@ button{font:inherit}
 .save-status-unsaved{background:#fff0dc;color:#8a4b00}
 .save-status-saved{background:#e4f3e9;color:#1f6842}
 .save-status-error{background:#fde8e8;color:#9b2020}
+.lista-save-panel{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding:10px;background:#fff;border:1px solid var(--borda);border-radius:8px}
+.lista-save-panel .save-status{flex:auto}
+.orcamento-item{flex-wrap:wrap}
+.orcamento-item .oi-info{flex:1 1 100%}
+.oi-acoes{display:flex;gap:4px;flex-wrap:wrap}
+.oi-bloqueio{flex:1 1 100%;font-size:11px;color:var(--vermelho)}
 button:disabled{cursor:wait;opacity:.65}
 
 .resumo{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
@@ -137,6 +143,12 @@ button:disabled{cursor:wait;opacity:.65}
 #viewOrcamento .orcamento-head h2{font-size:20px}
 #viewOrcamento .orcamento-head-actions{gap:6px}
 #viewOrcamento .orcamento-head-actions .btn{padding:6px 10px;font-size:12px}
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .col-acoes{display:none}
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnRenomear,
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnAddUnidade,
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnSalvarOrcamento,
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnLiberarBloqueio{display:none}
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="false"] .orcamento-head-actions #btnEntrarEdicao{display:none}
 #viewOrcamento .resumo{gap:8px;margin-bottom:12px}
 #viewOrcamento .resumo-card{padding:8px 12px}
 #viewOrcamento .resumo-card strong{font-size:18px}

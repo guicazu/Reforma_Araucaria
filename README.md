@@ -12,6 +12,10 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 - Dados salvos no navegador (localStorage) e enviados ao banco compartilhado ao clicar em
   **Salvar**, com aviso de alterações pendentes, salvamento em andamento e confirmação
 - Login obrigatório, com cadastro aprovado manualmente pelo administrador
+- Orçamentos podem ser abertos em **Visualizar** sem adquirir bloqueio; usuários autorizados podem
+  entrar em **Editar**, que bloqueia o orçamento para os demais até liberação explícita
+- Novos usuários têm somente visualização; o administrador concede ou remove edição globalmente
+  no painel de usuários. Bloqueios podem ser liberados pelo editor ou pelo painel administrativo
 - **Novidades:**
   - Código do serviço exibido na tela de orçamento (formato: unidade.etapa.sub-etapa.sequencial)
   - Estilização hierárquica na EAP (tamanhos e pesos de fonte diferenciados por nível)
@@ -47,15 +51,17 @@ functions/
     usuarios.js             cria/aprova usuário no primeiro login
   api/
     orcamentos.js           GET/POST do snapshot de orçamentos (D1)
+    bloqueios.js            aquisição e liberação de bloqueios de edição
     auth/
       google.js / google-callback.js         fluxo OAuth Google
       microsoft.js / microsoft-callback.js   fluxo OAuth Microsoft
     admin/
-      usuarios.js            lista e aprova/bloqueia usuários (só pra quem está em ADMIN_EMAILS)
+      usuarios.js            aprova/bloqueia usuários e concede edição (só para admins)
+      bloqueios.js           liberação administrativa de bloqueios
 index.html                 app principal (orçamentos)
 login.html                 tela de login (Google / Microsoft)
 aguardando-aprovacao.html  tela pra quem já logou mas ainda não foi aprovado
-admin.html                 painel pra aprovar/bloquear usuários
+admin.html                 painel pra aprovar/bloquear usuários e gerenciar bloqueios
 ```
 
 ## Autenticação e aprovação de acesso
@@ -65,7 +71,11 @@ admin.html                 painel pra aprovar/bloquear usuários
 3. No primeiro login, é criado um registro em `usuarios` com status `pendente`,
    e a pessoa vê a tela "aguardando aprovação"
 4. O administrador entra em `/admin.html` e aprova (ou bloqueia) o acesso
-5. A partir da aprovação, a pessoa tem sessão de 30 dias
+5. Usuários aprovados começam somente com visualização; o administrador pode habilitar
+   edição globalmente na lista de usuários
+6. Para editar, a pessoa seleciona **Editar** no orçamento; **Visualizar** não adquire bloqueio
+7. O bloqueio permanece até o editor clicar em **Liberar orçamento** ou um administrador
+   liberá-lo no painel. Não há expiração automática.
 
 ## Deploy e configuração
 
@@ -88,5 +98,9 @@ nome `DB` → banco `ibuild-orcamentos`.
 ```sql
 -- db/schema.sql         (tabela orcamentos)
 -- db/schema-usuarios.sql (tabela usuarios)
+-- db/migrations/20261012_permissao_edicao.sql (banco existente)
 ```
 Execute pelo console do D1 (**Workers e Pages → D1 → ibuild-orcamentos → Console**).
+Não execute a migração em bancos que já tenham a coluna `usuarios.podeEditar`. A migração foi
+aplicada ao D1 de produção; usuários existentes permanecem somente com visualização até a liberação
+de edição pelo administrador.

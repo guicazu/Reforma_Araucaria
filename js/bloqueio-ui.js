@@ -4,6 +4,12 @@
 
   var usuarioAtual = null;
 
+  function escaparHtml(valor) {
+    return String(valor == null ? '' : valor).replace(/[&<>"']/g, function (caractere) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[caractere];
+    });
+  }
+
   function obterUsuario() {
     return fetch('/api/auth/me')
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -18,7 +24,12 @@
       body: JSON.stringify({ id: id })
     }).then(function (r) {
       if (r.status === 409) return r.json().then(function (d) { throw new Error(d.bloqueadoPor || 'orçamento bloqueado'); });
-      return r.json();
+      if (r.status === 403) return r.json().then(function () { throw new Error('Sua conta tem permissão somente para visualizar.'); });
+      if (!r.ok) throw new Error('Não foi possível adquirir o bloqueio.');
+      return r.json().then(function (d) {
+        if (!d.ok) throw new Error(d.erro || 'Não foi possível adquirir o bloqueio.');
+        return d;
+      });
     });
   };
 
@@ -27,7 +38,10 @@
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: id })
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('Não foi possível liberar o bloqueio.');
+      return r.json();
+    });
   };
 
   // ---- Tela de liberação do admin ----
@@ -35,7 +49,10 @@
     var el = document.getElementById('liberacaoConteudo');
     if (!el) return;
     fetch('/api/bloqueios')
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Não foi possível carregar os bloqueios.');
+        return r.json();
+      })
       .then(function (data) {
         var bloqueios = data.bloqueios || [];
         if (!bloqueios.length) {
@@ -43,11 +60,15 @@
           return;
         }
         var linhas = bloqueios.map(function (b) {
+          var id = escaparHtml(b.orcamentoId || '');
+          var nome = escaparHtml(b.usuarioNome || b.usuarioEmail);
+          var email = escaparHtml(b.usuarioEmail);
+          var criadoEm = escaparHtml(b.criadoEm ? new Date(b.criadoEm).toLocaleString('pt-BR') : '—');
           return '<tr>' +
-            '<td>' + (b.orcamentoId || '—') + '</td>' +
-            '<td>' + (b.usuarioNome || b.usuarioEmail) + '<br>' + b.usuarioEmail + '</td>' +
-            '<td>' + (b.criadoEm ? new Date(b.criadoEm).toLocaleString('pt-BR') : '—') + '</td>' +
-            '<td><button class="ua-btn ua-aprovar" data-bloqueio="' + b.orcamentoId + '">Liberar</button></td>' +
+            '<td>' + (id || '—') + '</td>' +
+            '<td>' + nome + '<br>' + email + '</td>' +
+            '<td>' + criadoEm + '</td>' +
+            '<td><button class="ua-btn ua-aprovar" data-bloqueio="' + id + '">Liberar</button></td>' +
           '</tr>';
         }).join('');
         el.innerHTML =
@@ -67,7 +88,15 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: id })
-    }).then(function () { carregarLiberacao(); });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('O servidor recusou a liberação do bloqueio.');
+      return r.json();
+    }).then(function (d) {
+      if (!d.ok) throw new Error(d.erro || 'Não foi possível liberar o bloqueio.');
+      carregarLiberacao();
+    }).catch(function (erro) {
+      alert(erro.message || 'Não foi possível liberar o bloqueio.');
+    });
   });
 
   // Revela o menu "Liberação de orçamento" para admins

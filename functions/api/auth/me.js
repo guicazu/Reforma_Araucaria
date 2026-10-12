@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const usuario = await env.DB.prepare(
-    'SELECT nome, telefone, isAdmin FROM usuarios WHERE email = ?'
+    'SELECT nome, telefone, isAdmin, podeEditar FROM usuarios WHERE email = ?'
   ).bind(payload.email).first();
 
   const admins = (env.ADMIN_EMAILS || '')
@@ -23,6 +23,7 @@ export async function onRequestGet({ request, env }) {
     email: payload.email,
     nome: (usuario && usuario.nome) || payload.nome,
     telefone: usuario ? usuario.telefone : null,
-    isAdmin
+    isAdmin,
+    podeEditar: isAdmin || Boolean(usuario && usuario.podeEditar)
   });
 }

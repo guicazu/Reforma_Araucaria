@@ -19,20 +19,23 @@
         }
         var linhas = usuarios.map(function (u) {
           var adminBadge = u.isAdmin ? '<span class="ua-tag ua-aprovado">admin</span>' : '<span class="ua-tag ua-bloqueado">não admin</span>';
+          var editorBadge = u.isAdmin || u.podeEditar ? '<span class="ua-tag ua-aprovado">pode editar</span>' : '<span class="ua-tag ua-bloqueado">somente visualizar</span>';
           return '<tr>' +
             '<td>' + u.nome + '<br><small>' + u.email + '</small></td>' +
             '<td>' + u.provedor + '</td>' +
             '<td><span class="ua-tag ua-' + u.status + '">' + u.status + '</span></td>' +
             '<td>' + adminBadge + '</td>' +
+            '<td>' + editorBadge + '</td>' +
             '<td>' +
               (u.status !== 'aprovado' ? '<button class="ua-btn ua-aprovar" data-id="' + u.id + '" data-acao="aprovar" data-is-admin="' + (u.isAdmin ? 'true' : 'false') + '">Aprovar</button>' : '') +
               (u.status !== 'bloqueado' ? '<button class="ua-btn ua-bloquear" data-id="' + u.id + '" data-acao="bloquear">Bloquear</button>' : '') +
               '<button class="ua-btn ua-gestao" data-id="' + u.id + '" data-acao="toggle_admin">' + (u.isAdmin ? 'Remover admin' : 'Tornar admin') + '</button>' +
+              (!u.isAdmin ? '<button class="ua-btn ua-gestao" data-id="' + u.id + '" data-acao="toggle_edicao">' + (u.podeEditar ? 'Remover edição' : 'Permitir edição') + '</button>' : '') +
             '</td>' +
           '</tr>';
         }).join('');
         el.innerHTML =
-          '<table class="ua-table"><thead><tr><th>Usuário</th><th>Login</th><th>Status</th><th>Admin</th><th>Ação</th></tr></thead><tbody>' +
+          '<table class="ua-table"><thead><tr><th>Usuário</th><th>Login</th><th>Status</th><th>Admin</th><th>Acesso ao orçamento</th><th>Ação</th></tr></thead><tbody>' +
           linhas + '</tbody></table>';
       })
       .catch(function (e) {

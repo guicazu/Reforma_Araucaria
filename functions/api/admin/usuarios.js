@@ -22,7 +22,7 @@ async function ehAdmin(payload, env) {
 
 async function listar(env) {
   const { results } = await env.DB.prepare(
-    'SELECT id, email, nome, provedor, status, isAdmin, criadoEm, aprovadoEm FROM usuarios ORDER BY criadoEm DESC'
+    'SELECT id, email, nome, provedor, status, isAdmin, podeEditar, criadoEm, aprovadoEm FROM usuarios ORDER BY criadoEm DESC'
   ).all();
   return Response.json({ usuarios: results });
 }
@@ -51,7 +51,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const { id, acao, isAdmin } = corpo || {};
-  if (!id || !['aprovar', 'bloquear', 'toggle_admin'].includes(acao)) {
+  if (!id || !['aprovar', 'bloquear', 'toggle_admin', 'toggle_edicao'].includes(acao)) {
     return Response.json({ erro: 'parametros_invalidos' }, { status: 400 });
   }
 
@@ -72,6 +72,14 @@ export async function onRequestPost({ request, env }) {
     )
       .bind(valor, id)
       .run();
+  } else if (acao === 'toggle_edicao') {
+    const usuario = await env.DB.prepare(
+      'SELECT podeEditar FROM usuarios WHERE id = ?'
+    ).bind(id).first();
+    const valor = usuario && usuario.podeEditar ? 0 : 1;
+    await env.DB.prepare(
+      'UPDATE usuarios SET podeEditar = ? WHERE id = ?'
+    ).bind(valor, id).run();
   } else {
     await env.DB.prepare(
       "UPDATE usuarios SET status = 'bloqueado' WHERE id = ?"
