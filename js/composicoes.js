@@ -355,27 +355,40 @@
     if (!container) return;
     const podeEditar = usuarioPodeEditarCatalogos();
     const botaoAdicionar = document.getElementById('btnAddComposicao');
+    const contagem = document.getElementById('contagemComposicoes');
+    const base = baseSelecionada('baseComposicao');
+    const buscaSinapi = document.getElementById('buscaSinapiComposicoes');
+    const origemSinapi = base === 'sinapi';
+    container.hidden = origemSinapi;
+    if (buscaSinapi) buscaSinapi.hidden = !origemSinapi;
     if (botaoAdicionar) {
-      botaoAdicionar.hidden = !podeEditar;
+      botaoAdicionar.hidden = !podeEditar || origemSinapi;
       botaoAdicionar.disabled = Boolean(erroCatalogos);
     }
-    if (erroCatalogo(container)) return;
-    const base = baseSelecionada('baseComposicao');
+    if (contagem) contagem.hidden = origemSinapi;
+    if (origemSinapi) return;
+    if (erroCatalogo(container)) {
+      if (contagem) contagem.textContent = 'Catálogo indisponível';
+      return;
+    }
     const itens = window.Composicoes.carregar().filter(function (item) {
-      return item.base === base || (!item.base && base === 'propria');
+      return item.base === 'propria' || !item.base;
     });
+    if (contagem) contagem.textContent = itens.length + (itens.length === 1 ? ' composição' : ' composições');
 
     if (!itens.length) {
-      container.className = 'lista-vazia';
-      container.textContent = base === 'sinapi'
-        ? 'Nenhuma composição SINAPI cadastrada.'
-        : 'Nenhuma composição própria cadastrada.';
+      container.className = 'catalogo-empty';
+      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + (base === 'sinapi' ? '⌕' : '+') + '</span>' +
+        '<h3>' + (base === 'sinapi' ? 'Nenhuma composição SINAPI nesta lista' : 'Seu catálogo próprio começa aqui') + '</h3>' +
+        '<p>' + (base === 'sinapi'
+          ? 'Busque uma composição pelo código ou descrição para consultar e usar os dados da SINAPI.'
+          : 'Cadastre composições próprias para reutilizá-las nos serviços dos seus orçamentos.') + '</p>';
       return;
     }
 
-    container.className = 'lista-itens';
+    container.className = 'catalogo-lista lista-itens';
     container.innerHTML = itens.map(function (item) {
-      return '<div class="item-catalogo">' +
+      return '<article class="item-catalogo" data-base="' + escaparHtml(item.base || 'propria') + '">' +
         '<div class="item-header">' +
           '<span class="item-codigo">' + escaparHtml(item.codigoReferencia || item.codigo || '—') + '</span>' +
           '<span class="item-base">' + (item.base === 'sinapi' ? 'SINAPI' : 'Própria') + '</span>' +
@@ -383,14 +396,14 @@
         '<div class="item-nome">' + escaparHtml(item.nome || 'Sem nome') + '</div>' +
         '<div class="item-meta">' + escaparHtml(item.descricao || 'Sem descrição') + '</div>' +
         '<div class="item-footer">' +
-          '<span>' + escaparHtml(item.unidade || 'un') + (item.componentes && item.componentes.length ? ' · ' + item.componentes.length + ' insumo(s)' : '') + '</span>' +
+          '<span>' + escaparHtml(item.unidade || 'un') + (item.componentes && item.componentes.length ? ' · ' + item.componentes.length + ' componente(s)' : '') + '</span>' +
           '<strong>R$ ' + formatarReal(item.valorUnitario) + '</strong>' +
         '</div>' +
         '<div class="item-acoes">' +
           (podeEditar && item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-composicao">Editar</button>' : '') +
           (podeEditar ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-item-tipo="composicao" data-acao="remover">Remover</button>' : '') +
         '</div>' +
-      '</div>';
+      '</article>';
     }).join('');
   }
 
@@ -399,27 +412,40 @@
     if (!container) return;
     const podeEditar = usuarioPodeEditarCatalogos();
     const botaoAdicionar = document.getElementById('btnAddInsumo');
+    const contagem = document.getElementById('contagemInsumos');
+    const base = baseSelecionada('baseInsumo');
+    const buscaSinapi = document.getElementById('buscaSinapiInsumos');
+    const origemSinapi = base === 'sinapi';
+    container.hidden = origemSinapi;
+    if (buscaSinapi) buscaSinapi.hidden = !origemSinapi;
     if (botaoAdicionar) {
-      botaoAdicionar.hidden = !podeEditar;
+      botaoAdicionar.hidden = !podeEditar || origemSinapi;
       botaoAdicionar.disabled = Boolean(erroCatalogos);
     }
-    if (erroCatalogo(container)) return;
-    const base = baseSelecionada('baseInsumo');
+    if (contagem) contagem.hidden = origemSinapi;
+    if (origemSinapi) return;
+    if (erroCatalogo(container)) {
+      if (contagem) contagem.textContent = 'Catálogo indisponível';
+      return;
+    }
     const itens = window.Insumos.carregar().filter(function (item) {
-      return item.base === base || (!item.base && base === 'propria');
+      return item.base === 'propria' || !item.base;
     });
+    if (contagem) contagem.textContent = itens.length + (itens.length === 1 ? ' insumo' : ' insumos');
 
     if (!itens.length) {
-      container.className = 'lista-vazia';
-      container.textContent = base === 'sinapi'
-        ? 'Nenhum insumo SINAPI cadastrado.'
-        : 'Nenhum insumo próprio cadastrado.';
+      container.className = 'catalogo-empty';
+      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + (base === 'sinapi' ? '⌕' : '+') + '</span>' +
+        '<h3>' + (base === 'sinapi' ? 'Nenhum insumo SINAPI nesta lista' : 'Seu catálogo próprio começa aqui') + '</h3>' +
+        '<p>' + (base === 'sinapi'
+          ? 'Busque um insumo pelo código ou descrição para consultar e usar os dados da SINAPI.'
+          : 'Cadastre materiais, equipamentos e serviços auxiliares para compor suas composições.') + '</p>';
       return;
     }
 
-    container.className = 'lista-itens';
+    container.className = 'catalogo-lista lista-itens';
     container.innerHTML = itens.map(function (item) {
-      return '<div class="item-catalogo">' +
+      return '<article class="item-catalogo" data-base="' + escaparHtml(item.base || 'propria') + '">' +
         '<div class="item-header">' +
           '<span class="item-codigo">' + escaparHtml(item.codigoReferencia || item.codigo || '—') + '</span>' +
           '<span class="item-base">' + (item.base === 'sinapi' ? 'SINAPI' : 'Própria') + '</span>' +
@@ -435,25 +461,206 @@
           (podeEditar && item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-insumo">Editar</button>' : '') +
           (podeEditar ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="insumo" data-acao="remover">Remover</button>' : '') +
         '</div>' +
-      '</div>';
+      '</article>';
     }).join('');
+  }
+
+  function iniciarBuscaSinapiCatalogo(tipo) {
+    const composicao = tipo === 'composicao';
+    const form = document.getElementById(composicao ? 'formBuscaCatalogoComposicao' : 'formBuscaCatalogoInsumo');
+    const campo = document.getElementById(composicao ? 'buscaCatalogoComposicao' : 'buscaCatalogoInsumo');
+    const status = document.getElementById(composicao ? 'statusBuscaCatalogoComposicao' : 'statusBuscaCatalogoInsumo');
+    const resultados = document.getElementById(composicao ? 'resultadosCatalogoComposicao' : 'resultadosCatalogoInsumo');
+    if (!form || !campo || !status || !resultados) return;
+
+    let requisicao = 0;
+    const itensPorCodigo = new Map();
+    function mensagemStatus(texto, classe) {
+      status.textContent = texto;
+      status.className = 'sinapi-status' + (classe ? ' ' + classe : '');
+    }
+    function formatarValor(valor) {
+      if (valor === null || valor === undefined || !Number.isFinite(Number(valor))) return '—';
+      return Number(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    function mensagemErro(error) {
+      if (error.message === 'sinapi_indisponivel') return 'O serviço SINAPI está indisponível. Tente novamente em instantes.';
+      if (error.message === 'sinapi_nao_encontrado') return 'O código informado não foi encontrado na base SINAPI do Paraná.';
+      if (error.message === 'item_duplicado') return 'Este item foi copiado por outro usuário. Atualize sua base para evitar duplicatas.';
+      if (error.message === 'sinapi_composicao_extensa') return 'A composição possui níveis ou quantidade de itens além do limite de cópia.';
+      if (error.message === 'sinapi_composicao_invalida') return 'A SINAPI retornou componentes incompletos; nada foi copiado. Tente novamente mais tarde.';
+      if (error.message === 'somente_visualizacao') return 'Sua conta tem acesso somente para visualizar; não pode copiar itens para a base própria.';
+      if (error.message === 'nao_autenticado') return 'Entre novamente para copiar itens para a base própria.';
+      return error.message || 'Não foi possível consultar a SINAPI.';
+    }
+    async function pedirJson(url, opcoes) {
+      let resposta;
+      try {
+        resposta = await fetch(url, opcoes);
+      } catch (error) {
+        throw new Error('Não foi possível conectar ao servidor.');
+      }
+      const dados = await resposta.json().catch(function () { throw new Error('O servidor retornou uma resposta inválida.'); });
+      if (!resposta.ok) throw new Error(dados.erro || 'A consulta falhou (HTTP ' + resposta.status + ').');
+      return dados;
+    }
+    function renderizarDetalhesComposicao(itens) {
+      if (!Array.isArray(itens) || !itens.length) return '<p class="dica">A composição não possui itens detalhados nesta referência.</p>';
+      const linhas = itens.map(function (item) {
+        return '<tr><td>' + escaparHtml(item.tipo === 'SUB_COMPOSITION' ? 'Subcomposição' : 'Insumo') + '</td>' +
+          '<td>' + escaparHtml(item.codigo) + '</td>' +
+          '<td>' + escaparHtml(item.descricao) + '</td>' +
+          '<td>' + escaparHtml(Number(item.coeficiente).toLocaleString('pt-BR', {maximumFractionDigits: 6})) + '</td>' +
+          '<td>' + escaparHtml(unidadeSinapi(item.unidade)) + '</td>' +
+          '<td>R$ ' + formatarValor(item.valorUnitario) + '</td>' +
+          '<td>R$ ' + formatarValor(item.valorTotal) + '</td></tr>';
+      }).join('');
+      return '<div class="sinapi-itens-wrap"><table class="ua-table sinapi-itens"><thead><tr>' +
+        '<th>Tipo</th><th>Código</th><th>Descrição</th><th>Coeficiente</th><th>Un.</th><th>Preço unitário</th><th>Total</th>' +
+        '</tr></thead><tbody>' + linhas + '</tbody></table></div>';
+    }
+    function renderizarResultados(lista) {
+      itensPorCodigo.clear();
+      resultados.innerHTML = lista.map(function (item) {
+        const codigo = String(item.codigo);
+        itensPorCodigo.set(codigo, item);
+        const botaoCopiar = usuarioPodeEditarCatalogos()
+          ? '<button type="button" class="btn btn-primary btn-sm" data-sinapi-copiar="' + escaparHtml(codigo) + '">' +
+            (composicao ? 'Copiar composição' : 'Copiar insumo') + '</button>'
+          : '';
+        return '<article class="sinapi-catalogo-item" data-codigo="' + escaparHtml(codigo) + '">' +
+          '<div class="sinapi-catalogo-item-info"><strong>' + escaparHtml(codigo) + '</strong>' +
+          '<h3>' + escaparHtml(item.descricao) + '</h3><span>' + escaparHtml(unidadeSinapi(item.unidade)) +
+          (item.referencia ? ' · Referência ' + escaparHtml(item.referencia) : '') + '</span></div>' +
+          '<strong class="sinapi-catalogo-preco">R$ ' + formatarValor(item.valor) + '</strong>' +
+          '<div class="sinapi-catalogo-item-acoes">' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-sinapi-detalhes="' + escaparHtml(codigo) + '">' +
+          (composicao ? 'Ver itens' : 'Ver detalhes') + '</button>' +
+          botaoCopiar + '</div>' +
+          '<div class="sinapi-catalogo-detalhes" hidden></div></article>';
+      }).join('');
+    }
+
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const termo = campo.value.trim();
+      const atual = ++requisicao;
+      if (!termo) {
+        mensagemStatus('Digite um código ou uma descrição para buscar.', 'erro');
+        resultados.replaceChildren();
+        return;
+      }
+      mensagemStatus('Buscando na SINAPI…');
+      resultados.innerHTML = '<p class="dica">Consultando a base SINAPI do Paraná…</p>';
+      const url = composicao
+        ? (/^\d+$/.test(termo) ? '/api/sinapi/composicao?codigo=' + encodeURIComponent(termo) : '/api/sinapi/buscar?q=' + encodeURIComponent(termo))
+        : '/api/sinapi/insumos?q=' + encodeURIComponent(termo);
+      try {
+        const dados = await pedirJson(url);
+        if (atual !== requisicao) return;
+        if (composicao && /^\d+$/.test(termo)) {
+          if (!dados.encontrado) {
+            resultados.replaceChildren();
+            mensagemStatus('Nenhuma composição encontrada para esse código.', 'erro');
+            return;
+          }
+          renderizarResultados([dados]);
+        } else {
+          const lista = Array.isArray(dados.resultados) ? dados.resultados : [];
+          renderizarResultados(lista);
+          mensagemStatus(lista.length + (lista.length === 1 ? ' resultado encontrado.' : ' resultados encontrados.'), 'ok');
+          return;
+        }
+        mensagemStatus('Composição encontrada.', 'ok');
+      } catch (error) {
+        if (atual !== requisicao) return;
+        resultados.replaceChildren();
+        mensagemStatus(mensagemErro(error), 'erro');
+      }
+    });
+
+    resultados.addEventListener('click', async function (event) {
+      const botaoDetalhes = event.target.closest('[data-sinapi-detalhes]');
+      const botaoCopiar = event.target.closest('[data-sinapi-copiar]');
+      if (botaoDetalhes) {
+        const codigo = botaoDetalhes.getAttribute('data-sinapi-detalhes');
+        const artigo = botaoDetalhes.closest('.sinapi-catalogo-item');
+        const area = artigo.querySelector('.sinapi-catalogo-detalhes');
+        if (!area.hidden) {
+          area.hidden = true;
+          botaoDetalhes.textContent = composicao ? 'Ver itens' : 'Ver detalhes';
+          return;
+        }
+        area.hidden = false;
+        botaoDetalhes.textContent = 'Ocultar detalhes';
+        area.textContent = 'Carregando detalhes…';
+        try {
+          const dados = await pedirJson(composicao
+            ? '/api/sinapi/composicao?codigo=' + encodeURIComponent(codigo)
+            : '/api/sinapi/insumo?codigo=' + encodeURIComponent(codigo));
+          if (!dados.encontrado) throw new Error('sinapi_nao_encontrado');
+          if (composicao) {
+            area.innerHTML = renderizarDetalhesComposicao(dados.itens);
+          } else {
+            area.innerHTML = '<dl class="sinapi-item-detalhes">' +
+              (dados.referencia ? '<div><dt>Referência</dt><dd>' + escaparHtml(dados.referencia) + '</dd></div>' : '') +
+              (dados.normas ? '<div><dt>Normas técnicas</dt><dd>' + escaparHtml(dados.normas) + '</dd></div>' : '') +
+              (dados.detalhes ? '<div><dt>Informações técnicas</dt><dd>' + escaparHtml(dados.detalhes) + '</dd></div>' : '') +
+              '</dl>';
+          }
+        } catch (error) {
+          area.textContent = mensagemErro(error);
+        }
+        return;
+      }
+      if (!botaoCopiar) return;
+      const codigo = botaoCopiar.getAttribute('data-sinapi-copiar');
+      const item = itensPorCodigo.get(codigo);
+      if (!item) return;
+      botaoCopiar.disabled = true;
+      mensagemStatus('Copiando para a base própria…');
+      try {
+        const dados = await pedirJson('/api/catalogos', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({importarSinapi: {tipo: composicao ? 'composicao' : 'insumo', codigo}})
+        });
+        await carregarCatalogos();
+        renderComposicoes();
+        renderInsumos();
+        const importadas = dados.importadas || {};
+        const composicoesNovas = Number(importadas.composicoes || 0);
+        const insumosNovos = Number(importadas.insumos || 0);
+        const partes = [];
+        if (composicoesNovas) partes.push(composicoesNovas + (composicoesNovas === 1 ? ' composição' : ' composições'));
+        if (insumosNovos) partes.push(insumosNovos + (insumosNovos === 1 ? ' insumo' : ' insumos'));
+        if (dados.duplicada) {
+          mensagemStatus('A composição principal já existe na sua base própria.' +
+            (partes.length ? ' Foram adicionados componentes ausentes: ' + partes.join(' e ') + '.' : ' Nenhum componente novo precisou ser copiado.'), 'ok');
+        } else {
+          mensagemStatus('Copiado para Próprios: ' + (partes.join(' e ') || 'nenhum novo componente') + '.', 'ok');
+        }
+      } catch (error) {
+        mensagemStatus(mensagemErro(error), 'erro');
+      } finally {
+        botaoCopiar.disabled = false;
+      }
+    });
   }
   async function registrarResultadoSinapi(resultado) {
     if (!resultado || !resultado.codigo) return;
     const view = document.querySelector('.content:not(.hidden)');
     if (!view) return;
 
-    const nome = tituloAmigavel(resultado.descricao) || 'Item SINAPI';
-    const unidade = unidadeSinapi(resultado.unidade) || 'un';
-    const valor = resultado.valor !== null && resultado.valor !== undefined ? resultado.valor : 0;
-
     if (view.id === 'viewComposicoes') {
-      await window.Composicoes.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
-      document.querySelectorAll('input[name="baseComposicao"]').forEach(function (radio) { radio.checked = radio.value === 'sinapi'; });
+      await enviarCatalogo('POST', {importarSinapi: {tipo: 'composicao', codigo: String(resultado.codigo)}});
+      await carregarCatalogos();
+      document.querySelectorAll('input[name="baseComposicao"]').forEach(function (radio) { radio.checked = radio.value === 'propria'; });
       renderComposicoes();
     } else if (view.id === 'viewInsumos') {
-      await window.Insumos.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
-      document.querySelectorAll('input[name="baseInsumo"]').forEach(function (radio) { radio.checked = radio.value === 'sinapi'; });
+      await enviarCatalogo('POST', {importarSinapi: {tipo: 'insumo', codigo: String(resultado.codigo)}});
+      await carregarCatalogos();
+      document.querySelectorAll('input[name="baseInsumo"]').forEach(function (radio) { radio.checked = radio.value === 'propria'; });
       renderInsumos();
     }
   }
@@ -546,16 +753,28 @@
     const tbody = document.getElementById('componentesComposicao');
     if (!tbody) return;
     const insumos = window.Insumos.carregar();
-    const selecionado = componente && componente.insumoId ? componente.insumoId + (componente.detalheId ? ':' + componente.detalheId : '') : '';
-    const opcoes = ['<option value="">Selecione um insumo</option>'];
+    const composicoes = window.Composicoes.carregar();
+    const selecionado = componente && (componente.composicaoId || componente.tipo === 'composicao')
+      ? 'composicao:' + (componente.composicaoId || '')
+      : componente && componente.insumoId
+        ? 'insumo:' + componente.insumoId + (componente.detalheId ? ':' + componente.detalheId : '')
+        : '';
+    const opcoes = ['<option value="">Selecione um insumo ou composição</option>'];
     insumos.forEach(function (insumo) {
       const codigo = (insumo.codigo || '') + ' — ' + insumo.nome;
-      opcoes.push('<option value="' + escaparHtml(insumo.id) + '">' + escaparHtml(codigo + (insumo.detalhes && insumo.detalhes.length ? ' — Principal' : '')) + '</option>');
+      opcoes.push('<option value="insumo:' + escaparHtml(insumo.id) + '">' + escaparHtml(codigo + (insumo.detalhes && insumo.detalhes.length ? ' — Principal' : '')) + '</option>');
       (insumo.detalhes || []).forEach(function (detalhe) {
-        opcoes.push('<option value="' + escaparHtml(insumo.id + ':' + detalhe.id) + '">' + escaparHtml(codigo + ' — ' + detalhe.nome) + '</option>');
+        opcoes.push('<option value="insumo:' + escaparHtml(insumo.id + ':' + detalhe.id) + '">' + escaparHtml(codigo + ' — ' + detalhe.nome) + '</option>');
       });
     });
-    if (componente && componente.insumoId && !insumos.some(function (i) { return i.id === componente.insumoId; })) {
+    composicoes.forEach(function (item) {
+      if (item.id === document.getElementById('fComposicaoId').value) return;
+      opcoes.push('<option value="composicao:' + escaparHtml(item.id) + '">' +
+        escaparHtml((item.codigo || '') + ' — ' + item.nome) + '</option>');
+    });
+    if (componente && componente.composicaoId && !composicoes.some(function (item) { return item.id === componente.composicaoId; })) {
+      opcoes.push('<option value="' + escaparHtml(selecionado) + '">' + escaparHtml(componente.nome + ' (sem cadastro)') + '</option>');
+    } else if (componente && componente.insumoId && !insumos.some(function (i) { return i.id === componente.insumoId; })) {
       opcoes.push('<option value="' + escaparHtml(selecionado) + '">' + escaparHtml(componente.nome + ' (sem cadastro)') + '</option>');
     }
     const linha = document.createElement('tr');
@@ -566,20 +785,25 @@
       '<td class="componente-unidade">—</td>' +
       '<td><input class="componente-coeficiente" inputmode="decimal" placeholder="1,00" value="' + escaparHtml(componente && componente.coeficiente != null ? componente.coeficiente : '') + '"></td>' +
       '<td class="componente-preco">—</td><td class="componente-parcial">—</td>' +
-      '<td><button type="button" class="btn-icon btn-danger" data-remover-componente title="Remover insumo">×</button></td>';
+      '<td><button type="button" class="btn-icon btn-danger" data-remover-componente title="Remover componente">×</button></td>';
     tbody.appendChild(linha);
     linha.querySelector('.componente-insumo').value = selecionado;
     atualizarLinhaComponente(linha);
   }
 
   function atualizarLinhaComponente(linha) {
-    const [id, detalheId] = linha.querySelector('.componente-insumo').value.split(':');
-    const insumo = window.Insumos.carregar().find(function (i) { return i.id === id; });
+    const [tipo, id, detalheId] = linha.querySelector('.componente-insumo').value.split(':');
+    const insumo = tipo === 'insumo' && window.Insumos.carregar().find(function (i) { return i.id === id; });
+    const composicao = tipo === 'composicao' && window.Composicoes.carregar().find(function (i) { return i.id === id; });
     if (insumo) {
       const detalhe = (insumo.detalhes || []).find(function (d) { return d.id === detalheId; });
       linha.dataset.insumoNome = insumo.nome + (detalhe ? ' — ' + detalhe.nome : '');
       linha.dataset.insumoUnidade = (buscarUnidade(insumo.unidadeBaseId || insumo.unidade) || {}).simbolo || insumo.unidade || 'un';
       linha.dataset.insumoValor = insumo.valorUnitario || 0;
+    } else if (composicao) {
+      linha.dataset.insumoNome = composicao.nome;
+      linha.dataset.insumoUnidade = composicao.unidade || 'un';
+      linha.dataset.insumoValor = composicao.valorUnitario || 0;
     }
     const unidade = linha.dataset.insumoUnidade || '—';
     const preco = parseReal(linha.dataset.insumoValor);
@@ -634,8 +858,6 @@
 
     const btnAddComposicao = document.getElementById('btnAddComposicao');
     const btnAddInsumo = document.getElementById('btnAddInsumo');
-    const btnBuscarSinapi = document.getElementById('btnBuscarSinapi');
-    const btnBuscarSinapiInsumo = document.getElementById('btnBuscarSinapiInsumo');
 
     if (btnAddComposicao) btnAddComposicao.addEventListener('click', function () {
       const propria = document.querySelector('input[name="baseComposicao"][value="propria"]');
@@ -649,8 +871,8 @@
       renderInsumos();
       abrirEditorInsumo(null);
     });
-    if (btnBuscarSinapi) btnBuscarSinapi.addEventListener('click', function () { var modal = document.getElementById('modalBuscaSinapi'); if (modal) modal.showModal(); });
-    if (btnBuscarSinapiInsumo) btnBuscarSinapiInsumo.addEventListener('click', function () { var modal = document.getElementById('modalBuscaSinapi'); if (modal) modal.showModal(); });
+    iniciarBuscaSinapiCatalogo('composicao');
+    iniciarBuscaSinapiCatalogo('insumo');
 
     document.getElementById('btnCancelarInsumo').addEventListener('click', function () { document.getElementById('modalInsumo').close(); });
     document.getElementById('btnAdicionarConversao').addEventListener('click', function () { adicionarLinhaConversao(null); });
@@ -764,12 +986,25 @@
     document.getElementById('formComposicao').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const linhas = Array.from(document.querySelectorAll('#componentesComposicao tr'));
-      if (!linhas.length) { alert('Adicione ao menos um insumo à composição.'); return; }
+      if (!linhas.length) { alert('Adicione ao menos um insumo ou uma composição à composição.'); return; }
       const componentes = linhas.map(function (linha) {
-        const [insumoId, detalheId] = linha.querySelector('.componente-insumo').value.split(':');
+        const [tipo, idComponente, detalheId] = linha.querySelector('.componente-insumo').value.split(':');
+        if (tipo === 'composicao') {
+          const composicao = window.Composicoes.carregar().find(function (item) { return item.id === idComponente; });
+          return {
+            tipo: 'composicao',
+            composicaoId: idComponente,
+            nome: composicao ? composicao.nome : linha.dataset.insumoNome,
+            unidade: composicao ? composicao.unidade : linha.dataset.insumoUnidade,
+            valorUnitario: composicao ? parseReal(composicao.valorUnitario) : parseReal(linha.dataset.insumoValor),
+            coeficiente: parseReal(linha.querySelector('.componente-coeficiente').value)
+          };
+        }
+        const insumoId = idComponente;
         const insumo = window.Insumos.carregar().find(function (i) { return i.id === insumoId; });
         const detalhe = insumo && (insumo.detalhes || []).find(function (d) { return d.id === detalheId; });
         return {
+          tipo: 'insumo',
           insumoId: insumoId,
           detalheId: detalhe ? detalhe.id : '',
           nome: insumo ? insumo.nome + (detalhe ? ' — ' + detalhe.nome : '') : linha.dataset.insumoNome,
@@ -778,8 +1013,8 @@
           coeficiente: parseReal(linha.querySelector('.componente-coeficiente').value)
         };
       });
-      if (componentes.some(function (c) { return !c.insumoId || !c.nome || c.coeficiente <= 0; })) {
-        alert('Selecione um insumo e informe um coeficiente maior que zero em cada linha.');
+      if (componentes.some(function (c) { return (c.tipo === 'composicao' ? !c.composicaoId : !c.insumoId) || !c.nome || c.coeficiente <= 0; })) {
+        alert('Selecione um insumo ou composição e informe um coeficiente maior que zero em cada linha.');
         return;
       }
       const dados = {

@@ -208,24 +208,41 @@
 </section>
 
 <section class="content hidden" id="viewComposicoes">
-  <div class="orcamento-head">
+  <div class="orcamento-head catalogo-page-head">
     <div>
       <h2>Composições</h2>
       <p>Gerencie as composições de materiais e serviços.</p>
     </div>
   </div>
-  <div id="composicoesConteudo">
-    <div class="base-selection">
-      <label>Base de dados:
-        <input type="radio" name="baseComposicao" value="sinapi" checked> SINAPI
-        <input type="radio" name="baseComposicao" value="propria"> Própria
-      </label>
+  <div id="composicoesConteudo" class="catalogo-page">
+    <div class="catalogo-toolbar">
+      <div class="catalogo-fonte">
+        <span class="catalogo-toolbar-label">Fonte do catálogo</span>
+        <div class="base-selection" role="radiogroup" aria-label="Fonte das composições">
+          <label class="catalogo-tab"><input type="radio" name="baseComposicao" value="sinapi" checked><span>SINAPI</span></label>
+          <label class="catalogo-tab"><input type="radio" name="baseComposicao" value="propria"><span>Próprias</span></label>
+        </div>
+      </div>
+      <div class="catalogo-toolbar-side">
+        <span class="catalogo-contagem" id="contagemComposicoes" aria-live="polite">Carregando catálogo…</span>
+        <div class="actions">
+          <button id="btnAddComposicao" class="btn btn-primary">+ Nova composição</button>
+        </div>
+      </div>
     </div>
-    <div class="actions">
-      <button id="btnAddComposicao" class="btn btn-primary">+ Nova composição própria</button>
-      <button id="btnBuscarSinapi" class="btn btn-ghost">Buscar SINAPI</button>
+    <div id="buscaSinapiComposicoes" class="sinapi-catalogo" hidden>
+      <form id="formBuscaCatalogoComposicao" class="sinapi-catalogo-busca">
+        <label for="buscaCatalogoComposicao">Buscar composição SINAPI por código ou descrição</label>
+        <div class="sinapi-catalogo-campo">
+          <input id="buscaCatalogoComposicao" type="search" autocomplete="off" placeholder="Ex.: 87280 ou alvenaria de blocos" />
+          <button type="submit" class="btn btn-primary">Buscar</button>
+        </div>
+        <p>Paraná · Não desonerado</p>
+      </form>
+      <p id="statusBuscaCatalogoComposicao" class="sinapi-status" role="status" aria-live="polite"></p>
+      <div id="resultadosCatalogoComposicao" class="sinapi-catalogo-resultados"></div>
     </div>
-    <div id="listaComposicoes" class="lista-vazia">Nenhuma composição cadastrada.</div>
+    <div id="listaComposicoes" class="lista-vazia"></div>
   </div>
 </section>
 
@@ -239,12 +256,12 @@
     </div>
     <label>Descrição<textarea id="fComposicaoDescricao" rows="2"></textarea></label>
     <div class="componentes-head">
-      <h4>Insumos e coeficientes</h4>
-      <button type="button" id="btnAdicionarComponente" class="btn btn-ghost btn-sm">+ Adicionar insumo</button>
+      <h4>Itens da composição</h4>
+      <button type="button" id="btnAdicionarComponente" class="btn btn-ghost btn-sm">+ Adicionar item</button>
     </div>
     <div class="componentes-wrap">
       <table class="componentes-tabela">
-        <thead><tr><th>Insumo</th><th>Un.</th><th>Coeficiente</th><th>Preço unitário</th><th>Parcial</th><th></th></tr></thead>
+        <thead><tr><th>Insumo ou composição</th><th>Un.</th><th>Coeficiente</th><th>Preço unitário</th><th>Parcial</th><th></th></tr></thead>
         <tbody id="componentesComposicao"></tbody>
       </table>
     </div>
@@ -260,24 +277,41 @@
 </dialog>
 
 <section class="content hidden" id="viewInsumos">
-  <div class="orcamento-head">
+  <div class="orcamento-head catalogo-page-head">
     <div>
       <h2>Insumos</h2>
       <p>Gerencie os insumos básicos utilizados nas composições.</p>
     </div>
   </div>
-  <div id="insumosConteudo">
-    <div class="base-selection">
-      <label>Base de dados:
-        <input type="radio" name="baseInsumo" value="sinapi" checked> SINAPI
-        <input type="radio" name="baseInsumo" value="propria"> Própria
-      </label>
+  <div id="insumosConteudo" class="catalogo-page">
+    <div class="catalogo-toolbar">
+      <div class="catalogo-fonte">
+        <span class="catalogo-toolbar-label">Fonte do catálogo</span>
+        <div class="base-selection" role="radiogroup" aria-label="Fonte dos insumos">
+          <label class="catalogo-tab"><input type="radio" name="baseInsumo" value="sinapi" checked><span>SINAPI</span></label>
+          <label class="catalogo-tab"><input type="radio" name="baseInsumo" value="propria"><span>Próprios</span></label>
+        </div>
+      </div>
+      <div class="catalogo-toolbar-side">
+        <span class="catalogo-contagem" id="contagemInsumos" aria-live="polite">Carregando catálogo…</span>
+        <div class="actions">
+          <button id="btnAddInsumo" class="btn btn-primary">+ Novo insumo</button>
+        </div>
+      </div>
     </div>
-    <div class="actions">
-      <button id="btnAddInsumo" class="btn btn-primary">+ Novo Insumo</button>
-      <button id="btnBuscarSinapiInsumo" class="btn btn-ghost">Buscar SINAPI</button>
+    <div id="buscaSinapiInsumos" class="sinapi-catalogo" hidden>
+      <form id="formBuscaCatalogoInsumo" class="sinapi-catalogo-busca">
+        <label for="buscaCatalogoInsumo">Buscar insumo SINAPI por código ou descrição</label>
+        <div class="sinapi-catalogo-campo">
+          <input id="buscaCatalogoInsumo" type="search" autocomplete="off" placeholder="Ex.: 1379 ou cimento Portland" />
+          <button type="submit" class="btn btn-primary">Buscar</button>
+        </div>
+        <p>Paraná · Não desonerado</p>
+      </form>
+      <p id="statusBuscaCatalogoInsumo" class="sinapi-status" role="status" aria-live="polite"></p>
+      <div id="resultadosCatalogoInsumo" class="sinapi-catalogo-resultados"></div>
     </div>
-    <div id="listaInsumos" class="lista-vazia">Nenhum insumo cadastrado.</div>
+    <div id="listaInsumos" class="lista-vazia"></div>
   </div>
 </section>
 

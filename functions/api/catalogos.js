@@ -186,6 +186,215 @@ async function migrarUnidades(request, env, usuario) {
   return Response.json({ importadas });
 }
 
+async function buscarSinapi(caminho) {
+  let resposta;
+  try {
+    resposta = await fetch(`https://api.sinpres.com.br/api/v1/sectors/civil-construction/${caminho}`);
+  } catch (error) {
+    throw new Error('sinapi_indisponivel', { cause: error });
+  }
+  if (!resposta.ok) throw new Error(resposta.status === 404 ? 'sinapi_nao_encontrado' : 'sinapi_indisponivel');
+  const dados = await resposta.json();
+  if (!dados || !dados.data) throw new Error('sinapi_nao_encontrado');
+  return dados.data;
+}
+
+function codigoCatalogo(prefixo, itens) {
+  const ano = new Date().getFullYear();
+  const padrao = new RegExp('^' + prefixo + '-' + ano + '-(\\d+)$');
+  const maior = itens.reduce((atual, item) => {
+    const match = padrao.exec(item.codigo || '');
+    return match ? Math.max(atual, Number(match[1])) : atual;
+  }, 0);
+  return `${prefixo}-${ano}-${maior + 1}`;
+}
+
+async function importarSinapi(env, corpo) {
+  const pedido = corpo.importarSinapi;
+  if (!pedido || typeof pedido !== 'object' || !['composicao', 'insumo'].includes(pedido.tipo) ||
+      typeof pedido.codigo !== 'string' || !/^\d{1,20}$/.test(pedido.codigo)) {
+    return respostaErro('parametros_invalidos', 400);
+  }
+
+  const tabela = pedido.tipo === 'composicao' ? 'composicoes' : 'insumos';
+  const existente = await env.DB.prepare(
+    `SELECT id, codigo, codigoReferencia, nome FROM ${tabela} WHERE base = 'propria' AND codigoReferencia = ? COLLATE NOCASE`
+  ).bind(pedido.codigo).first();
+  if (existente && pedido.tipo === 'insumo') {
+    return Response.json({ duplicada: true, tipo: pedido.tipo, item: existente });
+  }
+
+  try {
+    if (pedido.tipo === 'insumo') {
+      const origem = await buscarSinapi(
+        `items/${encodeURIComponent(pedido.codigo)}?state=PR&is_desonerated=false`
+      );
+      const agora = new Date().toISOString();
+      const { results: existentes } = await env.DB.prepare(
+        "SELECT codigo FROM insumos WHERE base = 'propria' AND codigo LIKE ?"
+      ).bind(`INS-${new Date().getFullYear()}-%`).all();
+      const unidade = await env.DB.prepare(
+        'SELECT id FROM unidades_medida WHERE lower(simbolo) = lower(?)'
+      ).bind(origem.unit || 'un').first();
+      const item = {
+        id: `sinapi-ins-${crypto.randomUUID()}`,
+        codigo: codigoCatalogo('INS', existentes),
+        nome: origem.description,
+        descricao: [origem.generalInfo, origem.technicalStandards ? `Normas: ${origem.technicalStandards}` : '']
+          .filter(Boolean).join('\n\n').slice(0, 2000),
+        unidade: origem.unit || 'un',
+        valorUnitario: typeof origem.unitPrice === 'number' ? origem.unitPrice / 100 : 0,
+        base: 'propria',
+        codigoReferencia: String(origem.code),
+        unidadeBaseId: unidade ? unidade.id : '',
+        conversoes: [],
+        detalhes: [],
+        criadoEm: agora
+      };
+      const dados = prepararItem('insumos', item, null);
+      await statementFor(env, 'insumos', dados).run();
+      return Response.json({ duplicada: false, tipo: pedido.tipo, item: serializar('insumos', dados), importadas: { insumos: 1, composicoes: 0 } }, { status: 201 });
+    }
+
+    const composicoesSinapi = new Map();
+    const insumosSinapi = new Map();
+    async function carregarComposicao(codigo, profundidade = 0) {
+      const chave = String(codigo);
+      if (composicoesSinapi.has(chave)) return;
+      if (profundidade > 12 || composicoesSinapi.size >= 500) throw new Error('sinapi_composicao_extensa');
+      const origem = await buscarSinapi(
+        `compositions/${encodeURIComponent(chave)}?state=PR&is_desonerated=false`
+      );
+      const node = { origem, itens: Array.isArray(origem.items) ? origem.items : [] };
+      composicoesSinapi.set(chave, node);
+      for (const componente of node.itens) {
+        if (componente.itemType === 'SUB_COMPOSITION') {
+          await carregarComposicao(componente.code, profundidade + 1);
+        } else if (componente.itemType === 'INPUT') {
+          const codigoInsumo = String(componente.code);
+          if (!insumosSinapi.has(codigoInsumo)) insumosSinapi.set(codigoInsumo, componente);
+        }
+      }
+    }
+    await carregarComposicao(pedido.codigo);
+
+    const { results: composicoesExistentes } = await env.DB.prepare(
+      "SELECT id, codigo, codigoReferencia FROM composicoes WHERE base = 'propria' AND codigoReferencia <> ''"
+    ).all();
+    const { results: insumosExistentes } = await env.DB.prepare(
+      "SELECT id, codigo, codigoReferencia FROM insumos WHERE base = 'propria' AND codigoReferencia <> ''"
+    ).all();
+    const compPorReferencia = new Map(composicoesExistentes.map((item) => [String(item.codigoReferencia).toLowerCase(), item]));
+    const insumoPorReferencia = new Map(insumosExistentes.map((item) => [String(item.codigoReferencia).toLowerCase(), item]));
+    const { results: codigosComposicoes } = await env.DB.prepare(
+      "SELECT codigo FROM composicoes WHERE base = 'propria' AND codigo LIKE ?"
+    ).bind(`COMP-${new Date().getFullYear()}-%`).all();
+    const { results: codigosInsumos } = await env.DB.prepare(
+      "SELECT codigo FROM insumos WHERE base = 'propria' AND codigo LIKE ?"
+    ).bind(`INS-${new Date().getFullYear()}-%`).all();
+
+    const agora = new Date().toISOString();
+    const novosInsumos = [];
+    for (const [referencia, origem] of insumosSinapi) {
+      if (insumoPorReferencia.has(referencia.toLowerCase())) continue;
+      const unidade = await env.DB.prepare(
+        'SELECT id FROM unidades_medida WHERE lower(simbolo) = lower(?)'
+      ).bind(origem.unit || 'un').first();
+      const item = {
+        id: `sinapi-ins-${crypto.randomUUID()}`,
+        codigo: codigoCatalogo('INS', codigosInsumos),
+        nome: origem.description,
+        descricao: 'Origem: SINAPI PR · Referência ' + (composicoesSinapi.get(String(pedido.codigo)).origem.referenceMonth || 'vigente'),
+        unidade: origem.unit || 'un',
+        valorUnitario: typeof origem.unitPrice === 'number' ? origem.unitPrice / 100 : 0,
+        base: 'propria',
+        codigoReferencia: referencia,
+        unidadeBaseId: unidade ? unidade.id : '',
+        conversoes: [],
+        detalhes: [],
+        criadoEm: agora
+      };
+      const dados = prepararItem('insumos', item, null);
+      novosInsumos.push(dados);
+      insumoPorReferencia.set(referencia.toLowerCase(), dados);
+      codigosInsumos.push({ codigo: dados.codigo });
+    }
+
+    const composicoesParaCriar = [];
+    for (const [referencia, node] of composicoesSinapi) {
+      if (compPorReferencia.has(referencia.toLowerCase())) continue;
+      const origem = node.origem;
+      const item = {
+        id: `sinapi-comp-${crypto.randomUUID()}`,
+        codigo: codigoCatalogo('COMP', codigosComposicoes),
+        nome: origem.description,
+        descricao: 'Origem: SINAPI PR · Referência ' + (origem.referenceMonth || 'vigente'),
+        unidade: origem.unit || 'un',
+        valorUnitario: typeof origem.baseUnitCost === 'number' ? origem.baseUnitCost / 100 : 0,
+        base: 'propria',
+        codigoReferencia: referencia,
+        componentes: [],
+        criadoEm: agora
+      };
+      compPorReferencia.set(referencia.toLowerCase(), item);
+      codigosComposicoes.push({ codigo: item.codigo });
+      composicoesParaCriar.push({ referencia, node, item });
+    }
+
+    const novosComposicoes = composicoesParaCriar.map(({ node, item }) => {
+      const componentes = node.itens.map((componente) => {
+        const codigoComponente = String(componente.code);
+        const coeficiente = Number(componente.coefficient);
+        if (!Number.isFinite(coeficiente) || coeficiente <= 0) throw new Error('sinapi_composicao_invalida');
+        if (componente.itemType === 'SUB_COMPOSITION') {
+          const subcomposicao = compPorReferencia.get(codigoComponente.toLowerCase());
+          if (!subcomposicao) throw new Error('sinapi_composicao_invalida');
+          return {
+            tipo: 'composicao',
+            composicaoId: subcomposicao.id,
+            nome: componente.description,
+            unidade: componente.unit || 'un',
+            valorUnitario: typeof componente.unitPrice === 'number' ? componente.unitPrice / 100 : 0,
+            coeficiente
+          };
+        }
+        const insumo = insumoPorReferencia.get(codigoComponente.toLowerCase());
+        if (!insumo) throw new Error('sinapi_composicao_invalida');
+        return {
+          tipo: 'insumo',
+          insumoId: insumo.id,
+          nome: componente.description,
+          unidade: componente.unit || 'un',
+          valorUnitario: typeof componente.unitPrice === 'number' ? componente.unitPrice / 100 : 0,
+          coeficiente
+        };
+      });
+      item.componentes = componentes;
+      return prepararItem('composicoes', item, null);
+    });
+
+    const statements = novosInsumos.map((item) => statementFor(env, 'insumos', item))
+      .concat(novosComposicoes.map((item) => statementFor(env, 'composicoes', item)));
+    if (statements.length) await env.DB.batch(statements);
+    const raiz = novosComposicoes.find((item) => item.codigoReferencia.toLowerCase() === String(pedido.codigo).toLowerCase())
+      || compPorReferencia.get(String(pedido.codigo).toLowerCase());
+    return Response.json({
+      duplicada: Boolean(existente),
+      tipo: pedido.tipo,
+      item: serializar('composicoes', raiz),
+      importadas: { insumos: novosInsumos.length, composicoes: novosComposicoes.length }
+    }, { status: 201 });
+  } catch (error) {
+    if (error instanceof TypeError) return respostaErro(error.message, 400);
+    if (error.message === 'sinapi_nao_encontrado') return respostaErro('sinapi_nao_encontrado', 404);
+    if (error.message === 'sinapi_composicao_extensa') return respostaErro('sinapi_composicao_extensa', 422);
+    if (error.message === 'sinapi_composicao_invalida') return respostaErro('sinapi_composicao_invalida', 502);
+    if (error.message === 'sinapi_indisponivel') return respostaErro('sinapi_indisponivel', 502);
+    if (/unique constraint/i.test(error.message || '')) return respostaErro('item_duplicado', 409);
+    throw error;
+  }
+}
+
 export async function onRequestGet({ request, env }) {
   const usuario = await contextoUsuario(request, env);
   if (!usuario) return respostaErro('nao_autenticado', 401);
@@ -202,6 +411,7 @@ export async function onRequestPost({ request, env }) {
   const corpo = await request.clone().json().catch(() => null);
   if (!corpo || typeof corpo !== 'object') return respostaErro('json_invalido', 400);
   if (corpo.migrarUnidades === true) return migrarUnidades(request, env, usuario);
+  if (corpo.importarSinapi) return importarSinapi(env, corpo);
   const tipo = corpo.tipo;
   if (!Object.hasOwn(TIPOS, tipo)) return respostaErro('tipo_invalido', 400);
 

@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS composicoes (
 CREATE INDEX IF NOT EXISTS idx_composicoes_base_nome
   ON composicoes (base, nome);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_composicoes_proprias_codigo_referencia
+  ON composicoes (codigoReferencia COLLATE NOCASE)
+  WHERE base = 'propria' AND codigoReferencia <> '';
+
 CREATE TABLE IF NOT EXISTS insumos (
   id TEXT PRIMARY KEY,
   codigo TEXT NOT NULL UNIQUE,
@@ -47,3 +51,7 @@ CREATE TABLE IF NOT EXISTS insumos (
 
 CREATE INDEX IF NOT EXISTS idx_insumos_base_nome
   ON insumos (base, nome);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_insumos_proprios_codigo_referencia
+  ON insumos (codigoReferencia COLLATE NOCASE)
+  WHERE base = 'propria' AND codigoReferencia <> '';
