@@ -8,7 +8,7 @@ function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 function primeiraMaiuscula(s){const texto=String(s??'');return texto?texto.charAt(0).toLocaleUpperCase('pt-BR')+texto.slice(1):'';}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
-function num2(n){return Math.round((Number(n)||0)*100)/100;}
+function num2(n){const v=Math.round((Number(n)||0)*100)/100;return v.toFixed(2);}
 function clone(x){return JSON.parse(JSON.stringify(x));}
 
 function estadoInicial(){return{orcamentos:[],ativoId:null,expandidos:{}};}
