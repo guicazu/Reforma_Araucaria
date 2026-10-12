@@ -8,6 +8,7 @@
   var views = {
     dashboard: document.getElementById('viewDashboard'),
     orcamento: document.getElementById('viewOrcamento'),
+    liberacao: document.getElementById('viewLiberacao'),
     usuarios: document.getElementById('viewUsuarios'),
     backup: document.getElementById('viewBackup'),
     composicoes: document.getElementById('viewComposicoes'),

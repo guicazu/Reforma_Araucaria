@@ -146,8 +146,7 @@ button:disabled{cursor:wait;opacity:.65}
 #viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .col-acoes{display:none}
 #viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnRenomear,
 #viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnAddUnidade,
-#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnSalvarOrcamento,
-#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnLiberarBloqueio{display:none}
+#viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="true"] .orcamento-head-actions #btnSalvarOrcamento{display:none}
 #viewOrcamento[data-modo="editor"] #contentOrcamento[data-somente-leitura="false"] .orcamento-head-actions #btnEntrarEdicao{display:none}
 #viewOrcamento .resumo{gap:8px;margin-bottom:12px}
 #viewOrcamento .resumo-card{padding:8px 12px}

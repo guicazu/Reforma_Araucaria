@@ -78,8 +78,15 @@ function atualizarStatusSalvamento(){
   if(liberarLista){
     liberarLista.classList.toggle('hidden', !removido || pendente);
   }
+  const orcamentoAtivoId = state.ativoId;
+  const bloqueioAtivo = orcamentoAtivoId && bloqueiosPorOrcamento[orcamentoAtivoId];
+  const emailAtual = window.usuarioAtual && window.usuarioAtual.email;
+  const podeLiberarAtivo = Boolean(
+    bloqueioAtivo && emailAtual &&
+    String(bloqueioAtivo.usuarioEmail || bloqueioAtivo.email || '').toLowerCase() === String(emailAtual).toLowerCase()
+  );
   $('#btnEntrarEdicao').classList.toggle('hidden', modoEdicao || !usuarioPodeEditar);
-  $('#btnLiberarBloqueio').classList.toggle('hidden', !modoEdicao || !orcamentoEditandoId);
+  $('#btnLiberarBloqueio').classList.toggle('hidden', !((modoEdicao && orcamentoEditandoId) || podeLiberarAtivo));
   $('#btnRenomear').classList.toggle('hidden', !modoEdicao);
   $('#btnAddUnidade').classList.toggle('hidden', !modoEdicao);
   $('#btnGerarVersao').classList.toggle('hidden', !modoEdicao);
@@ -264,8 +271,15 @@ async function abrirParaEditar(id){
 }
 
 async function liberarEdicaoAtual(){
-  if(!orcamentoEditandoId)return;
-  const id=orcamentoEditandoId;
+  const bloqueioAtivo = state.ativoId && bloqueiosPorOrcamento[state.ativoId];
+  const emailAtual = window.usuarioAtual && window.usuarioAtual.email;
+  const id = orcamentoEditandoId || (
+    bloqueioAtivo && emailAtual &&
+    String(bloqueioAtivo.usuarioEmail || bloqueioAtivo.email || '').toLowerCase() === String(emailAtual).toLowerCase()
+      ? state.ativoId
+      : null
+  );
+  if(!id)return;
   try{
     await window.liberarOrcamento(id);
     delete bloqueiosPorOrcamento[id];
@@ -519,7 +533,7 @@ function atualizarTotaisVisuais(o){
 }
 
 /* ---------- renderização ---------- */
-function renderTudo(){renderLista();renderConteudo();}
+function renderTudo(){renderLista();renderConteudo();atualizarStatusSalvamento();}
 
 function renderLista(){
   const ul=$('#listaOrcamentos');
