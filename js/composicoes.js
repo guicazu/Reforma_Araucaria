@@ -2,73 +2,131 @@
 (function () {
   'use strict';
 
-  const DB_KEY_COMP = 'ibuild_composicoes_v1';
-  const DB_KEY_INSUMO = 'ibuild_insumos_v1';
   const DB_KEY_UNIDADE = 'ibuild_unidades_v1';
+  const DB_KEY_UNIDADE_IMPORTADA = 'ibuild_unidades_migradas_v1';
+  const catalogos = {unidades: [], composicoes: [], insumos: []};
+  let erroCatalogos = 'Carregando catálogos compartilhados...';
+  let requisicaoCatalogos = null;
   const UNIDADES_PADRAO = [
-    {id: 'std-kg', simbolo: 'kg', nome: 'Quilograma', grupo: 'Massa', padrao: true},
+    {id: 'std-kg', simbolo: 'KG', nome: 'Quilograma', grupo: 'Massa', padrao: true},
     {id: 'std-g', simbolo: 'g', nome: 'Grama', grupo: 'Massa', padrao: true},
-    {id: 'std-t', simbolo: 't', nome: 'Tonelada', grupo: 'Massa', padrao: true},
+    {id: 'std-t', simbolo: 'T', nome: 'Tonelada', grupo: 'Massa', padrao: true},
     {id: 'std-sc', simbolo: 'sc', nome: 'Saco', grupo: 'Massa', padrao: true},
     {id: 'std-l', simbolo: 'L', nome: 'Litro', grupo: 'Volume', padrao: true},
     {id: 'std-ml', simbolo: 'mL', nome: 'Mililitro', grupo: 'Volume', padrao: true},
     {id: 'std-lt', simbolo: 'Lt', nome: 'Lata', grupo: 'Volume', padrao: true},
-    {id: 'std-m', simbolo: 'm', nome: 'Metro', grupo: 'Comprimento', padrao: true},
+    {id: 'std-m', simbolo: 'M', nome: 'Metro', grupo: 'Comprimento', padrao: true},
     {id: 'std-cm', simbolo: 'cm', nome: 'Centímetro', grupo: 'Comprimento', padrao: true},
     {id: 'std-mm', simbolo: 'mm', nome: 'Milímetro', grupo: 'Comprimento', padrao: true},
-    {id: 'std-m2', simbolo: 'm²', nome: 'Metro quadrado', grupo: 'Área', padrao: true},
+    {id: 'std-m2', simbolo: 'M2', nome: 'Metro quadrado', grupo: 'Área', padrao: true},
     {id: 'std-cm2', simbolo: 'cm²', nome: 'Centímetro quadrado', grupo: 'Área', padrao: true},
-    {id: 'std-m3', simbolo: 'm³', nome: 'Metro cúbico', grupo: 'Volume', padrao: true},
-    {id: 'std-un', simbolo: 'un', nome: 'Unidade', grupo: 'Quantidade', padrao: true},
-    {id: 'std-h', simbolo: 'h', nome: 'Hora', grupo: 'Tempo', padrao: true},
+    {id: 'std-m3', simbolo: 'M3', nome: 'Metro cúbico', grupo: 'Volume', padrao: true},
+    {id: 'std-un', simbolo: 'UN', nome: 'Unidade', grupo: 'Quantidade', padrao: true},
+    {id: 'std-h', simbolo: 'H', nome: 'Hora', grupo: 'Tempo', padrao: true},
     {id: 'std-dia', simbolo: 'dia', nome: 'Dia', grupo: 'Tempo', padrao: true},
-    {id: 'std-mes', simbolo: 'mês', nome: 'Mês', grupo: 'Tempo', padrao: true},
-    {id: 'std-cj', simbolo: 'cj', nome: 'Conjunto', grupo: 'Quantidade', padrao: true},
-    {id: 'std-jg', simbolo: 'jg', nome: 'Jogo', grupo: 'Quantidade', padrao: true},
+    {id: 'std-mes', simbolo: 'MES', nome: 'Mês', grupo: 'Tempo', padrao: true},
+    {id: 'std-cj', simbolo: 'CJ', nome: 'Conjunto', grupo: 'Quantidade', padrao: true},
+    {id: 'std-jg', simbolo: 'JG', nome: 'Jogo', grupo: 'Quantidade', padrao: true},
     {id: 'std-cx', simbolo: 'cx', nome: 'Caixa', grupo: 'Embalagem', padrao: true},
     {id: 'std-pct', simbolo: 'pct', nome: 'Pacote', grupo: 'Embalagem', padrao: true},
     {id: 'std-rolo', simbolo: 'rolo', nome: 'Rolo', grupo: 'Embalagem', padrao: true},
     {id: 'std-bobina', simbolo: 'bobina', nome: 'Bobina', grupo: 'Embalagem', padrao: true},
     {id: 'std-barra', simbolo: 'barra', nome: 'Barra', grupo: 'Quantidade', padrao: true},
-    {id: 'std-par', simbolo: 'par', nome: 'Par', grupo: 'Quantidade', padrao: true},
-    {id: 'std-mil', simbolo: 'mil', nome: 'Milheiro', grupo: 'Quantidade', padrao: true},
-    {id: 'std-cento', simbolo: 'cento', nome: 'Cento', grupo: 'Quantidade', padrao: true},
-    {id: 'std-kwh', simbolo: 'kWh', nome: 'Quilowatt-hora', grupo: 'Energia', padrao: true},
+    {id: 'std-par', simbolo: 'PAR', nome: 'Par', grupo: 'Quantidade', padrao: true},
+    {id: 'std-mil', simbolo: 'MIL', nome: 'Milheiro', grupo: 'Quantidade', padrao: true},
+    {id: 'std-cento', simbolo: 'CENTO', nome: 'Cento', grupo: 'Quantidade', padrao: true},
+    {id: 'std-kwh', simbolo: 'KWH', nome: 'Quilowatt-hora', grupo: 'Energia', padrao: true},
     {id: 'std-sc25', simbolo: 'sc 25kg', nome: 'Saco de 25 kg', grupo: 'Massa', padrao: true},
     {id: 'std-vb', simbolo: 'vb', nome: 'Verba', grupo: 'Outros', padrao: true}
   ];
 
   function carregarComposicoes() {
-    try {
-      const raw = localStorage.getItem(DB_KEY_COMP);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
-  }
-
-  function salvarComposicoes(comp) {
-    localStorage.setItem(DB_KEY_COMP, JSON.stringify(comp));
+    return catalogos.composicoes.slice();
   }
 
   function carregarInsumos() {
-    try {
-      const raw = localStorage.getItem(DB_KEY_INSUMO);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) { return []; }
-  }
-
-  function salvarInsumos(ins) {
-    localStorage.setItem(DB_KEY_INSUMO, JSON.stringify(ins));
+    return catalogos.insumos.slice();
   }
 
   function carregarUnidades() {
-    try {
-      const personalizadas = JSON.parse(localStorage.getItem(DB_KEY_UNIDADE) || '[]');
-      return UNIDADES_PADRAO.concat(Array.isArray(personalizadas) ? personalizadas : []);
-    } catch (e) { return UNIDADES_PADRAO.slice(); }
+    const compartilhadasPorId = new Map(catalogos.unidades.map(function (unidade) { return [unidade.id, unidade]; }));
+    const idsPadrao = new Set(UNIDADES_PADRAO.map(function (unidade) { return unidade.id; }));
+    return UNIDADES_PADRAO.map(function (unidade) {
+      return compartilhadasPorId.get(unidade.id) || unidade;
+    }).concat(catalogos.unidades.filter(function (unidade) { return !idsPadrao.has(unidade.id); }));
   }
 
-  function salvarUnidades(unidades) {
-    localStorage.setItem(DB_KEY_UNIDADE, JSON.stringify(unidades.filter(function (u) { return !u.padrao; })));
+  async function enviarCatalogo(metodo, corpo) {
+    let resposta;
+    try {
+      resposta = await fetch('/api/catalogos', {
+        method: metodo,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(corpo)
+      });
+    } catch (error) {
+      throw new Error('Não foi possível conectar ao catálogo compartilhado. Confira a conexão e tente novamente.', {cause: error});
+    }
+    let dados;
+    try {
+      dados = await resposta.json();
+    } catch (error) {
+      throw new Error('O servidor retornou uma resposta inválida para o catálogo.', {cause: error});
+    }
+    if (!resposta.ok) {
+      const mensagens = {
+        nao_autenticado: 'Entre novamente para acessar os catálogos.',
+        nao_aprovado: 'Sua conta ainda não tem acesso aos catálogos.',
+        somente_visualizacao: 'Sua conta pode visualizar, mas não alterar os catálogos.',
+        somente_admin: 'Somente um administrador pode importar unidades deste navegador.',
+        unidade_padrao_protegida: 'Unidades padrão da SINAPI não podem ser alteradas ou removidas.',
+        simbolo_reservado: 'Esse símbolo já pertence a uma unidade padrão.',
+        unidade_em_uso: 'Esta unidade está sendo usada por um insumo ou composição.',
+        item_duplicado: 'Já existe um item com esse código ou símbolo no catálogo.'
+      };
+      throw new Error(mensagens[dados.erro] || 'Não foi possível salvar no catálogo (HTTP ' + resposta.status + ').');
+    }
+    if (!dados || typeof dados !== 'object') throw new Error('O servidor retornou uma resposta inválida para o catálogo.');
+    return dados;
+  }
+
+  async function carregarCatalogos() {
+    if (requisicaoCatalogos) return requisicaoCatalogos;
+    requisicaoCatalogos = carregarCatalogosDaApi();
+    try {
+      await requisicaoCatalogos;
+    } finally {
+      requisicaoCatalogos = null;
+    }
+  }
+
+  async function carregarCatalogosDaApi() {
+    let resposta;
+    try {
+      resposta = await fetch('/api/catalogos');
+    } catch (error) {
+      throw new Error('Não foi possível conectar ao catálogo compartilhado.', {cause: error});
+    }
+    if (!resposta.ok) throw new Error('Não foi possível carregar os catálogos (HTTP ' + resposta.status + ').');
+    const dados = await resposta.json();
+    for (const tipo of ['unidades', 'composicoes', 'insumos']) {
+      if (!Array.isArray(dados[tipo])) throw new Error('A resposta do catálogo está incompleta.');
+      catalogos[tipo] = dados[tipo];
+    }
+    erroCatalogos = '';
+    document.dispatchEvent(new CustomEvent('catalogos:loaded'));
+  }
+
+  function erroCatalogo(container) {
+    if (!container || !erroCatalogos) return false;
+    container.className = 'lista-vazia';
+    container.textContent = erroCatalogos;
+    return true;
+  }
+
+  function usuarioPodeEditarCatalogos() {
+    const usuario = window.usuarioAtual || {};
+    return Boolean(usuario.podeEditar || usuario.isAdmin);
   }
 
   function parseReal(valor) {
@@ -94,26 +152,15 @@
     return Number(valor || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   }
 
-  function proximoCodigoComposicao() {
-    const comp = carregarComposicoes();
-    let max = 0;
-    for (const c of comp) {
-      const m = (c.codigo || '').match(/^(COMP|INS)-\d{4}-(\d+)$/);
-      if (m) max = Math.max(max, Number(m[2]));
-    }
+  function proximoCodigo(tipo) {
+    const prefixo = tipo === 'composicoes' ? 'COMP' : 'INS';
+    const itens = tipo === 'composicoes' ? carregarComposicoes() : carregarInsumos();
     const ano = new Date().getFullYear();
-    return 'COMP-' + ano + '-' + String(max + 1).padStart(3, '0');
-  }
-
-  function proximoCodigoInsumo() {
-    const ins = carregarInsumos();
-    let max = 0;
-    for (const i of ins) {
-      const m = (i.codigo || '').match(/^(INS)-\d{4}-(\d+)$/);
-      if (m) max = Math.max(max, Number(m[2]));
-    }
-    const ano = new Date().getFullYear();
-    return 'INS-' + ano + '-' + String(max + 1).padStart(3, '0');
+    const max = itens.reduce(function (maior, item) {
+      const match = (item.codigo || '').match(new RegExp('^' + prefixo + '-\\d{4}-(\\d+)$'));
+      return match ? Math.max(maior, Number(match[1])) : maior;
+    }, 0);
+    return prefixo + '-' + ano + '-' + String(max + 1).padStart(3, '0');
   }
 
   function tituloAmigavel(texto) {
@@ -131,12 +178,10 @@
 
   window.Composicoes = {
     carregar: carregarComposicoes,
-    salvar: salvarComposicoes,
-    adicionar: function (nome, descricao, unidade, valorUnitario, base, extras) {
-      const comp = carregarComposicoes();
+    adicionar: async function (nome, descricao, unidade, valorUnitario, base, extras) {
       const item = {
         id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'c-' + Date.now()),
-        codigo: proximoCodigoComposicao(),
+        codigo: proximoCodigo('composicoes'),
         nome: (nome || '').trim() || 'Nova composição',
         descricao: descricao || '',
         unidade: unidade || 'un',
@@ -146,37 +191,37 @@
         componentes: extras && Array.isArray(extras.componentes) ? extras.componentes : [],
         criadoEm: new Date().toISOString()
       };
-      comp.push(item);
-      salvarComposicoes(comp);
-      return item;
+      const resposta = await enviarCatalogo('POST', {tipo: 'composicoes', item});
+      catalogos.composicoes.push(resposta.item);
+      return resposta.item;
     },
-    atualizar: function (id, dados) {
-      const comp = carregarComposicoes();
-      const item = comp.find(function (c) { return c.id === id; });
+    atualizar: async function (id, dados) {
+      const item = carregarComposicoes().find(function (c) { return c.id === id; });
       if (!item) return null;
-      item.nome = (dados.nome || '').trim();
-      item.descricao = dados.descricao || '';
-      item.unidade = dados.unidade || 'un';
-      item.valorUnitario = parseReal(dados.valorUnitario);
-      item.componentes = Array.isArray(dados.componentes) ? dados.componentes : [];
-      salvarComposicoes(comp);
-      return item;
+      const resposta = await enviarCatalogo('PUT', {tipo: 'composicoes', item: Object.assign({}, item, {
+        nome: (dados.nome || '').trim(),
+        descricao: dados.descricao || '',
+        unidade: dados.unidade || 'un',
+        valorUnitario: parseReal(dados.valorUnitario),
+        componentes: Array.isArray(dados.componentes) ? dados.componentes : []
+      })});
+      catalogos.composicoes = catalogos.composicoes.map(function (atual) {
+        return atual.id === id ? resposta.item : atual;
+      });
+      return resposta.item;
     },
-    excluir: function (id) {
-      const comp = carregarComposicoes();
-      const nova = comp.filter(function (c) { return c.id !== id; });
-      salvarComposicoes(nova);
+    excluir: async function (id) {
+      await enviarCatalogo('DELETE', {tipo: 'composicoes', id});
+      catalogos.composicoes = catalogos.composicoes.filter(function (item) { return item.id !== id; });
     }
   };
 
   window.Insumos = {
     carregar: carregarInsumos,
-    salvar: salvarInsumos,
-    adicionar: function (nome, descricao, unidade, valorUnitario, base, extras) {
-      const ins = carregarInsumos();
+    adicionar: async function (nome, descricao, unidade, valorUnitario, base, extras) {
       const item = {
         id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'i-' + Date.now()),
-        codigo: proximoCodigoInsumo(),
+        codigo: proximoCodigo('insumos'),
         nome: (nome || '').trim() || 'Novo insumo',
         descricao: descricao || '',
         unidade: unidade || 'un',
@@ -188,61 +233,61 @@
         detalhes: extras && Array.isArray(extras.detalhes) ? extras.detalhes : [],
         criadoEm: new Date().toISOString()
       };
-      ins.push(item);
-      salvarInsumos(ins);
-      return item;
+      const resposta = await enviarCatalogo('POST', {tipo: 'insumos', item});
+      catalogos.insumos.push(resposta.item);
+      return resposta.item;
     },
-    atualizar: function (id, dados) {
-      const ins = carregarInsumos();
-      const item = ins.find(function (i) { return i.id === id; });
+    atualizar: async function (id, dados) {
+      const item = carregarInsumos().find(function (i) { return i.id === id; });
       if (!item) return null;
-      item.nome = (dados.nome || '').trim();
-      item.descricao = dados.descricao || '';
-      item.unidade = dados.unidade || 'un';
-      item.valorUnitario = parseReal(dados.valorUnitario);
-      item.unidadeBaseId = dados.unidadeBaseId || '';
-      item.conversoes = Array.isArray(dados.conversoes) ? dados.conversoes : [];
-      item.detalhes = Array.isArray(dados.detalhes) ? dados.detalhes : [];
-      salvarInsumos(ins);
-      return item;
+      const resposta = await enviarCatalogo('PUT', {tipo: 'insumos', item: Object.assign({}, item, {
+        nome: (dados.nome || '').trim(),
+        descricao: dados.descricao || '',
+        unidade: dados.unidade || 'un',
+        valorUnitario: parseReal(dados.valorUnitario),
+        unidadeBaseId: dados.unidadeBaseId || '',
+        conversoes: Array.isArray(dados.conversoes) ? dados.conversoes : [],
+        detalhes: Array.isArray(dados.detalhes) ? dados.detalhes : []
+      })});
+      catalogos.insumos = catalogos.insumos.map(function (atual) {
+        return atual.id === id ? resposta.item : atual;
+      });
+      return resposta.item;
     },
-    excluir: function (id) {
-      const ins = carregarInsumos();
-      const nova = ins.filter(function (i) { return i.id !== id; });
-      salvarInsumos(nova);
+    excluir: async function (id) {
+      await enviarCatalogo('DELETE', {tipo: 'insumos', id});
+      catalogos.insumos = catalogos.insumos.filter(function (item) { return item.id !== id; });
     }
   };
 
   window.Unidades = {
     carregar: carregarUnidades,
-    adicionar: function (dados) {
+    adicionar: async function (dados) {
       const unidades = carregarUnidades();
       const simbolo = (dados.simbolo || '').trim();
       if (!simbolo || unidades.some(function (u) { return u.simbolo.toLowerCase() === simbolo.toLowerCase(); })) return null;
-      const nova = {id: 'un-' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now()), simbolo: simbolo, nome: (dados.nome || '').trim(), grupo: dados.grupo || 'Outros', padrao: false};
-      unidades.push(nova);
-      salvarUnidades(unidades);
-      return nova;
+      const nova = {id: 'un-' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now()), simbolo, nome: (dados.nome || '').trim(), grupo: dados.grupo || 'Outros', padrao: false, criadoEm: new Date().toISOString()};
+      const resposta = await enviarCatalogo('POST', {tipo: 'unidades', item: nova});
+      catalogos.unidades.push(resposta.item);
+      return resposta.item;
     },
-    atualizar: function (id, dados) {
+    atualizar: async function (id, dados) {
       const unidades = carregarUnidades();
       const unidade = unidades.find(function (u) { return u.id === id && !u.padrao; });
       const simbolo = (dados.simbolo || '').trim();
       if (!unidade || !simbolo || unidades.some(function (u) { return u.id !== id && u.simbolo.toLowerCase() === simbolo.toLowerCase(); })) return null;
-      unidade.simbolo = simbolo;
-      unidade.nome = (dados.nome || '').trim();
-      unidade.grupo = dados.grupo || 'Outros';
-      salvarUnidades(unidades);
-      return unidade;
-    },
-    excluir: function (id) {
-      const unidade = carregarUnidades().find(function (u) { return u.id === id && !u.padrao; });
-      if (!unidade) return false;
-      const referenciada = carregarInsumos().some(function (i) {
-        return i.unidadeBaseId === id || i.unidade === unidade.simbolo || (i.conversoes || []).some(function (c) { return c.unidadeId === id || c.unidade === unidade.simbolo; });
+      const resposta = await enviarCatalogo('PUT', {tipo: 'unidades', item: Object.assign({}, unidade, {
+        simbolo, nome: (dados.nome || '').trim(), grupo: dados.grupo || 'Outros'
+      })});
+      catalogos.unidades = catalogos.unidades.map(function (atual) {
+        return atual.id === id ? resposta.item : atual;
       });
-      if (referenciada) return false;
-      salvarUnidades(carregarUnidades().filter(function (u) { return u.id !== id; }));
+      return resposta.item;
+    },
+    excluir: async function (id) {
+      if (!carregarUnidades().some(function (u) { return u.id === id && !u.padrao; })) return false;
+      await enviarCatalogo('DELETE', {tipo: 'unidades', id});
+      catalogos.unidades = catalogos.unidades.filter(function (unidade) { return unidade.id !== id; });
       return true;
     }
   };
@@ -256,7 +301,11 @@
   }
 
   function buscarUnidade(idOuSimbolo) {
-    return carregarUnidades().find(function (u) { return u.id === idOuSimbolo || u.simbolo === idOuSimbolo; });
+    const simbolo = String(idOuSimbolo || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/²/g, '2').replace(/³/g, '3').toUpperCase();
+    return carregarUnidades().find(function (u) {
+      const normalizado = String(u.simbolo || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/²/g, '2').replace(/³/g, '3').toUpperCase();
+      return u.id === idOuSimbolo || normalizado === simbolo;
+    });
   }
 
   function formatarConversoes(item) {
@@ -270,16 +319,47 @@
   function renderUnidades() {
     const tbody = document.getElementById('listaUnidades');
     if (!tbody) return;
+    const podeEditar = usuarioPodeEditarCatalogos();
+    const botaoAdicionar = document.getElementById('btnAddUnidadeMedida');
+    const aviso = document.getElementById('avisoMigracaoUnidades');
+    if (botaoAdicionar) {
+      botaoAdicionar.hidden = !podeEditar;
+      botaoAdicionar.disabled = Boolean(erroCatalogos);
+    }
+    if (erroCatalogo(tbody)) {
+      tbody.innerHTML = '<tr><td colspan="5">' + escaparHtml(erroCatalogos) + '</td></tr>';
+      if (aviso) aviso.hidden = true;
+      return;
+    }
     tbody.innerHTML = carregarUnidades().map(function (unidade) {
       return '<tr><td>' + escaparHtml(unidade.simbolo) + '</td><td>' + escaparHtml(unidade.nome) + '</td><td>' + escaparHtml(unidade.grupo) + '</td><td>' + (unidade.padrao ? 'Padrão' : 'Personalizada') + '</td><td>' +
-        (unidade.padrao ? '—' : '<div class="unidade-acoes"><button type="button" class="btn btn-ghost btn-xs" data-acao="editar-unidade" data-id="' + escaparHtml(unidade.id) + '">Editar</button><button type="button" class="btn btn-ghost btn-xs" data-acao="remover-unidade" data-id="' + escaparHtml(unidade.id) + '">Remover</button></div>') +
+        (unidade.padrao || !podeEditar ? '—' : '<div class="unidade-acoes"><button type="button" class="btn btn-ghost btn-xs" data-acao="editar-unidade" data-id="' + escaparHtml(unidade.id) + '">Editar</button><button type="button" class="btn btn-ghost btn-xs" data-acao="remover-unidade" data-id="' + escaparHtml(unidade.id) + '">Remover</button></div>') +
         '</td></tr>';
     }).join('');
+    const botaoImportar = document.getElementById('btnMigrarUnidadesLocais');
+    if (aviso && botaoImportar) {
+      let locais = [];
+      try {
+        const dadosLocais = JSON.parse(localStorage.getItem(DB_KEY_UNIDADE) || '[]');
+        if (Array.isArray(dadosLocais)) locais = dadosLocais.filter(function (item) { return item && !item.padrao; });
+      } catch (error) {
+        console.error('Não foi possível ler as unidades antigas deste navegador:', error);
+      }
+      aviso.hidden = !podeEditar || !window.usuarioAtual.isAdmin ||
+        localStorage.getItem(DB_KEY_UNIDADE_IMPORTADA) === 'true' || !locais.length;
+    }
   }
 
   function renderComposicoes() {
     const container = document.getElementById('listaComposicoes');
     if (!container) return;
+    const podeEditar = usuarioPodeEditarCatalogos();
+    const botaoAdicionar = document.getElementById('btnAddComposicao');
+    if (botaoAdicionar) {
+      botaoAdicionar.hidden = !podeEditar;
+      botaoAdicionar.disabled = Boolean(erroCatalogos);
+    }
+    if (erroCatalogo(container)) return;
     const base = baseSelecionada('baseComposicao');
     const itens = window.Composicoes.carregar().filter(function (item) {
       return item.base === base || (!item.base && base === 'propria');
@@ -307,8 +387,8 @@
           '<strong>R$ ' + formatarReal(item.valorUnitario) + '</strong>' +
         '</div>' +
         '<div class="item-acoes">' +
-          (item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-composicao">Editar</button>' : '') +
-          '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="composicao" data-acao="remover">Remover</button>' +
+          (podeEditar && item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-composicao">Editar</button>' : '') +
+          (podeEditar ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-item-tipo="composicao" data-acao="remover">Remover</button>' : '') +
         '</div>' +
       '</div>';
     }).join('');
@@ -317,6 +397,13 @@
   function renderInsumos() {
     const container = document.getElementById('listaInsumos');
     if (!container) return;
+    const podeEditar = usuarioPodeEditarCatalogos();
+    const botaoAdicionar = document.getElementById('btnAddInsumo');
+    if (botaoAdicionar) {
+      botaoAdicionar.hidden = !podeEditar;
+      botaoAdicionar.disabled = Boolean(erroCatalogos);
+    }
+    if (erroCatalogo(container)) return;
     const base = baseSelecionada('baseInsumo');
     const itens = window.Insumos.carregar().filter(function (item) {
       return item.base === base || (!item.base && base === 'propria');
@@ -345,13 +432,13 @@
           '<strong>R$ ' + formatarReal(item.valorUnitario) + '</strong>' +
         '</div>' +
         '<div class="item-acoes">' +
-          (item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-insumo">Editar</button>' : '') +
-          '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="insumo" data-acao="remover">Remover</button>' +
+          (podeEditar && item.base === 'propria' ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + escaparHtml(item.id) + '" data-acao="editar-insumo">Editar</button>' : '') +
+          (podeEditar ? '<button type="button" class="btn btn-ghost btn-xs" data-item-id="' + item.id + '" data-item-tipo="insumo" data-acao="remover">Remover</button>' : '') +
         '</div>' +
       '</div>';
     }).join('');
   }
-  function registrarResultadoSinapi(resultado) {
+  async function registrarResultadoSinapi(resultado) {
     if (!resultado || !resultado.codigo) return;
     const view = document.querySelector('.content:not(.hidden)');
     if (!view) return;
@@ -361,11 +448,11 @@
     const valor = resultado.valor !== null && resultado.valor !== undefined ? resultado.valor : 0;
 
     if (view.id === 'viewComposicoes') {
-      window.Composicoes.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
+      await window.Composicoes.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
       document.querySelectorAll('input[name="baseComposicao"]').forEach(function (radio) { radio.checked = radio.value === 'sinapi'; });
       renderComposicoes();
     } else if (view.id === 'viewInsumos') {
-      window.Insumos.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
+      await window.Insumos.adicionar(nome, 'Origem: SINAPI', unidade, valor, 'sinapi', {codigoReferencia: resultado.codigo});
       document.querySelectorAll('input[name="baseInsumo"]').forEach(function (radio) { radio.checked = radio.value === 'sinapi'; });
       renderInsumos();
     }
@@ -575,7 +662,7 @@
     document.getElementById('conversoesInsumo').addEventListener('click', function (ev) {
       if (ev.target.closest('[data-remover-conversao]')) ev.target.closest('tr').remove();
     });
-    document.getElementById('formInsumo').addEventListener('submit', function (ev) {
+    document.getElementById('formInsumo').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const unidadeSelecionada = document.getElementById('fInsumoUnidade').value;
       const unidade = buscarUnidade(unidadeSelecionada);
@@ -615,19 +702,27 @@
       };
       if (!dados.nome) { alert('Informe o nome do insumo.'); return; }
       const id = document.getElementById('fInsumoId').value;
-      if (id) {
-        window.Insumos.atualizar(id, dados);
-      } else {
-        window.Insumos.adicionar(dados.nome, dados.descricao, dados.unidade, dados.valorUnitario, 'propria', {unidadeBaseId: dados.unidadeBaseId, conversoes: dados.conversoes, detalhes: dados.detalhes});
+      const botao = ev.currentTarget.querySelector('[type="submit"]');
+      botao.disabled = true;
+      try {
+        if (id) {
+          await window.Insumos.atualizar(id, dados);
+        } else {
+          await window.Insumos.adicionar(dados.nome, dados.descricao, dados.unidade, dados.valorUnitario, 'propria', {unidadeBaseId: dados.unidadeBaseId, conversoes: dados.conversoes, detalhes: dados.detalhes});
+        }
+        renderInsumos();
+        renderComposicoes();
+        document.getElementById('modalInsumo').close();
+      } catch (error) {
+        alert(error.message || 'Não foi possível salvar o insumo.');
+      } finally {
+        botao.disabled = false;
       }
-      renderInsumos();
-      renderComposicoes();
-      document.getElementById('modalInsumo').close();
     });
 
     document.getElementById('btnAddUnidadeMedida').addEventListener('click', function () { abrirEditorUnidade(null); });
     document.getElementById('btnCancelarUnidade').addEventListener('click', function () { document.getElementById('modalUnidade').close(); });
-    document.getElementById('formUnidade').addEventListener('submit', function (ev) {
+    document.getElementById('formUnidade').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const id = document.getElementById('fUnidadeCadastroId').value;
       const dados = {
@@ -636,12 +731,20 @@
         grupo: document.getElementById('fUnidadeGrupo').value
       };
       if (!dados.simbolo || !dados.nome) { alert('Informe o símbolo e o nome da unidade.'); return; }
-      const unidade = id ? window.Unidades.atualizar(id, dados) : window.Unidades.adicionar(dados);
-      if (!unidade) { alert('Já existe uma unidade com esse símbolo.'); return; }
-      renderUnidades();
-      renderInsumos();
-      renderComposicoes();
-      document.getElementById('modalUnidade').close();
+      const botao = ev.currentTarget.querySelector('[type="submit"]');
+      botao.disabled = true;
+      try {
+        const unidade = id ? await window.Unidades.atualizar(id, dados) : await window.Unidades.adicionar(dados);
+        if (!unidade) { alert('Já existe uma unidade com esse símbolo.'); return; }
+        renderUnidades();
+        renderInsumos();
+        renderComposicoes();
+        document.getElementById('modalUnidade').close();
+      } catch (error) {
+        alert(error.message || 'Não foi possível salvar a unidade.');
+      } finally {
+        botao.disabled = false;
+      }
     });
 
     document.getElementById('btnAdicionarComponente').addEventListener('click', function () { linhaComponente(null); });
@@ -658,7 +761,7 @@
         atualizarTotalComposicao();
       }
     });
-    document.getElementById('formComposicao').addEventListener('submit', function (ev) {
+    document.getElementById('formComposicao').addEventListener('submit', async function (ev) {
       ev.preventDefault();
       const linhas = Array.from(document.querySelectorAll('#componentesComposicao tr'));
       if (!linhas.length) { alert('Adicione ao menos um insumo à composição.'); return; }
@@ -688,16 +791,54 @@
       };
       if (!dados.nome) { alert('Informe o nome da composição.'); return; }
       const id = document.getElementById('fComposicaoId').value;
-      if (id) {
-        window.Composicoes.atualizar(id, dados);
-      } else {
-        window.Composicoes.adicionar(dados.nome, dados.descricao, dados.unidade, dados.valorUnitario, 'propria', {componentes: dados.componentes});
+      const botao = ev.currentTarget.querySelector('[type="submit"]');
+      botao.disabled = true;
+      try {
+        if (id) {
+          await window.Composicoes.atualizar(id, dados);
+        } else {
+          await window.Composicoes.adicionar(dados.nome, dados.descricao, dados.unidade, dados.valorUnitario, 'propria', {componentes: dados.componentes});
+        }
+        renderComposicoes();
+        document.getElementById('modalComposicao').close();
+      } catch (error) {
+        alert(error.message || 'Não foi possível salvar a composição.');
+      } finally {
+        botao.disabled = false;
       }
-      renderComposicoes();
-      document.getElementById('modalComposicao').close();
     });
 
-    document.addEventListener('click', function (ev) {
+    const btnMigrarUnidades = document.getElementById('btnMigrarUnidadesLocais');
+    if (btnMigrarUnidades) btnMigrarUnidades.addEventListener('click', async function () {
+      let unidades;
+      try {
+        unidades = JSON.parse(localStorage.getItem(DB_KEY_UNIDADE) || '[]');
+      } catch (error) {
+        alert('Não foi possível ler as unidades salvas neste navegador.');
+        return;
+      }
+      if (!Array.isArray(unidades) || !unidades.some(function (item) { return item && !item.padrao; })) {
+        alert('Não foram encontradas unidades personalizadas para importar.');
+        renderUnidades();
+        return;
+      }
+      const quantidade = unidades.filter(function (item) { return item && !item.padrao; }).length;
+      if (!confirm('Importar ' + quantidade + ' unidade(s) personalizada(s) deste navegador para toda a conta? Símbolos já existentes serão ignorados.')) return;
+      btnMigrarUnidades.disabled = true;
+      try {
+        const resposta = await enviarCatalogo('POST', {migrarUnidades: true, unidades});
+        localStorage.setItem(DB_KEY_UNIDADE_IMPORTADA, 'true');
+        await carregarCatalogos();
+        alert(resposta.importadas + ' unidade(s) importada(s) para o catálogo compartilhado.');
+      } catch (error) {
+        alert(error.message || 'Não foi possível importar as unidades.');
+      } finally {
+        btnMigrarUnidades.disabled = false;
+        renderUnidades();
+      }
+    });
+
+    document.addEventListener('click', async function (ev) {
       const editInsumoBtn = ev.target.closest('[data-acao="editar-insumo"]');
       if (editInsumoBtn) {
         const item = window.Insumos.carregar().find(function (i) { return i.id === editInsumoBtn.getAttribute('data-item-id'); });
@@ -714,8 +855,14 @@
       if (removeUnidadeBtn) {
         const id = removeUnidadeBtn.getAttribute('data-id');
         if (confirm('Remover esta unidade padronizada?')) {
-          if (!window.Unidades.excluir(id)) alert('Esta unidade está sendo usada por um insumo ou conversão e não pode ser removida.');
-          renderUnidades();
+          try {
+            if (!await window.Unidades.excluir(id)) alert('Unidade personalizada não encontrada.');
+            renderUnidades();
+            renderInsumos();
+            renderComposicoes();
+          } catch (error) {
+            alert(error.message || 'Não foi possível remover a unidade.');
+          }
         }
         return;
       }
@@ -730,12 +877,16 @@
       const tipo = actionBtn.getAttribute('data-item-tipo');
       const id = actionBtn.getAttribute('data-item-id');
       if (!id) return;
-      if (tipo === 'insumo') {
-        window.Insumos.excluir(id);
-        renderInsumos();
-      } else {
-        window.Composicoes.excluir(id);
-        renderComposicoes();
+      try {
+        if (tipo === 'insumo') {
+          await window.Insumos.excluir(id);
+          renderInsumos();
+        } else {
+          await window.Composicoes.excluir(id);
+          renderComposicoes();
+        }
+      } catch (error) {
+        alert(error.message || 'Não foi possível remover o item do catálogo.');
       }
     });
 
@@ -746,11 +897,36 @@
 
     document.addEventListener('app:viewchange', function (ev) {
       if (!ev.detail) return;
-      if (ev.detail.view === 'composicoes') renderComposicoes();
-      if (ev.detail.view === 'insumos') renderInsumos();
-      if (ev.detail.view === 'unidades') renderUnidades();
+      if (['composicoes', 'insumos', 'unidades'].includes(ev.detail.view)) {
+        carregarCatalogos().catch(function (error) {
+          erroCatalogos = error.message || 'Não foi possível atualizar os catálogos compartilhados.';
+          console.error('Erro ao atualizar catálogos compartilhados:', error);
+          renderComposicoes();
+          renderInsumos();
+          renderUnidades();
+        });
+      }
+    });
+    document.addEventListener('app:profilechange', function () {
+      renderComposicoes();
+      renderInsumos();
+      renderUnidades();
+    });
+    document.addEventListener('catalogos:loaded', function () {
+      renderComposicoes();
+      renderInsumos();
+      renderUnidades();
     });
   }
+
+  window.catalogosProntos = carregarCatalogos().catch(function (error) {
+    erroCatalogos = error.message || 'Não foi possível carregar os catálogos compartilhados.';
+    console.error('Erro ao carregar catálogos compartilhados:', error);
+    renderComposicoes();
+    renderInsumos();
+    renderUnidades();
+    return false;
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -131,7 +131,13 @@
   function iniciar() {
     fetch('/api/auth/me')
       .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (usuario) { if (usuario) montar(usuario); })
+      .then(function (usuario) {
+        if (usuario) {
+          window.usuarioAtual = usuario;
+          document.dispatchEvent(new CustomEvent('app:profilechange'));
+          montar(usuario);
+        }
+      })
       .catch(function () { /* sem sessão, não mostra nada */ });
   }
 

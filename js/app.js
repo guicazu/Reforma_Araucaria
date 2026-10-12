@@ -1034,7 +1034,9 @@ async function carregarDoServidor(){
       window.usuarioAtual = perfil;
     }else{
       usuarioPodeEditar = false;
+      window.usuarioAtual = null;
     }
+    document.dispatchEvent(new CustomEvent('app:profilechange'));
     const remotos = resposta.dados.map(orcamento=>{
       const copia = Object.assign({}, orcamento);
       if(copia.bloqueio)bloqueiosPorOrcamento[copia.id]=copia.bloqueio;
@@ -1064,6 +1066,13 @@ async function carregarDoServidor(){
 }
 document.addEventListener('app:viewchange', function (ev) {
   if (ev.detail && ev.detail.view === 'orcamento') carregarDoServidor();
+});
+document.addEventListener('catalogos:loaded', function () {
+  renderTudo();
+  const modalServico = document.getElementById('modalServico');
+  if (modalServico && modalServico.open) {
+    preencherCatalogoServico({catalogoTipo: 'composicao', catalogoId: $('#fCatalogoItem').value});
+  }
 });
 carregarDoServidor();
 window.state = state;
