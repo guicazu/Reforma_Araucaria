@@ -4,6 +4,13 @@ html,body{margin:0;padding:0}
 body{font-family:'Montserrat','Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--fundo);color:var(--texto);font-size:15px;line-height:1.45}
 button{font:inherit}
 .hidden{display:none!important}
+.boot-loading{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:var(--fundo)}
+.boot-loading-card{width:min(100%,440px);padding:34px 28px;text-align:center;background:#fff;border:1px solid var(--borda);border-radius:14px;box-shadow:var(--som)}
+.boot-loading-card h1{margin:14px 0 6px;font-size:20px;color:var(--navy)}
+.boot-loading-card p{margin:0;color:var(--suave);font-size:14px}
+.boot-loading-card .btn{margin-top:18px}
+.boot-loading-spinner{display:block;width:34px;height:34px;margin:auto;border:4px solid #e9e4d6;border-top-color:var(--gold-2);border-radius:50%;animation:boot-spin .8s linear infinite}
+@keyframes boot-spin{to{transform:rotate(360deg)}}
 
 .topbar{background:linear-gradient(90deg,var(--navy-escuro),var(--navy));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:20;box-shadow:var(--som)}
 .brand{display:flex;align-items:center;gap:12px}

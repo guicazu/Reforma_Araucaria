@@ -38,6 +38,7 @@ function proximoCodigo(){
 state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
 let snapshotServidor = null;
 let carregamentoConcluido = false;
+let carregandoDoServidor = false;
 let salvandoNoServidor = false;
 let erroSalvamento = false;
 salvar();
@@ -59,13 +60,13 @@ function definirStatusSalvamento(texto, classe){
 
 function atualizarStatusSalvamento(){
   const botao = $('#btnSalvarOrcamento');
-  if(botao)botao.disabled = !carregamentoConcluido || salvandoNoServidor;
-  if(!carregamentoConcluido){
+  if(botao)botao.disabled = carregandoDoServidor || salvandoNoServidor;
+  if(carregandoDoServidor || !carregamentoConcluido){
     definirStatusSalvamento('Carregando dados do banco...', 'save-status-pending');
   }else if(salvandoNoServidor){
     definirStatusSalvamento('Aguardando confirmação do banco...', 'save-status-pending');
   }else if(snapshotServidor === null){
-    definirStatusSalvamento('Não foi possível verificar o banco. Salve para tentar novamente.', 'save-status-error');
+    definirStatusSalvamento('Não foi possível carregar o banco. Clique em Salvar para tentar novamente.', 'save-status-error');
   }else if(erroSalvamento){
     definirStatusSalvamento('Falha ao salvar. Há alterações não salvas; tente novamente.', 'save-status-error');
   }else if(JSON.stringify(state.orcamentos) !== snapshotServidor){
@@ -75,14 +76,28 @@ function atualizarStatusSalvamento(){
   }
 }
 
+async function fetchComTimeout(url, opcoes){
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 15000);
+  try{
+    return await fetch(url, Object.assign({}, opcoes, { signal: controller.signal }));
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
 async function salvarNoServidor(){
-  if(!carregamentoConcluido || salvandoNoServidor)return;
+  if(carregandoDoServidor || salvandoNoServidor)return;
+  if(snapshotServidor === null){
+    await carregarDoServidor();
+    return;
+  }
   const snapshot = JSON.stringify(state.orcamentos);
   erroSalvamento = false;
   salvandoNoServidor = true;
   atualizarStatusSalvamento();
   try{
-    const resposta = await fetch('/api/orcamentos', {
+    const resposta = await fetchComTimeout('/api/orcamentos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orcamentos: JSON.parse(snapshot) })
@@ -788,6 +803,7 @@ $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarExcel').addEventListener('click',exportarExcel);
 $('#btnExportarPdf').addEventListener('click',exportarPdf);
 $('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
+$('#btnTentarCarregamento').addEventListener('click',carregarDoServidor);
 $('#btnExportar').addEventListener('click',()=>{
   if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
   const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
@@ -798,11 +814,17 @@ $('#inputImportar').addEventListener('change',(ev)=>{
   const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&(Array.isArray(o.unidades)||Array.isArray(o.versoes))))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados.map(migrarOrcamento);state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
 });
 
-renderTudo();
 async function carregarDoServidor(){
+  if(carregandoDoServidor || salvandoNoServidor)return;
   const snapshotLocalInicial = JSON.stringify(state.orcamentos);
+  carregandoDoServidor = true;
+  $('#mensagemCarregamento').textContent = 'Carregando último orçamento...';
+  $('#btnTentarCarregamento').classList.add('hidden');
+  $('.boot-loading-card p').textContent = 'Buscando os dados mais recentes no banco.';
+  $('.boot-loading-spinner').classList.remove('hidden');
+  atualizarStatusSalvamento();
   try{
-    const res = await fetch('/api/orcamentos');
+    const res = await fetchComTimeout('/api/orcamentos');
     if(!res.ok)throw new Error('API retornou ' + res.status);
     const resposta = await res.json();
     if(!resposta || !Array.isArray(resposta.dados)){
@@ -819,14 +841,20 @@ async function carregarDoServidor(){
       if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
         state.ativoId = state.orcamentos[0].id;
       }
-      localStorage.setItem(DB_KEY, JSON.stringify(state));
-      renderTudo();
     }
+    localStorage.setItem(DB_KEY, JSON.stringify(state));
+    carregamentoConcluido = true;
+    renderTudo();
+    $('#telaCarregamento').classList.add('hidden');
   }catch(erro){
     snapshotServidor = null;
     console.error('Não foi possível carregar os dados do banco:', erro);
+    $('#mensagemCarregamento').textContent = 'Não foi possível carregar o último orçamento';
+    $('.boot-loading-card p').textContent = 'Verifique sua conexão e tente carregar novamente.';
+    $('.boot-loading-spinner').classList.add('hidden');
+    $('#btnTentarCarregamento').classList.remove('hidden');
   }finally{
-    carregamentoConcluido = true;
+    carregandoDoServidor = false;
     atualizarStatusSalvamento();
   }
 }
