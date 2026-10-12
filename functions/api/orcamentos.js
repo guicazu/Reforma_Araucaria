@@ -1,3 +1,4 @@
+
 export async function onRequestGet({ env }) {
   const row = await env.DB.prepare(
     "SELECT conteudo FROM orcamentos WHERE id = 'atual'"
@@ -6,6 +7,20 @@ export async function onRequestGet({ env }) {
   if (row && row.conteudo) {
     try { dados = JSON.parse(row.conteudo); } catch (e) { dados = []; }
   }
+
+  // Anexa o bloqueio ativo de cada orçamento
+  const { results: bloqueios } = await env.DB.prepare(
+    'SELECT orcamentoId, usuarioEmail, usuarioNome, criadoEm FROM bloqueios'
+  ).all();
+  const mapa = {};
+  for (const b of bloqueios) mapa[b.orcamentoId] = b;
+
+  for (const o of dados) {
+    o.bloqueio = mapa[o.id]
+      ? { email: mapa[o.id].usuarioEmail, nome: mapa[o.id].usuarioNome, criadoEm: mapa[o.id].criadoEm }
+      : null;
+  }
+
   return Response.json({ dados });
 }
 

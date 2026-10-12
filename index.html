@@ -39,6 +39,9 @@
       <button class="app-sidebar-item admin-only hidden" id="navUsuarios" data-view="usuarios" title="Usuários">
         <span class="icone">👥</span><span class="rotulo">Usuários</span>
       </button>
+      <button class="app-sidebar-item admin-only hidden" id="navLiberacao" data-view="liberacao" title="Liberação de orçamento">
+  🔓Liberação de orçamento
+</button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
         <span class="icone">💾</span><span class="rotulo">Backup</span>
       </button>
@@ -115,6 +118,7 @@
         <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF">📄 PDF</button>
         <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
         <button id="btnAddUnidade" class="btn btn-primary">+ Unidade construtiva</button>
+        <button id="btnSalvarOrcamento" class="btn btn-primary" title="Salvar alterações no banco">💾 Salvar</button>
       </div>
     </div>
 
@@ -405,5 +409,15 @@
 <script src="/js/composicoes.js"></script>
 <script src="/js/admin-ui.js"></script>
 <script src="/js/sinapi-ui.js"></script>
+<script src="/js/bloqueio-ui.js"></script>
+<section class="content hidden" id="viewLiberacao">
+  <div class="orcamento-head">
+    <div>
+      <h2>Liberação de orçamento</h2>
+      <p>Libere orçamentos que estão travados por outros usuários.</p>
+    </div>
+  </div>
+  <div id="liberacaoConteudo">Carregando...</div>
+</section>
 </body>
 </html>
