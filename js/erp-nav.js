@@ -24,6 +24,7 @@
     itens.forEach(function (it) {
       it.classList.toggle('ativo', it.dataset.view === nome);
     });
+    document.dispatchEvent(new CustomEvent('app:viewchange', { detail: { view: nome } }));
   }
 
   itens.forEach(function (it) {

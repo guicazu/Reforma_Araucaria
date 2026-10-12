@@ -7,9 +7,9 @@ async function usuarioPodeEditar(payload, env) {
   const admins = (env.ADMIN_EMAILS || '').split(',').map((value) => value.trim().toLowerCase());
   if (admins.includes(email) || email === 'cazu89@gmail.com') return true;
   const usuario = await env.DB.prepare(
-    'SELECT podeEditar FROM usuarios WHERE email = ?'
+    'SELECT podeEditar, isAdmin FROM usuarios WHERE email = ?'
   ).bind(email).first();
-  return Boolean(usuario && usuario.podeEditar);
+  return Boolean(usuario && (usuario.podeEditar || usuario.isAdmin));
 }
 
 export async function onRequestGet({ env }) {

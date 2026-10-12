@@ -48,15 +48,19 @@
   function carregarLiberacao() {
     var el = document.getElementById('liberacaoConteudo');
     if (!el) return;
+    el.textContent = 'Carregando bloqueios...';
     fetch('/api/bloqueios')
       .then(function (r) {
-        if (!r.ok) throw new Error('Não foi possível carregar os bloqueios.');
+        if (!r.ok) {
+          if (r.status === 403) throw new Error('Seu usuário não tem permissão para acessar a liberação de bloqueios.');
+          throw new Error('Não foi possível carregar os bloqueios (HTTP ' + r.status + ').');
+        }
         return r.json();
       })
       .then(function (data) {
         var bloqueios = data.bloqueios || [];
         if (!bloqueios.length) {
-          el.innerHTML = '<p class="dash-card-vazio">Nenhum orçamento travado no momento.</p>';
+          el.innerHTML = '<p class="dash-card-vazio">Nenhum bloqueio ativo no momento.</p>';
           return;
         }
         var linhas = bloqueios.map(function (b) {
@@ -75,8 +79,8 @@
           '<table class="ua-table"><thead><tr><th>Orçamento</th><th>Bloqueado por</th><th>Desde</th><th>Ação</th></tr></thead><tbody>' +
           linhas + '</tbody></table>';
       })
-      .catch(function () {
-        el.innerHTML = '<p class="dash-card-vazio">Não foi possível carregar os bloqueios.</p>';
+      .catch(function (erro) {
+        el.textContent = erro.message || 'Não foi possível carregar os bloqueios.';
       });
   }
 
@@ -108,10 +112,8 @@
     }
   });
 
-  // Dispara o carregamento quando a view for aberta
-  document.addEventListener('click', function (ev) {
-    var item = ev.target.closest('[data-view="liberacao"]');
-    if (item) carregarLiberacao();
+  document.addEventListener('app:viewchange', function (ev) {
+    if (ev.detail && ev.detail.view === 'liberacao') carregarLiberacao();
   });
 
   if (document.readyState === 'loading') {

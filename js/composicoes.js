@@ -743,6 +743,13 @@
     renderComposicoes();
     renderInsumos();
     renderUnidades();
+
+    document.addEventListener('app:viewchange', function (ev) {
+      if (!ev.detail) return;
+      if (ev.detail.view === 'composicoes') renderComposicoes();
+      if (ev.detail.view === 'insumos') renderInsumos();
+      if (ev.detail.view === 'unidades') renderUnidades();
+    });
   }
 
   if (document.readyState === 'loading') {

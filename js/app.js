@@ -41,6 +41,7 @@ let carregamentoConcluido = false;
 let carregandoDoServidor = false;
 let salvandoNoServidor = false;
 let erroSalvamento = false;
+let detalheErroSalvamento = '';
 let usuarioPodeEditar = false;
 let bloqueiosPorOrcamento = {};
 let orcamentoEditandoId = null;
@@ -100,7 +101,7 @@ function atualizarStatusSalvamento(){
   }else if(snapshotServidor === null){
     definirStatusSalvamento('⚠️ Não foi possível carregar o orçamento do banco. Clique em Salvar para tentar novamente.', 'save-status-error');
   }else if(erroSalvamento){
-    definirStatusSalvamento('⚠️ Não foi possível salvar. Suas alterações continuam pendentes; tente novamente.', 'save-status-error');
+    definirStatusSalvamento('⚠️ Não foi possível salvar. '+(detalheErroSalvamento || 'Suas alterações continuam pendentes; tente novamente.'), 'save-status-error');
   }else if(pendente){
     definirStatusSalvamento('📝 Foram feitas alterações que ainda não foram salvas.', 'save-status-unsaved');
   }else{
@@ -130,6 +131,7 @@ async function salvarNoServidor(){
   }
   const snapshot = JSON.stringify(state.orcamentos);
   erroSalvamento = false;
+  detalheErroSalvamento = '';
   salvandoNoServidor = true;
   atualizarStatusSalvamento();
   try{
@@ -138,13 +140,22 @@ async function salvarNoServidor(){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orcamentos: JSON.parse(snapshot), editandoId: orcamentoEditandoId })
     });
-    if(!resposta.ok)throw new Error('API retornou ' + resposta.status);
     const resultado = await resposta.json();
+    if(!resposta.ok){
+      const mensagens = {
+        somente_visualizacao: 'Sua conta está somente para visualização. Peça ao administrador para liberar edição.',
+        bloqueio_obrigatorio: 'A gravação exige que apenas o orçamento bloqueado por você tenha sido alterado.',
+        bloqueio_nao_permitido: 'O bloqueio de edição não está ativo para sua conta. Volte à lista, reabra em Editar e tente salvar novamente.',
+        nao_autenticado: 'Sua sessão expirou. Entre novamente e tente salvar.'
+      };
+      throw new Error(mensagens[resultado.erro] || 'A API recusou a gravação (' + resposta.status + ').');
+    }
     if(!resultado || resultado.ok !== true)throw new Error('A API não confirmou a gravação');
     snapshotServidor = snapshot;
   }catch(erro){
     console.error('Não foi possível salvar as alterações no banco:', erro);
     erroSalvamento = true;
+    detalheErroSalvamento = erro.message;
   }finally{
     salvandoNoServidor = false;
     atualizarStatusSalvamento();
@@ -988,6 +999,7 @@ renderTudo();
 async function carregarDoServidor(){
   if(carregandoDoServidor || salvandoNoServidor)return;
   const snapshotLocalInicial = JSON.stringify(state.orcamentos);
+  const possuiAlteracoesPendentes = snapshotServidor !== null && snapshotLocalInicial !== snapshotServidor;
   carregandoDoServidor = true;
   atualizarStatusSalvamento();
   try{
@@ -1015,12 +1027,13 @@ async function carregarDoServidor(){
       return migrarOrcamento(copia);
     });
     snapshotServidor = JSON.stringify(remotos);
-    if(JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
+    if(!possuiAlteracoesPendentes && JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
       state.orcamentos = remotos;
       if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
         state.ativoId = state.orcamentos[0].id;
       }
     }
+
     localStorage.setItem(DB_KEY, JSON.stringify(state));
     carregamentoConcluido = true;
     renderTudo();
@@ -1033,5 +1046,8 @@ async function carregarDoServidor(){
     atualizarStatusSalvamento();
   }
 }
+document.addEventListener('app:viewchange', function (ev) {
+  if (ev.detail && ev.detail.view === 'orcamento') carregarDoServidor();
+});
 carregarDoServidor();
 window.state = state;

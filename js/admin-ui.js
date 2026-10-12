@@ -60,6 +60,10 @@
     }).then(carregar);
   });
 
+  document.addEventListener('app:viewchange', function (ev) {
+    if (ev.detail && ev.detail.view === 'usuarios') carregar();
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', carregar);
   } else {
