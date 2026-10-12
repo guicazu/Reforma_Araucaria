@@ -803,7 +803,6 @@ $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarExcel').addEventListener('click',exportarExcel);
 $('#btnExportarPdf').addEventListener('click',exportarPdf);
 $('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
-$('#btnTentarCarregamento').addEventListener('click',carregarDoServidor);
 $('#btnExportar').addEventListener('click',()=>{
   if(!state.orcamentos.length){alert('Não há orçamentos para exportar.');return;}
   const blob=new Blob([JSON.stringify(state.orcamentos,null,2)],{type:'application/json'});
@@ -814,14 +813,11 @@ $('#inputImportar').addEventListener('change',(ev)=>{
   const reader=new FileReader();reader.onload=()=>{try{const dados=JSON.parse(reader.result);if(!Array.isArray(dados)||!dados.every(o=>o&&(Array.isArray(o.unidades)||Array.isArray(o.versoes))))throw new Error('formato');if(!confirm(`Importar ${dados.length} orçamento(s)? Os dados atuais serão SUBSTITUÍDOS.`))return;state.orcamentos=dados.map(migrarOrcamento);state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});state.ativoId=dados.length?dados[0].id:null;state.expandidos={};salvar();renderTudo();alert('Backup importado.');}catch(e){alert('Arquivo inválido.');}};reader.readAsText(file);
 });
 
+renderTudo();
 async function carregarDoServidor(){
   if(carregandoDoServidor || salvandoNoServidor)return;
   const snapshotLocalInicial = JSON.stringify(state.orcamentos);
   carregandoDoServidor = true;
-  $('#mensagemCarregamento').textContent = 'Carregando último orçamento...';
-  $('#btnTentarCarregamento').classList.add('hidden');
-  $('.boot-loading-card p').textContent = 'Buscando os dados mais recentes no banco.';
-  $('.boot-loading-spinner').classList.remove('hidden');
   atualizarStatusSalvamento();
   try{
     const res = await fetchComTimeout('/api/orcamentos');
@@ -845,14 +841,9 @@ async function carregarDoServidor(){
     localStorage.setItem(DB_KEY, JSON.stringify(state));
     carregamentoConcluido = true;
     renderTudo();
-    $('#telaCarregamento').classList.add('hidden');
   }catch(erro){
     snapshotServidor = null;
     console.error('Não foi possível carregar os dados do banco:', erro);
-    $('#mensagemCarregamento').textContent = 'Não foi possível carregar o último orçamento';
-    $('.boot-loading-card p').textContent = 'Verifique sua conexão e tente carregar novamente.';
-    $('.boot-loading-spinner').classList.add('hidden');
-    $('#btnTentarCarregamento').classList.remove('hidden');
   }finally{
     carregandoDoServidor = false;
     atualizarStatusSalvamento();
