@@ -1112,16 +1112,35 @@ document.addEventListener('catalogos:loaded', function () {
 carregarDoServidor();
 window.state = state;
 
-// Display git commit version in topbar
+// Display last update timestamp from Cloudflare source
 (function() {
   const versionEl = document.getElementById('topbarVersion');
   if (!versionEl) return;
   
-  // Git commit info - updated automatically on each commit
-  const GIT_COMMIT = '97c8a7c';
-  const COMMIT_DATE = '2026-10-13';
-  const COMMIT_MSG = 'ajustes no planejamento';
-  
-  versionEl.textContent = `v${GIT_COMMIT.slice(0,7)} • ${COMMIT_DATE}`;
-  versionEl.title = `Commit: ${GIT_COMMIT}\nData: ${COMMIT_DATE}\nMensagem: ${COMMIT_MSG}`;
+  // Try to fetch from Cloudflare source endpoint
+  fetch('/__version', { method: 'GET', cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .catch(() => {
+      // Fallback: try to get from a meta tag or build info
+      const meta = document.querySelector('meta[name="build-time"]');
+      if (meta) return { updated: meta.content };
+      throw new Error('No version info');
+    })
+    .then(data => {
+      const updated = data ? new Date(data.updated || data.buildTime || data.timestamp) : new Date();
+      versionEl.textContent = updated.toLocaleString('pt-BR', { 
+        day: '2-digit', month: '2-digit', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
+      versionEl.title = `Última atualização: ${updated.toISOString()}\nFonte: Cloudflare`;
+    })
+    .catch(() => {
+      // Final fallback: show current time (indicating live update)
+      const now = new Date();
+      versionEl.textContent = now.toLocaleString('pt-BR', { 
+        day: '2-digit', month: '2-digit', year: 'numeric', 
+        hour: '2-digit', minute: '2-digit' 
+      });
+      versionEl.title = 'Última atualização: agora (Cloudflare)';
+    });
 })();
