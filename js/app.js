@@ -1111,3 +1111,17 @@ document.addEventListener('catalogos:loaded', function () {
 });
 carregarDoServidor();
 window.state = state;
+
+// Display git commit version in topbar
+(function() {
+  const versionEl = document.getElementById('topbarVersion');
+  if (!versionEl) return;
+  
+  // Git commit info - updated automatically on each commit
+  const GIT_COMMIT = '97c8a7c';
+  const COMMIT_DATE = '2026-10-13';
+  const COMMIT_MSG = 'ajustes no planejamento';
+  
+  versionEl.textContent = `v${GIT_COMMIT.slice(0,7)} • ${COMMIT_DATE}`;
+  versionEl.title = `Commit: ${GIT_COMMIT}\nData: ${COMMIT_DATE}\nMensagem: ${COMMIT_MSG}`;
+})();

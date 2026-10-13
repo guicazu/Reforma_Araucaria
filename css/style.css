@@ -5,13 +5,29 @@ body{font-family:'Montserrat','Segoe UI',system-ui,-apple-system,'Helvetica Neue
 button{font:inherit}
 .hidden{display:none!important}
 
-.topbar{background:linear-gradient(90deg,var(--navy-escuro),var(--navy));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:20;box-shadow:var(--som)}
+.topbar{background:linear-gradient(90deg,var(--navy-escuro),var(--navy));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:20;box-shadow:var(--som);gap:16px}
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:40px;height:40px;border-radius:8px;background:var(--gold);color:var(--navy-escuro);display:none;place-items:center;font-weight:800;font-size:18px}
 .logo-img{height:42px;width:auto;border-radius:6px;background:#fff;padding:2px;box-shadow:var(--som)}
 .brand h1{margin:0;font-size:17px;font-weight:700}
 .brand p{margin:0;font-size:12px;opacity:.85}
 .topbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+.topbar-version{
+  font-size:11px;
+  font-family:monospace;
+  color:rgba(255,255,255,0.6);
+  background:rgba(255,255,255,0.08);
+  padding:4px 10px;
+  border-radius:4px;
+  white-space:nowrap;
+  cursor:help;
+  transition:all 0.2s ease;
+}
+.topbar-version:hover{
+  background:rgba(255,255,255,0.15);
+  color:rgba(255,255,255,0.9);
+}
 
 .btn{border:1px solid transparent;border-radius:8px;padding:8px 14px;font-weight:600;font-size:14px;transition:filter .15s;display:inline-block;cursor:pointer}
 .btn:hover{filter:brightness(1.06)}
