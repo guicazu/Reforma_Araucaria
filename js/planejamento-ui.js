@@ -573,6 +573,9 @@
       novoPlanejamentoVazio();
     }
     estado.planejamentoAtual.eap = eap;
+    
+    // Ensure we navigate to the editor view to show the imported data
+    irPara('editor');
 
     // Render the EAP in the table and update the summary
     renderizarEAP();
@@ -581,8 +584,35 @@
   }
 
   function addFase() {
-    // TODO: Adicionar uma nova fase à EAP
-    mostrarStatus('Adicionar fase (funcionalidade a ser implementada)', 'info');
+    if (!estado.planejamentoAtual) {
+      mostrarStatus('Crie um cronograma primeiro.', 'info');
+      return;
+    }
+    
+    const nomeFase = prompt('Nome da nova fase:', 'Nova Fase');
+    if (!nomeFase) return;
+    
+    const faseId = 'fase_' + Date.now();
+    const novaFase = {
+      id: faseId,
+      nome: nomeFase,
+      tipo: 'fase',
+      nivel: 0,
+      duracao: 0,
+      inicio: null,
+      termino: null,
+      folga: 0,
+      predecessorIds: [],
+      originalId: faseId
+    };
+    
+    estado.planejamentoAtual.eap.push(novaFase);
+    
+    // Recalculate the schedule
+    recalcularCronograma();
+    renderizarEAP();
+    atualizarResumo();
+    mostrarStatus('Fase adicionada com sucesso!', 'success');
   }
 
   function duplicarPlanejamento() {
@@ -633,9 +663,52 @@
   }
 
   function renderizarEAP() {
-    // TODO: Renderizar a EAP na tabela e no Gantt
-    // Por enquanto, apenas limpar
-    if (tabelaBody) tabelaBody.innerHTML = '<tr><td colspan="8">Nenhuma atividade adicionada.</td></tr>';
+    if (!estado.planejamentoAtual || !estado.planejamentoAtual.eap || estado.planejamentoAtual.eap.length === 0) {
+      tabelaBody.innerHTML = '<tr><td colspan="8">Nenhuma atividade adicionada.</td></tr>';
+      return;
+    }
+
+    const eap = estado.planejamentoAtual.eap;
+    tabelaBody.innerHTML = ''; // clear
+
+    eap.forEach((node, index) => {
+      const indent = ' '.repeat(node.nivel * 2); // 2 spaces per level
+      const tr = document.createElement('tr');
+      // Add classes for styling based on node type
+      tr.className = 'linha-' + node.tipo;
+      if (node.tipo === 'fase') tr.classList.add('grupo', 'n1');
+      else if (node.tipo === 'atividade') tr.classList.add('grupo', 'n2');
+      else if (node.tipo === 'subEtapa') tr.classList.add('grupo', 'n3');
+      else if (node.tipo === 'servico') tr.classList.add('linha-servico');
+      
+      tr.innerHTML = `
+        <td class="col-codigo">${node.originalId || ''}</td>
+        <td style="width:350px">${indent}${node.nome}</td>
+        <td class="col-un">-</td>
+        <td class="col-num">${node.duracao}</td>
+        <td class="col-num">${node.inicio || ''}</td>
+        <td class="col-num">${node.termino || ''}</td>
+        <td class="col-num">${node.folga}d</td>
+        <td class="col-acoes">
+          <button class="btn btn-ghost btn-sm" data-acao="editar-duracao" data-id="${node.id}">⏱ Editar</button>
+          <button class="btn btn-ghost btn-sm" data-acao="excluir" data-id="${node.id}">🗑 Excluir</button>
+        </td>
+      `;
+      tabelaBody.appendChild(tr);
+    });
+
+    // Add event listeners for the buttons in the table
+    tabelaBody.querySelectorAll('[data-acao]').forEach(botao => {
+      botao.addEventListener('click', function () {
+        const acao = this.dataset.acao;
+        const id = this.dataset.id;
+        if (acao === 'editar-duracao') {
+          editarDuracao(id);
+        } else if (acao === 'excluir') {
+          excluirNode(id);
+        }
+      });
+    });
   }
 
   function atualizarResumo() {
