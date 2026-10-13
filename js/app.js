@@ -635,7 +635,7 @@ function renderTabela(o){
         const memoAberta=estaAberto('sv-'+sv.id);
         html+=`<tr class="linha-servico linha-direta">
           <td class="col-codigo codigo">${cSv}</td>
-          <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+          <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
           <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -643,10 +643,10 @@ function renderTabela(o){
           <td class="col-acoes">
             ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
             <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
-            <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Editar">✏️</button>
-            <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
             <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Subir">↑</button>
             <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Descer">↓</button>
+            <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Editar">✏️</button>
+            <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
           </td>
         </tr>`;
         if(temMemo&&memoAberta)html+=renderMemo(sv);
@@ -675,7 +675,7 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
+            <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -683,10 +683,10 @@ function renderTabela(o){
             <td class="col-acoes">
               ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
               <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
-              <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
-              <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
               <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
               <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
+              <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
+              <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
             </td>
           </tr>`;
           if(temMemo&&memoAberta)html+=renderMemo(sv);
@@ -701,14 +701,14 @@ function renderMemo(sv){
   const linhas=sv.memo.map((l,indice)=>{const r=calcularLinha(l);return `
   <tr>
     <td class="memo-indice">${indice+1}</td>
-    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Ex.: Trecho frontal" aria-label="Descrição da linha ${indice+1}" /></td>
+    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição" aria-label="Descrição da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="1" aria-label="Quantidade da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="1" aria-label="Coeficiente da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="m" aria-label="Comprimento da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="m" aria-label="Altura da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="m" aria-label="Largura da linha ${indice+1}" /></td>
     <td class="res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
-    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover linha ${indice+1}" aria-label="Remover linha ${indice+1}">×</button></td>
+    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover" aria-label="Remover linha ${indice+1}">×</button></td>
   </tr>`;}).join('');
   const soma=qtdServico(sv);
   return `
@@ -716,7 +716,7 @@ function renderMemo(sv){
     <div class="memo-box">
       <div class="memo-head">
         <div><h4>Memória de cálculo</h4><p>${esc(sv.nome)} · ${sv.memo.length} linha(s)</p></div>
-        <div class="memo-head-total"><span>Quantidade calculada</span><strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></div>
+        <div class="memo-head-total"><span>Quantidade</span><strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></div>
       </div>
       <div class="memo-table-wrap"><table class="tabela-memo">
         <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
@@ -724,9 +724,8 @@ function renderMemo(sv){
       </table></div>
       <div class="memo-add">
         <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Linha</button>
-        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Voltar à quantidade manual</button>
+        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Quantidade manual</button>
       </div>
-      <p class="memo-aviso">Comprimento × altura gera m²; com largura, gera m³. Sem dimensões, quantidade × coeficiente gera quantidade. Enquanto a memória existir, ela substitui a quantidade manual.</p>
     </div>
   </td></tr>`;
 }
