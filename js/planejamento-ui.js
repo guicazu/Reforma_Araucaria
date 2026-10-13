@@ -6,7 +6,7 @@
   var navPlanejamento = document.querySelector('.app-sidebar-item[data-view="planejamento"]');
   var lista = document.getElementById('listaPlanejamentos');
   var btnNovo = document.getElementById('btnNovoPlanejamento');
-  var btnNovoVazio = document.getElementById('btnNovoVazioPlanejamento');
+  var btnNovoVazio = document.getElementById('btnCriarCronogramaVazio');
   var btnVoltar = document.getElementById('btnVoltarListaPlanejamento');
   var contentVazio = document.getElementById('contentVazioPlanejamento');
   var contentEditor = document.getElementById('contentPlanejamento');
@@ -104,11 +104,23 @@
         carregarPlanejamentoNoEditor();
       }
     }
+    atualizarView();
   }
 
   function atualizarView() {
     if (view) {
+      // Update the dataset for potential CSS hooks (though we're handling visibility directly)
       view.dataset.modo = estado.modo;
+      
+      // Show/hide the main content sections based on mode
+      if (contentVazio) {
+        // Show contentVazio when in 'lista' mode, hide when in 'editor'
+        contentVazio.classList.toggle('hidden', estado.modo !== 'lista');
+      }
+      if (contentEditor) {
+        // Show contentEditor when in 'editor' mode, hide when in 'lista'
+        contentEditor.classList.toggle('hidden', estado.modo !== 'editor');
+      }
     }
   }
 
@@ -199,15 +211,15 @@
       caminhoCritico: [],
       folgaTotal: 0
     };
-    limparEditor();
+    carregarPlanejamentoNoEditor();
     irPara('editor');
     botoes.entrarEdicao.classList.add('hidden'); // Começamos em modo de criação
     botoes.salvar.classList.remove('hidden');
   }
 
   function limparEditor() {
-    if (formulario.nome) formulario.nome.value = '';
-    if (formulario.meta) formulario.meta.value = '';
+    if (formulario.nome) formulario.nome.textContent = '';
+    if (formulario.meta) formulario.meta.textContent = '';
     if (tabelaBody) tabelaBody.innerHTML = '';
     if (ganttHeader) ganttHeader.innerHTML = '';
     if (ganttBody) ganttBody.innerHTML = '';
@@ -216,8 +228,8 @@
 
   function carregarPlanejamentoNoEditor() {
     var p = estado.planejamentoAtual;
-    if (formulario.nome) formulario.nome.value = p.nome || '';
-    if (formulario.meta) formulario.meta.value = p.meta || '';
+    if (formulario.nome) formulario.nome.textContent = p.nome || '';
+    if (formulario.meta) formulario.meta.textContent = p.meta || '';
     renderizarEAP();
     atualizarResumo();
     atualizarVisualizacao();
@@ -226,8 +238,8 @@
   function salvarPlanejamento() {
     if (!estado.planejamentoAtual) return;
     // Atualizar dados do formulário
-    estado.planejamentoAtual.nome = formulario.nome.value.trim();
-    estado.planejamentoAtual.meta = formulario.meta.value.trim();
+    estado.planejamentoAtual.nome = formulario.nome.textContent.trim();
+    estado.planejamentoAtual.meta = formulario.meta.textContent.trim();
     // Se for novo, adicionar à lista
     var index = estado.planejamentos.findIndex(function (p) { return p.id === estado.planejamentoAtual.id; });
     if (index === -1) {
