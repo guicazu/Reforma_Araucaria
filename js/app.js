@@ -46,6 +46,42 @@ let usuarioPodeEditar = false;
 let bloqueiosPorOrcamento = {};
 let orcamentoEditandoId = null;
 let modoEdicao = false;
+
+// Planejamento locks: map of orcamentoId -> array of versaoIds that are blocked for planning
+const DB_KEY_PLANEJAMENTO_BLOQUEIOS = 'ibuild_planejamento_bloqueios_v1';
+let bloqueiosPorVersaoParaPlanejamento = {};
+
+function carregarBloqueiosPlanejamento() {
+  try {
+    const raw = localStorage.getItem(DB_KEY_PLANEJAMENTO_BLOQUEIOS);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function salvarBloqueiosPlanejamento(bloqueios) {
+  localStorage.setItem(DB_KEY_PLANEJAMENTO_BLOQUEIOS, JSON.stringify(bloqueios));
+}
+
+// Load planning locks on startup
+bloqueiosPorVersaoParaPlanejamento = carregarBloqueiosPlanejamento();
+
+function bloquearOrcamentoParaPlanejamento(orcamentoId, versaoId) {
+  if (!bloqueiosPorVersaoParaPlanejamento[orcamentoId]) {
+    bloqueiosPorVersaoParaPlanejamento[orcamentoId] = [];
+  }
+  if (!bloqueiosPorVersaoParaPlanejamento[orcamentoId].includes(versaoId)) {
+    bloqueiosPorVersaoParaPlanejamento[orcamentoId].push(versaoId);
+  }
+  salvarBloqueiosPlanejamento(bloqueiosPorVersaoParaPlanejamento);
+}
+
+function isVersaoBloqueadaParaPlanejamento(orcamentoId, versaoId) {
+  return bloqueiosPorVersaoParaPlanejamento[orcamentoId] && 
+         bloqueiosPorVersaoParaPlanejamento[orcamentoId].includes(versaoId);
+}
+
 salvar();
 
 function salvar(){

@@ -267,8 +267,287 @@
   }
 
   function importarDoOrcamento() {
-    // TODO: Importar EAP do orçamento vinculado
-    mostrarStatus('Importar do orçamento (funcionalidade a ser implementada)', 'info');
+    // Show modal to select orçamento and version
+    const orcamentoState = JSON.parse(localStorage.getItem('ibuild_orcamentos_v5') || '{}');
+    
+    if (!orcamentoState.orcamentos || orcamentoState.orcamentos.length === 0) {
+      mostrarStatus('Nenhum orçamento encontrado para importar.', 'error');
+      return;
+    }
+
+    // Create and show selection modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-import';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <h2>Importar EAP do Orçamento</h2>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="selectOrcamento">Orçamento:</label>
+            <select id="selectOrcamento" class="form-select">
+              ${orcamentoState.orcamentos.map(o => `
+                <option value="${o.id}">${o.codigo} - ${o.nome}</option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="selectVersao">Versão:</label>
+            <select id="selectVersao" class="form-select">
+              <!-- Versions will be populated when orçamento changes -->
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button id="btnCancelarImport" class="btn btn-ghost">Cancelar</button>
+            <button id="btnConfirmarImport" class="btn btn-primary">Importar</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add modal to document
+    document.body.appendChild(modal);
+    
+    // Get elements
+    const selectOrcamento = modal.querySelector('#selectOrcamento');
+    const selectVersao = modal.querySelector('#selectVersao');
+    const btnCancelar = modal.querySelector('#btnCancelarImport');
+    const btnConfirmar = modal.querySelector('#btnConfirmarImport');
+
+    // Populate versions when orçamento changes
+    function updateVersoes() {
+      const orcamentoId = selectOrcamento.value;
+      const orcamento = orcamentoState.orcamentos.find(o => o.id === orcamentoId);
+      if (!orcamento) return;
+      
+      selectVersao.innerHTML = '';
+      orcamento.versoes.forEach(v => {
+        const option = document.createElement('option');
+        option.value = v.id;
+        option.textContent = `Versão ${v.numero}: ${v.rotulo || ''} (${new Date(v.criadoEm).toLocaleDateString()})`;
+        selectVersao.appendChild(option);
+      });
+    }
+
+    // Initialize
+    updateVersoes();
+    
+    // Event listeners
+    selectOrcamento.addEventListener('change', updateVersoes);
+    btnCancelar.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    btnConfirmar.addEventListener('click', async () => {
+      const orcamentoId = selectOrcamento.value;
+      const versaoId = selectVersao.value;
+      
+      const orcamento = orcamentoState.orcamentos.find(o => o.id === orcamentoId);
+      if (!orcamento) {
+        mostrarStatus('Orçamento não encontrado.', 'error');
+        document.body.removeChild(modal);
+        return;
+      }
+      
+      const versao = orcamento.versoes.find(v => v.id === versaoId);
+      if (!versao) {
+        mostrarStatus('Versão não encontrada.', 'error');
+        document.body.removeChild(modal);
+        return;
+      }
+
+      // Check if this version is already being used for planning
+      const planejamentoBloqueios = JSON.parse(localStorage.getItem('ibuild_planejamento_bloqueios_v1') || '{}');
+      const isBloqueado = planejamentoBloqueios[orcamentoId] && planejamentoBloqueios[orcamentoId].includes(versaoId);
+      
+      let podeContinuar = true;
+      if (isBloqueado) {
+        podeContinuar = confirm(`Esta versão já está sendo usada para planejamento em outro cronograma. Deseja continuar mesmo assim? Isso pode causar conflitos.`);
+      }
+
+      if (!podeContinuar) {
+        document.body.removeChild(modal);
+        return;
+      }
+
+      try {
+        // Import the EAP from the selected version
+        importarEAPDaVersao(orcamento, versao);
+        
+        // Mark this version as being used for planning
+        if (!planejamentoBloqueios[orcamentoId]) {
+          planejamentoBloqueios[orcamentoId] = [];
+        }
+        if (!planejamentoBloqueios[orcamentoId].includes(versaoId)) {
+          planejamentoBloqueios[orcamentoId].push(versaoId);
+        }
+        localStorage.setItem('ibuild_planejamento_bloqueios_v1', JSON.stringify(planejamentoBloqueios));
+        
+        mostrarStatus(`EAP importada com sucesso da versão ${versao.numero} do orçamento "${orcamento.nome}". Esta versão está marcada como em uso para planejamento.`, 'success');
+      } catch (erro) {
+        mostrarStatus(`Erro ao importar: ${erro.message}`, 'error');
+      } finally {
+        document.body.removeChild(modal);
+      }
+    });
+
+    // Focus the modal
+    selectOrcamento.focus();
+  }
+
+  function importarEAPDaVersao(orcamento, versao) {
+    // Build the EAP flat list from the versao.unidades
+    const eap = [];
+
+    versao.unidades.forEach(unidade => {
+      // Fase (nivel 0)
+      const faseId = 'fase_' + unidade.id;
+      eap.push({
+        id: faseId,
+        nome: unidade.nome,
+        tipo: 'fase',
+        nivel: 0,
+        duracao: 0, // summary, will be calculated from children
+        inicio: null,
+        termino: null,
+        folga: 0,
+        predecessorIds: [], // to be filled later
+        originalId: unidade.id // to link back to the orçamento
+      });
+
+      unidade.etapas.forEach(etapa => {
+        // Atividade (nivel 1)
+        const atividadeId = 'atividade_' + etapa.id;
+        eap.push({
+          id: atividadeId,
+          nome: etapa.nome,
+          tipo: 'atividade',
+          nivel: 1,
+          duracao: 0,
+          inicio: null,
+          termino: null,
+          folga: 0,
+          predecessorIds: [],
+          originalId: etapa.id
+        });
+
+        etapa.subEtapas.forEach(subEtapa => {
+          // SubAtividade (nivel 2)
+          const subAtividadeId = 'subatividade_' + subEtapa.id;
+          eap.push({
+            id: subAtividadeId,
+            nome: subEtapa.nome || 'SubEtapa',
+            tipo: 'subEtapa',
+            nivel: 2,
+            duracao: 0,
+            inicio: null,
+            termino: null,
+            folga: 0,
+            predecessorIds: [],
+            originalId: subEtapa.id
+          });
+
+          subEtapa.servicos.forEach(servico => {
+            // Serviço (nivel 3)
+            const servicoId = servico.id; // use the original ID
+            // Try to get duration from servico, else default 1
+            const duracao = servico.duracao !== undefined && servico.duracao !== null ? servico.duracao : 1;
+            eap.push({
+              id: servicoId,
+              nome: servico.nome || 'Serviço sem nome',
+              tipo: 'servico',
+              nivel: 3,
+              duracao: duracao,
+              inicio: null,
+              termino: null,
+              folga: 0,
+              predecessorIds: [], // we will set later
+              originalId: servico.id
+            });
+          });
+        });
+      });
+    });
+
+    // Mark the version as blocked for planning
+    versao.bloqueadoParaPlanejamento = true;
+
+    // Save the orçamento state with the blocked version
+    const orcamentoState = JSON.parse(localStorage.getItem('ibuild_orcamentos_v5') || '{}');
+    const orcamentoIndex = orcamentoState.orcamentos.findIndex(o => o.id === orcamento.id);
+    if (orcamentoIndex !== -1) {
+      orcamentoState.orcamentos[orcamentoIndex] = orcamento;
+      localStorage.setItem('ibuild_orcamentos_v5', JSON.stringify(orcamentoState));
+    }
+
+    // Set predecessors: we set each node's predecessor to the previous node in the list (for simplicity)
+    for (let i = 1; i < eap.length; i++) {
+      eap[i].predecessorIds = [eap[i-1].id];
+    }
+
+    // Calculate the schedule (start and end dates) based on the project start date and predecessors.
+    const projetoInicio = estado.planejamentoAtual ? estado.planejamentoAtual.dataInicio : new Date().toISOString().split('T')[0];
+    eap.forEach((node, index) => {
+      if (index === 0) {
+        node.inicio = projetoInicio;
+      } else {
+        const prevNode = eap[index-1];
+        const prevEnd = new Date(prevNode.termino);
+        prevEnd.setDate(prevEnd.getDate() + 1); // start next day
+        node.inicio = prevEnd.toISOString().split('T')[0];
+      }
+      // Calculate termino: inicio + duracao - 1
+      const inicioDate = new Date(node.inicio);
+      const terminoDate = new Date(inicioDate);
+      terminoDate.setDate(terminoDate.getDate() + node.duracao - 1);
+      node.termino = terminoDate.toISOString().split('T')[0];
+    });
+
+    // Calculate summary durations (fase, atividade, subEtapa) as the difference between the earliest start and latest finish of their children.
+    const nodeMap = {};
+    eap.forEach(node => {
+      nodeMap[node.id] = node;
+    });
+
+    eap.slice().reverse().forEach(node => {
+      if (node.tipo === 'servico') {
+        let parentLevel = node.nivel - 1;
+        let parentId = null;
+        for (let i = eap.indexOf(node) - 1; i >= 0; i--) {
+          if (eap[i].nivel === parentLevel) {
+            parentId = eap[i].id;
+            break;
+          }
+        }
+        if (parentId) {
+          const parent = nodeMap[parentId];
+          if (!parent.inicio || node.inicio < parent.inicio) {
+            parent.inicio = node.inicio;
+          }
+          if (!parent.termino || node.termino > parent.termino) {
+            parent.termino = node.termino;
+          }
+          const parentInicio = new Date(parent.inicio);
+          const parentTermino = new Date(parent.termino);
+          parent.duracao = Math.floor((parentTermino - parentInicio) / (1000 * 60 * 60 * 24)) + 1;
+        }
+      }
+    });
+
+    // Set folga (slack) to 0 for now (placeholder for future implementation)
+    eap.forEach(node => {
+      node.folga = 0;
+    });
+
+    // Set the EAP in the estado.planejamentoAtual
+    if (!estado.planejamentoAtual) {
+      // If we don't have a planejamento atual, create one
+      novoPlanejamentoVazio();
+    }
+    estado.planejamentoAtual.eap = eap;
+
+    // Render the EAP in the table and update the summary
+    renderizarEAP();
+    atualizarResumo();
+    atualizarVisualizacao();
   }
 
   function addFase() {
