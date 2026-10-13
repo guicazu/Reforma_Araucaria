@@ -220,7 +220,7 @@
     <ul class="planejamento-list" id="listaPlanejamentos"></ul>
     <div id="listaStatusPlanejamento" class="lista-save-panel hidden">
       <span id="statusListaPlanejamento" class="save-status" role="status" aria-live="polite"></span>
-      <button id="btnSalvarListaPlanejamento" class="btn btn-primary btn-sm">💾 Salvar alterações</button>
+      <button id="btnSalvarListaPlanejamento" class="btn btn-primary btn-sm">💾 Salvar</button>
     </div>
   </aside>
 
@@ -237,43 +237,27 @@
     <div class="planejamento-head">
       <div>
         <button id="btnVoltarListaPlanejamento" class="btn btn-ghost btn-sm" style="margin-bottom:10px">← Voltar para a lista</button>
-        <h2 id="planejamentoNome"></h2>
-        <p id="planejamentoMeta"></p>
+        <h2 id="planejamentoNome">Novo Cronograma</h2>
+        <p id="planejamentoMeta">Baseado no orçamento vinculado</p>
       </div>
       <div class="planejamento-head-actions">
-        <button id="btnDuplicarPlanejamento" class="btn btn-ghost" title="Duplicar o cronograma">⧉ Duplicar</button>
-        <button id="btnVersoesPlanejamento" class="btn btn-ghost" title="Versões e comparação">🕘 Versões</button>
-        <button id="btnExportarExcelPlanejamento" class="btn btn-ghost" title="Exportar planilha .xlsx">📊 Excel</button>
-        <button id="btnExportarPdfPlanejamento" class="btn btn-ghost" title="Imprimir / Salvar como PDF">📄 PDF</button>
-        <button id="btnRenomearPlanejamento" class="btn btn-ghost">✏️ Renomear</button>
-        <div class="expand-actions" style="display:flex;gap:4px;margin:0 8px;padding-left:8px;border-left:1px solid var(--borda)">
-          <button id="btnExpandirTudoPlanejamento" class="btn btn-ghost btn-sm" title="Expandir tudo">⤢ Expandir tudo</button>
-          <button id="btnRecolherTudoPlanejamento" class="btn btn-ghost btn-sm" title="Recolher tudo">⤡ Recolher tudo</button>
-          <div class="expand-submenu" style="position:relative">
-            <button id="btnExpandirOpcoesPlanejamento" class="btn btn-ghost btn-sm" title="Mais opções">▾</button>
-            <div class="expand-dropdown hidden" style="position:absolute;right:0;top:100%;background:#fff;border:1px solid var(--borda);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);min-width:200px;z-index:100;margin-top:4px">
-              <button class="expand-opt" data-nivel="fase" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:none;cursor:pointer">Expandir apenas Fases</button>
-              <button class="expand-opt" data-nivel="atividade" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:none;cursor:pointer">Expandir apenas Atividades</button>
-              <button class="expand-opt" data-nivel="servico" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:none;cursor:pointer">Expandir apenas Serviços</button>
-              <hr style="margin:4px 0;border:0;border-top:1px solid var(--borda)">
-              <button class="expand-opt" data-nivel="critico" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:none;cursor:pointer">Destacar Caminho Crítico</button>
-              <button class="expand-opt" data-nivel="balance" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;background:none;cursor:pointer">Linha de Balanço</button>
-            </div>
-          </div>
-        </div>
-        <button id="btnAddFase" class="btn btn-primary">+ Fase</button>
-        <button id="btnImportarDoOrcamento" class="btn btn-primary" title="Importar EAP do orçamento vinculado">📥 Importar do Orçamento</button>
-        <button id="btnSalvarPlanejamento" class="btn btn-primary" title="Salvar alterações no banco">💾 Salvar</button>
-        <button id="btnEntrarEdicaoPlanejamento" class="btn btn-primary hidden">✏️ Editar</button>
-        <button id="btnLiberarBloqueioPlanejamento" class="btn btn-ghost hidden">🔓 Liberar cronograma</button>
-        <span id="statusSalvamentoPlanejamento" class="save-status save-status-pending" role="status" aria-live="polite">⏳ Carregando...</span>
+        <button id="btnDuplicarPlanejamento" class="btn btn-ghost btn-sm" title="Duplicar">⧉</button>
+        <button id="btnVersoesPlanejamento" class="btn btn-ghost btn-sm" title="Versões">🕘</button>
+        <button id="btnExportarExcelPlanejamento" class="btn btn-ghost btn-sm" title="Excel">📊</button>
+        <button id="btnExportarPdfPlanejamento" class="btn btn-ghost btn-sm" title="PDF">📄</button>
+        <button id="btnRenomearPlanejamento" class="btn btn-ghost btn-sm" title="Renomear">✏️</button>
+        <button id="btnAddFase" class="btn btn-primary btn-sm">+ Fase</button>
+        <button id="btnImportarDoOrcamento" class="btn btn-primary btn-sm" title="Importar EAP">📥 Importar</button>
+        <button id="btnSalvarPlanejamento" class="btn btn-primary btn-sm" title="Salvar">💾 Salvar</button>
+        <button id="btnEntrarEdicaoPlanejamento" class="btn btn-ghost btn-sm hidden">✏️ Editar</button>
+        <span id="statusSalvamentoPlanejamento" class="save-status save-status-pending hidden" role="status" aria-live="polite"></span>
       </div>
     </div>
 
     <div class="planejamento-resumo">
       <div class="resumo-card">
         <span>Duração Total</span>
-        <strong class="total-grande" id="duracaoTotal">—</strong>
+        <strong id="duracaoTotal">—</strong>
       </div>
       <div class="resumo-card">
         <span>Início</span>
@@ -293,63 +277,26 @@
       </div>
     </div>
 
-    <div class="planejamento-toolbar">
-      <div class="toolbar-group">
-        <label>Visualização
-          <select id="viewModePlanejamento">
-            <option value="gantt">Gantt</option>
-            <option value="rede">Rede (PERT)</option>
-            <option value="balance">Linha de Balanço</option>
-            <option value="recursos">Curva S / Recursos</option>
-          </select>
-        </label>
-      </div>
-      <div class="toolbar-group">
-        <label>Escala
-          <select id="timeScalePlanejamento">
-            <option value="day">Dia</option>
-            <option value="week" selected>Semana</option>
-            <option value="month">Mês</option>
-          </select>
-        </label>
-      </div>
-      <div class="toolbar-group">
-        <button id="btnHoje" class="btn btn-ghost btn-sm" title="Ir para hoje">📍 Hoje</button>
-        <button id="btnZoomIn" class="btn btn-ghost btn-sm" title="Aproximar">🔍+</button>
-        <button id="btnZoomOut" class="btn btn-ghost btn-sm" title="Afastar">🔍-</button>
-      </div>
-      <div class="toolbar-group">
-        <label class="checkbox-inline"><input type="checkbox" id="chkCritico" checked> Crítico</label>
-        <label class="checkbox-inline"><input type="checkbox" id="chkFolga"> Folgas</label>
-        <label class="checkbox-inline"><input type="checkbox" id="chkLinhaBalance"> Linha de Balanço</label>
-      </div>
-    </div>
-
     <div class="table-wrap">
-      <div class="gantt-split">
-        <table class="tabela" id="tabelaPlanejamento">
-          <thead>
-            <tr>
-              <th class="col-codigo">Código</th>
-              <th style="width:350px">Atividade / Serviço</th>
-              <th class="col-un">Un.</th>
-              <th class="col-num">Duração (dias)</th>
-              <th class="col-num">Início</th>
-              <th class="col-num">Término</th>
-              <th class="col-num">Folga</th>
-              <th class="col-acoes">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="corpoTabelaPlanejamento"></tbody>
-        </table>
-        <div class="gantt-chart" id="ganttChart">
-          <div class="gantt-header" id="ganttHeader"></div>
-          <div class="gantt-body" id="ganttBody"></div>
-        </div>
-      </div>
+      <table class="tabela" id="tabelaPlanejamento">
+        <thead>
+          <tr>
+            <th class="col-codigo">Código</th>
+            <th style="width:350px">Atividade / Serviço</th>
+            <th class="col-un">Un.</th>
+            <th class="col-num">Duração</th>
+            <th class="col-num">Início</th>
+            <th class="col-num">Término</th>
+            <th class="col-num">Folga</th>
+            <th class="col-acoes">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabelaPlanejamento"></tbody>
+      </table>
     </div>
   </section>
 </main>
+
 
 <section class="content hidden" id="viewComposicoes">
   <div class="orcamento-head catalogo-page-head">

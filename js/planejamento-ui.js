@@ -657,6 +657,34 @@
     }
   }
 
+  function editarDuracao(id) {
+    const node = estado.planejamentoAtual.eap.find(n => n.id === id);
+    if (!node) return;
+    const novaDuracao = prompt('Nova duração (dias):', node.duracao);
+    if (novaDuracao === null) return;
+    const duracaoNum = parseInt(novaDuracao, 10);
+    if (isNaN(duracaoNum) || duracaoNum < 0) {
+      mostrarStatus('Duração inválida.', 'error');
+      return;
+    }
+    node.duracao = duracaoNum;
+    // Recalcular o cronograma inteiro após a mudança
+    recalcularCronograma();
+    renderizarEAP();
+    atualizarResumo();
+    mostrarStatus('Duração atualizada.', 'success');
+  }
+
+  function excluirNode(id) {
+    if (!confirm('Tem certeza que deseja excluir este item?')) return;
+    estado.planejamentoAtual.eap = estado.planejamentoAtual.eap.filter(n => n.id !== id);
+    // Recalcular o cronograma após exclusão
+    recalcularCronograma();
+    renderizarEAP();
+    atualizarResumo();
+    mostrarStatus('Item excluído.', 'success');
+  }
+
   function atualizarVisualizacao() {
     // TODO: Atualizar a visualização do Gantt com base nos selects e checkboxes
     mostrarStatus('Visualização atualizada (funcionalidade a ser implementada)', 'info');
