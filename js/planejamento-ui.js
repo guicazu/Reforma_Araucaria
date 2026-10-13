@@ -276,7 +276,7 @@
     }
 
     // Create and show selection modal
-    const modal = document.createElement('div');
+    const modal = document.createElement('dialog');
     modal.className = 'modal-import';
     modal.innerHTML = `
       <div class="modal-content">
@@ -306,6 +306,7 @@
 
     // Add modal to document
     document.body.appendChild(modal);
+    modal.showModal();
     
     // Get elements
     const selectOrcamento = modal.querySelector('#selectOrcamento');
@@ -334,6 +335,7 @@
     // Event listeners
     selectOrcamento.addEventListener('change', updateVersoes);
     btnCancelar.addEventListener('click', () => {
+      modal.close();
       document.body.removeChild(modal);
     });
     btnConfirmar.addEventListener('click', async () => {
@@ -343,6 +345,7 @@
       const orcamento = orcamentoState.orcamentos.find(o => o.id === orcamentoId);
       if (!orcamento) {
         mostrarStatus('Orçamento não encontrado.', 'error');
+        modal.close();
         document.body.removeChild(modal);
         return;
       }
@@ -350,6 +353,7 @@
       const versao = orcamento.versoes.find(v => v.id === versaoId);
       if (!versao) {
         mostrarStatus('Versão não encontrada.', 'error');
+        modal.close();
         document.body.removeChild(modal);
         return;
       }
@@ -364,6 +368,7 @@
       }
 
       if (!podeContinuar) {
+        modal.close();
         document.body.removeChild(modal);
         return;
       }
@@ -385,6 +390,15 @@
       } catch (erro) {
         mostrarStatus(`Erro ao importar: ${erro.message}`, 'error');
       } finally {
+        modal.close();
+        document.body.removeChild(modal);
+      }
+    });
+
+    // Handle clicking outside the modal to close it
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.close();
         document.body.removeChild(modal);
       }
     });
@@ -499,6 +513,22 @@
       const terminoDate = new Date(inicioDate);
       terminoDate.setDate(terminoDate.getDate() + node.duracao - 1);
       node.termino = terminoDate.toISOString().split('T')[0];
+    });
+
+    // Fix zero-duration nodes: if duration is 0, set termino equal to inicio
+    // (a task with zero duration starts and ends on the same day)
+    eap.forEach(node => {
+      if (node.duracao === 0) {
+        node.termino = node.inicio;
+      }
+    });
+
+    // Fix zero-duration nodes: if duration is 0, set termino equal to inicio
+    // (a task with zero duration starts and ends on the same day)
+    eap.forEach(node => {
+      if (node.duracao === 0 && node.inicio) {
+        node.termino = node.inicio;
+      }
     });
 
     // Calculate summary durations (fase, atividade, subEtapa) as the difference between the earliest start and latest finish of their children.
