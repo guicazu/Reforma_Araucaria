@@ -540,7 +540,7 @@ function calcularLinha(l){
   }else{base=1;tipo='qtd';}
   return{valor:base*(q??1)*(coef??1),tipo};
 }
-function qtdServico(sv){if(sv.memo&&sv.memo.length){return sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0);}return num(sv.qtdManual)||0;}
+function qtdServico(sv){if(sv.memo&&sv.memo.length){return num2(sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0));}return num2(num(sv.qtdManual)||0);}
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
 function totalOrcamento(o){let t=0;for(const u of uu(o))for(const e of u.etapas){for(const sv of (e.servicos||[]))t+=totalServico(sv);for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);}return t;}
 function contarServicos(o){let n=0;for(const u of uu(o))for(const e of u.etapas){n+= (e.servicos||[]).length;for(const s of e.subEtapas)n+=s.servicos.length;}return n;}
@@ -637,7 +637,7 @@ function renderTabela(o){
           <td class="col-codigo codigo">${cSv}</td>
           <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
-          <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
+          <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
           <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
           <td class="col-acoes">
@@ -677,7 +677,7 @@ function renderTabela(o){
             <td class="col-codigo codigo">${cSv}</td>
             <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">memória de cálculo</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
-            <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(temMemo?qtd:(sv.qtdManual??0))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
+            <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
             <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
             <td class="col-acoes">
