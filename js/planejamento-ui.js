@@ -108,15 +108,8 @@
 
   function atualizarView() {
     if (view) {
-      Object.keys(views).forEach(function (key) {
-        if (views[key]) views[key].classList.toggle('hidden', key !== estado.modo);
-      });
+      view.dataset.modo = estado.modo;
     }
-    // Também atualiza o estado do item ativo no sidebar
-    var itens = document.querySelectorAll('.app-sidebar-item[data-view]');
-    itens.forEach(function (it) {
-      it.classList.toggle('ativo', it.dataset.view === estado.modo);
-    });
   }
 
   // Lista de planejamentos
