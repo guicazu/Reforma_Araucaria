@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suprimentos — Reforma Araucária</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/suprimentos.css">
+</head>
+<body>
+<div class="app-main" style="width:100%;margin:0">
+  <header class="topbar">
+    <div class="brand">
+      <h1>📦 Suprimentos</h1>
+      <p>Requisição → Cotação → Pedido → Recebimento</p>
+    </div>
+    <div class="topbar-user">
+      <span id="nomeUsuario" style="color:#fff;font-size:13px;margin-right:10px"></span>
+      <a href="/" class="btn btn-ghost btn-sm">← Voltar ao orçamento</a>
+    </div>
+  </header>
+
+  <div class="content" style="padding:20px 24px 60px">
+    <div id="bannerSomenteLeitura" class="supr-readonly-banner hidden">
+      Você está em modo somente leitura — fale com um administrador para liberar edição.
+    </div>
+
+    <div class="supr-toolbar">
+      <label style="margin:0;font-size:12px;font-weight:700;color:var(--suave)">Orçamento
+        <select id="selectOrcamento"></select>
+      </label>
+      <div class="spacer"></div>
+    </div>
+
+    <nav class="supr-tabs">
+      <button class="supr-tab ativa" data-aba="requisicoes">Requisições</button>
+      <button class="supr-tab" data-aba="cotacoes">Cotações</button>
+      <button class="supr-tab" data-aba="pedidos">Pedidos &amp; Recebimento</button>
+      <button class="supr-tab" data-aba="fornecedores">Fornecedores</button>
+      <button class="supr-tab" data-aba="comparativo">Orçado × Executado</button>
+    </nav>
+
+    <!-- REQUISIÇÕES -->
+    <section id="abaRequisicoes">
+      <h3 style="margin:0 0 8px">Itens do orçamento</h3>
+      <input type="search" id="filtroServicos" placeholder="Buscar item do orçamento..." style="margin-bottom:10px">
+      <div id="listaServicos" class="supr-lista"></div>
+
+      <h3 style="margin:22px 0 8px">Requisições abertas</h3>
+      <div id="listaRequisicoes"></div>
+    </section>
+
+    <!-- COTAÇÕES -->
+    <section id="abaCotacoes" class="hidden">
+      <label style="font-size:12px;font-weight:700;color:var(--suave)">Requisição
+        <select id="selectRequisicaoCotacao"></select>
+      </label>
+      <div id="formNovaCotacaoWrap" style="margin-top:14px"></div>
+      <h3 style="margin:18px 0 8px">Cotações recebidas</h3>
+      <div id="listaCotacoes"></div>
+    </section>
+
+    <!-- PEDIDOS -->
+    <section id="abaPedidos" class="hidden">
+      <div id="listaPedidos"></div>
+    </section>
+
+    <!-- FORNECEDORES -->
+    <section id="abaFornecedores" class="hidden">
+      <div class="supr-form-inline">
+        <label>Nome<input id="fNome" type="text"></label>
+        <label>CNPJ<input id="fCnpj" type="text"></label>
+        <label>Telefone<input id="fTelefone" type="text"></label>
+        <label>E-mail<input id="fEmail" type="email"></label>
+        <div class="supr-form-actions">
+          <button class="btn btn-primary btn-sm" id="btnSalvarFornecedor">+ Adicionar fornecedor</button>
+        </div>
+      </div>
+      <div id="supMsgFornecedor" class="supr-msg"></div>
+      <div id="listaFornecedores" class="table-wrap"></div>
+    </section>
+
+    <!-- COMPARATIVO -->
+    <section id="abaComparativo" class="hidden">
+      <div class="resumo" id="resumoComparativo"></div>
+      <div class="table-wrap">
+        <table class="tabela">
+          <thead><tr>
+            <th>Item</th><th class="col-num">Orçado</th><th class="col-num">Comprometido</th>
+            <th class="col-num">Executado</th><th class="col-num">Saldo</th>
+          </tr></thead>
+          <tbody id="corpoComparativo"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- MODAL: nova requisição -->
+<dialog id="modalRequisicao" class="modal">
+  <h3>Requisitar material / serviço</h3>
+  <p id="modalReqItemNome" style="color:var(--suave);font-size:13px;margin-top:-10px"></p>
+  <label>Quantidade
+    <input id="reqQuantidade" type="number" step="0.01" min="0.01">
+  </label>
+  <label>Observações
+    <textarea id="reqObservacoes" rows="2"></textarea>
+  </label>
+  <div id="supMsgRequisicao" class="supr-msg"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" id="btnCancelarRequisicao">Cancelar</button>
+    <button class="btn btn-primary" id="btnConfirmarRequisicao">Criar requisição</button>
+  </div>
+</dialog>
+
+<!-- MODAL: lançar recebimento -->
+<dialog id="modalRecebimento" class="modal">
+  <h3>Lançar recebimento / nota fiscal</h3>
+  <p id="modalRecPedidoInfo" style="color:var(--suave);font-size:13px;margin-top:-10px"></p>
+  <div class="grid-2">
+    <label>Nº da nota fiscal<input id="recNotaNumero" type="text"></label>
+    <label>Chave de acesso (opcional)<input id="recNotaChave" type="text"></label>
+    <label>Data do recebimento<input id="recData" type="date"></label>
+    <label>Quantidade recebida<input id="recQuantidade" type="number" step="0.01" min="0.01"></label>
+    <label>Valor total da nota (R$)<input id="recValor" type="number" step="0.01" min="0"></label>
+  </div>
+  <label>Observações<textarea id="recObservacoes" rows="2"></textarea></label>
+  <div id="supMsgRecebimento" class="supr-msg"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" id="btnCancelarRecebimento">Cancelar</button>
+    <button class="btn btn-primary" id="btnConfirmarRecebimento">Lançar recebimento</button>
+  </div>
+</dialog>
+
+<script src="/js/suprimentos.js"></script>
+</body>
+</html>

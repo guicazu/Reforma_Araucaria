@@ -1,0 +1,55 @@
+/* Suprimentos — estilos aditivos, usam as variáveis já definidas em style.css */
+
+.supr-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;border-bottom:1px solid var(--borda);padding-bottom:0}
+.supr-tab{background:transparent;border:none;border-bottom:3px solid transparent;padding:10px 14px;font-weight:700;font-size:13px;color:var(--suave);cursor:pointer}
+.supr-tab:hover{color:var(--navy)}
+.supr-tab.ativa{color:var(--navy-escuro);border-bottom-color:var(--gold)}
+
+.supr-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.supr-toolbar select,.supr-toolbar input[type="search"]{min-width:260px}
+.supr-toolbar .spacer{flex:1}
+
+.supr-readonly-banner{background:#fff4cf;color:#755b00;border:1px solid #e9d78a;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;margin-bottom:14px}
+
+.supr-lista{display:flex;flex-direction:column;gap:6px;max-height:460px;overflow-y:auto;margin-bottom:10px}
+.supr-lista .orcamento-item{cursor:default}
+.supr-lista .oi-info span{display:block;margin-top:2px}
+
+.supr-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.supr-badge-aberta{background:#e9ecf2;color:#3a4a63}
+.supr-badge-em_cotacao{background:#fff3cd;color:#856404}
+.supr-badge-pedido_gerado{background:#dbe9fb;color:#1d4e89}
+.supr-badge-recebida_parcial{background:#ffe7cf;color:#8a4b00}
+.supr-badge-recebida_total{background:#d4edda;color:#155724}
+.supr-badge-cancelada{background:#f8d7da;color:#721c24}
+.supr-badge-emitido{background:#dbe9fb;color:#1d4e89}
+.supr-badge-confirmado{background:#e4f3e9;color:#1f6842}
+
+.supr-cotacao-item{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.supr-cotacao-item.vencedora{border-color:var(--gold);background:#fdf6e0}
+.supr-cotacao-info strong{display:block;font-size:14px}
+.supr-cotacao-info span{display:block;color:var(--suave);font-size:12px;margin-top:2px}
+.supr-cotacao-preco{font-size:17px;font-weight:800;color:var(--verde);white-space:nowrap;margin-right:12px}
+
+.supr-form-inline{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px;margin-bottom:16px}
+.supr-form-inline label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--suave);margin:0}
+.supr-form-inline .supr-form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+
+.supr-pedido-card{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.supr-pedido-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.supr-pedido-head h4{margin:0;font-size:15px;color:var(--navy-escuro)}
+.supr-pedido-head p{margin:3px 0 0;color:var(--suave);font-size:12px}
+.supr-pedido-valor{font-size:18px;font-weight:800;color:var(--navy)}
+.supr-pedido-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.supr-recebimentos{margin-top:10px;padding-top:10px;border-top:1px dashed var(--borda);font-size:12px;color:var(--suave)}
+.supr-recebimentos div{padding:3px 0}
+
+.supr-msg{font-size:12px;min-height:16px;margin-top:6px}
+.supr-msg.erro{color:var(--vermelho)}
+.supr-msg.ok{color:var(--verde)}
+
+.supr-empty{text-align:center;color:var(--suave);padding:30px;font-size:13px}
+
+@media (max-width:860px){
+  .supr-toolbar select,.supr-toolbar input[type="search"]{min-width:0;width:100%}
+}
