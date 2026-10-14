@@ -964,3 +964,98 @@ body{display:flex}
 .modal-import .btn-ghost:hover { background: #f4f1e9; }
 .modal-import .btn-primary { background: #002147; color: #fff; border-color: #002147; }
 .modal-import .btn-primary:hover { background: #0b3d6b; }
+
+/* ===== Minimalista: sobrescreve bordas pesadas ===== */
+.btn{
+  border:1px solid transparent;
+  border-radius:8px;
+  background:#fff;
+  box-shadow:none;
+  transition:background .15s ease,color .15s ease;
+}
+.btn:hover{background:#f2f2f2}
+.btn-primary{
+  background:var(--navy);
+  color:#fff;
+  border-color:var(--navy);
+}
+.btn-primary:hover{background:var(--navy-2);color:#fff}
+.btn-ghost{background:transparent;color:var(--texto);border-color:#e5e5e5}
+.btn-ghost:hover{background:#f5f5f5;color:var(--navy-escuro)}
+
+/* ===== Item do menu lateral ===== */
+.app-sidebar-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  text-align:left;
+  background:transparent;
+  border:none;
+  border-radius:8px;
+  padding:9px 12px;
+  font-size:14px;
+  font-weight:500;
+  color:var(--texto);
+  cursor:pointer;
+  margin:2px 0;
+  transition:background .15s ease,color .15s ease;
+}
+.app-sidebar-item:hover{background:#f2f5f8}
+.app-sidebar-item.ativa{background:var(--navy);color:#fff}
+
+/* ===== Suprimentos: cards e listas limpos ===== */
+.supr-card{
+  background:#fff;
+  border:none;
+  border-radius:10px;
+  padding:14px 16px;
+  box-shadow:0 1px 3px rgba(0,25,50,.06);
+  margin-bottom:10px;
+}
+.supr-card:hover{box-shadow:0 2px 6px rgba(0,25,50,.1)}
+.supr-item-linha{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:#fff;
+  border:1px solid #eef0f2;
+  border-radius:8px;
+  padding:8px 12px;
+  cursor:pointer;
+  transition:border-color .15s ease;
+}
+.supr-item-linha:hover{border-color:var(--gold)}
+.supr-tab{
+  background:transparent;
+  border:none;
+  padding:9px 14px;
+  font-size:14px;
+  font-weight:500;
+  color:#8a94a3;
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  margin-bottom:-2px;
+  transition:color .15s ease;
+}
+.supr-tab:hover{color:var(--navy-escuro)}
+.supr-tab.ativa{color:var(--navy-escuro);border-bottom-color:var(--navy);font-weight:600}
+
+/* ===== Inputs e selects ===== */
+.supr-select-orcamento select,
+.supr-form-inline input,
+.supr-carrinho-qtd{
+  border:1px solid #e2e6ea;
+  border-radius:8px;
+  background:#fff;
+  padding:8px 10px;
+  font:inherit;
+  color:var(--texto);
+  outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease;
+}
+.supr-select-orcamento select:focus,
+.supr-form-inline input:focus{
+  border-color:var(--navy);
+  box-shadow:0 0 0 3px rgba(0,33,71,.08);
+}
