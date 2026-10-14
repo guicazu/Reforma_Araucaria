@@ -1,11 +1,9 @@
 // functions/_lib/admin.js
-
 // Verifica se o usuário da sessão pode editar (admin).
-// Regra alinhada com usuarios.js: ADMIN_EMAILS + fallback  + tabela usuarios.isAdmin.
+// Regra alinhada com usuarios.js: ADMIN_EMAILS + fallback + tabela usuarios.isAdmin.
+
 export async function podeEditar(payload, env) {
   if (!payload || !payload.email) return false;
-
-  // Payload já marcado como admin
   if (payload.isAdmin) return true;
 
   const email = payload.email.toLowerCase().trim();

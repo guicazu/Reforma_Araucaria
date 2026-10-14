@@ -129,7 +129,7 @@ async function suprRequisicoesLista() {
     </div>`).join('');
 }
 
-/* Ítens do orçamento: todos os serviços da EAP (unidade → etapa → sub → serviço) */
+/* Itens do orçamento: todos os serviços da EAP (unidade → etapa → sub → serviço) */
 function suprItensOrcamento() {
   const o = suprOrcamentos().find(x => x.id === suprEl('suprSelectOrcamento').value);
   if (!o) return [];
@@ -165,7 +165,6 @@ function suprRenderArvore() {
       <span class="supr-item-qtd">${escS(i.unidade)} · orçado ${fmtQ.format(i.quantidadeOrcada)}</span>
     </label>`;
   }).join('') : '<p class="supr-msg">Nenhum item encontrado.</p>';
-  // botão Continuar (criado dinamicamente para não depender do HTML)
   let btn = suprEl('suprBtnContinuarSelecao');
   if (!btn) {
     btn = document.createElement('button');
@@ -355,7 +354,7 @@ async function suprAbrirMapa(id) {
     fornecedores.forEach(f => {
       const val = (f.precos && f.precos[it.id]) || (it.precos && it.precos[f.id]) || '';
       const venc = !!(c.vencedores && c.vencedores[it.id] && c.vencedores[it.id].fornecedorId === f.id);
-      html += `<td><input class="supr-preco" data-item="${it.id}" data-forn="${f.id}" value="${escS(val)}" placeholder="R$" style="width:92px"></td>`;
+      html += `<td><input class="supr-preco" data-item="${it.id}" data-forn="${f.id}" value="${escS(val)}" placeholder="R$"></td>`;
       html += `<td><input type="checkbox" class="supr-venc" data-item="${it.id}" data-forn="${f.id}" ${venc ? 'checked' : ''}></td>`;
     });
     html += '</tr>';
@@ -366,7 +365,6 @@ async function suprAbrirMapa(id) {
     <button class="btn btn-primary" id="suprBtnFinalizarCotacao">Finalizar → gerar pedidos</button>
   </div>`;
   wrap.innerHTML = html;
-  // apenas um vencedor por item
   wrap.addEventListener('change', ev => {
     const v = ev.target.closest('.supr-venc');
     if (!v || !v.checked) return;
@@ -534,20 +532,17 @@ async function suprComparativoCarregar() {
 document.addEventListener('DOMContentLoaded', () => {
   suprPreencherOrcamentos();
 
-  // orçamento selecionado → recarrega a aba atual
   const sel = suprEl('suprSelectOrcamento');
   if (sel) sel.addEventListener('change', () => {
     suprEstado.carrinho = [];
     if (suprEstado.abaAtiva) suprAtivarAba(suprEstado.abaAtiva);
   });
 
-  // sub-abas (funciona com data-supraba OU data-aba)
   $$s('.supr-tabs').forEach(tabs => tabs.addEventListener('click', ev => {
     const b = ev.target.closest('.supr-tab');
     if (b) suprAtivarAba(b.dataset.suprAba || b.dataset.aba);
   }));
 
-  // quando a view Suprimentos for exibida (template troca por class hidden)
   const view = suprEl('viewSuprimentos');
   if (view) {
     new MutationObserver(() => {
@@ -558,7 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }).observe(view, { attributes: true, attributeFilter: ['class'] });
   }
 
-  // nova requisição
   const bNova = suprEl('suprBtnNovaRequisicao');
   if (bNova) bNova.addEventListener('click', suprNovaRequisicao);
   const bVoltar = suprEl('suprBtnVoltarListaReq');
@@ -566,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const bVoltarSel = suprEl('suprBtnVoltarSelecao');
   if (bVoltarSel) bVoltarSel.addEventListener('click', suprNovaRequisicao);
 
-  // filtro + seleção de itens do orçamento
   const filtro = suprEl('suprFiltroItens');
   if (filtro) filtro.addEventListener('input', suprRenderArvore);
   const arvore = suprEl('suprArvoreItens');
@@ -585,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (b) suprRevisarSelecao();
   });
 
-  // quantidades no carrinho
   const carrinho = suprEl('suprCarrinhoLista');
   if (carrinho) carrinho.addEventListener('input', ev => {
     const inp = ev.target.closest('.supr-carrinho-qtd');
@@ -593,15 +585,12 @@ document.addEventListener('DOMContentLoaded', () => {
     suprEstado.carrinho[Number(inp.dataset.idx)].quantidade = Number(inp.value) || 0;
   });
 
-  // salvar requisição
   const bSalvar = suprEl('suprBtnSalvarRequisicao');
   if (bSalvar) bSalvar.addEventListener('click', suprSalvarRequisicao);
 
-  // fornecedores
   const bForn = suprEl('suprBtnSalvarFornecedor');
   if (bForn) bForn.addEventListener('click', suprSalvarFornecedor);
 
-  // cotações
   const bNovaCot = suprEl('suprBtnNovaCotacao');
   if (bNovaCot) bNovaCot.addEventListener('click', suprNovaCotacao);
   const bCriarMapa = suprEl('suprBtnCriarMapa');
@@ -611,19 +600,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const bVoltarCot2 = suprEl('suprBtnVoltarListaCot2');
   if (bVoltarCot2) bVoltarCot2.addEventListener('click', () => suprAtivarAba('cotacoes'));
 
-  // modal recebimento
   const bCancelRec = suprEl('suprBtnCancelarRecebimento');
   if (bCancelRec) bCancelRec.addEventListener('click', () => suprEl('suprModalRecebimento').close());
   const bConfRec = suprEl('suprBtnConfirmarRecebimento');
   if (bConfRec) bConfRec.addEventListener('click', suprConfirmarRecebimento);
 
-  // delegação global para botões dinâmicos das listas
   document.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-acao]');
     if (!b) return;
     switch (b.dataset.acao) {
       case 'cotar-req':
-        suprEl('suprSelectOrcamento').value = suprEl('suprSelectOrcamento').value || suprEstado.orcamentoId;
         suprAtivarAba('cotacoes');
         break;
       case 'abrir-mapa': suprAbrirMapa(b.dataset.id); break;
@@ -640,7 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       case 'enviar-pedido': suprEnviarPedido(b.dataset.id); break;
       case 'receber-pedido': suprAbrirRecebimento(b.dataset.id); break;
-      case 'preencher-pedidos': suprPedidosLista(); break;
     }
   });
 });
