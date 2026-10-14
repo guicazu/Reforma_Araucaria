@@ -7,7 +7,7 @@ const CAMINHOS_PUBLICOS = [
   '/api/auth/google',
   '/api/auth/google-callback',
   '/api/auth/microsoft',
-  '/api/auth/microsoft-callback'
+  '/api/auth/microsoft-callback',
   '/confirmar-pedido.html'
 ];
 
