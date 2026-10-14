@@ -1,7 +1,19 @@
 import { lerCookie, validarSessao } from '../../_lib/session.js';
 
-// GET /api/compras/comparativo?orcamentoId=XYZ
-// Devolve, por item do orçamento (itemOrcamentoId): comprometido (ainda não recebido) e executado (já recebido/NF lançada)
+function itensDoOrcamento(conteudo) {
+  let c = conteudo;
+  if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { return []; } }
+  const unidades = (c && (c.unidades || (c.versao && c.versao.unidades))) || [];
+  const itens = [];
+  unidades.forEach((u) => (u.etapas || []).forEach((e) => (e.subEtapas || []).forEach((s) => (s.servicos || []).forEach((sv) => {
+    if (!sv.id) return;
+    const qtd = Number(sv.qtdManual != null ? sv.qtdManual : (sv.quantidade && (sv.quantidade.valor != null ? sv.quantidade.valor : sv.quantidade))) || 0;
+    const vu = Number(sv.valorUnitario != null ? sv.valorUnitario : (sv.precoUnitario || 0)) || 0;
+    itens.push({ itemOrcamentoId: sv.id, descricao: sv.nome || '', orcado: qtd * vu });
+  }))));
+  return itens;
+}
+
 export async function onRequestGet({ request, env }) {
   const token = lerCookie(request, 'sessao');
   const payload = token ? await validarSessao(token, env.SESSION_SECRET) : null;
@@ -19,18 +31,20 @@ export async function onRequestGet({ request, env }) {
      WHERE p.orcamentoId = ? AND p.status != 'cancelado'`
   ).bind(orcamentoId).all();
 
-  if (!itensPedido.length) return Response.json({ comprometido: [], executado: [] });
-
-  const idsItensPedido = itensPedido.map((i) => i.id);
-  const { results: recebidos } = await env.DB.prepare(
-    `SELECT itemPedidoId, SUM(quantidadeRecebida) as total FROM itens_recebimento
-     WHERE itemPedidoId IN (${idsItensPedido.map(() => '?').join(',')}) GROUP BY itemPedidoId`
-  ).bind(...idsItensPedido).all();
-  const recebidoPorItemPedido = {};
-  recebidos.forEach((r) => { recebidoPorItemPedido[r.itemPedidoId] = r.total; });
+  let recebidoPorItemPedido = {};
+  if (itensPedido.length) {
+    const ids = itensPedido.map((i) => i.id);
+    const { results: recebidos } = await env.DB.prepare(
+      `SELECT itemPedidoId, SUM(quantidadeRecebida) as total FROM itens_recebimento
+       WHERE itemPedidoId IN (${ids.map(() => '?').join(',')}) GROUP BY itemPedidoId`
+    ).bind(...ids).all();
+    recebidoPorItemPedido = {};
+    recebidos.forEach((r) => { recebidoPorItemPedido[r.itemPedidoId] = r.total; });
+  }
 
   const comprometidoPorItem = {};
   const executadoPorItem = {};
+  const descricaoPorItem = {};
   itensPedido.forEach((ip) => {
     const recebido = recebidoPorItemPedido[ip.id] || 0;
     const pendente = Math.max(0, ip.quantidade - recebido);
@@ -38,8 +52,26 @@ export async function onRequestGet({ request, env }) {
     executadoPorItem[ip.itemOrcamentoId] = (executadoPorItem[ip.itemOrcamentoId] || 0) + recebido * ip.precoUnitario;
   });
 
+  // Orçado: lê o orçamento salvo no D1
+  const { results: orc } = await env.DB.prepare('SELECT conteudo FROM orcamentos WHERE id = ?').bind(orcamentoId).all();
+  const itensOrc = orc.length ? itensDoOrcamento(orc[0].conteudo) : [];
+  const orcadoPorItem = {};
+  itensOrc.forEach((i) => { orcadoPorItem[i.itemOrcamentoId] = i.orcado; descricaoPorItem[i.itemOrcamentoId] = i.descricao; });
+
+  const chaves = new Set([...Object.keys(orcadoPorItem), ...Object.keys(comprometidoPorItem), ...Object.keys(executadoPorItem)]);
+  const itens = [];
+  let somaOrcado = 0, somaComprometido = 0, somaExecutado = 0;
+  chaves.forEach((k) => {
+    const orcado = orcadoPorItem[k] || 0;
+    const comprometido = comprometidoPorItem[k] || 0;
+    const executado = executadoPorItem[k] || 0;
+    somaOrcado += orcado; somaComprometido += comprometido; somaExecutado += executado;
+    itens.push({ itemOrcamentoId: k, descricao: descricaoPorItem[k] || 'Item', orcado, comprometido, executado, saldo: orcado - comprometido - executado });
+  });
+  itens.sort((a, b) => (a.descricao || '').localeCompare(b.descricao || ''));
+
   return Response.json({
-    comprometido: Object.entries(comprometidoPorItem).map(([itemOrcamentoId, valor]) => ({ itemOrcamentoId, valor })),
-    executado: Object.entries(executadoPorItem).map(([itemOrcamentoId, valor]) => ({ itemOrcamentoId, valor })),
+    resumo: { orcado: somaOrcado, comprometido: somaComprometido, executado: somaExecutado, saldo: somaOrcado - somaComprometido - somaExecutado },
+    itens
   });
 }

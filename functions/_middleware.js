@@ -8,9 +8,9 @@ const CAMINHOS_PUBLICOS = [
   '/api/auth/google-callback',
   '/api/auth/microsoft',
   '/api/auth/microsoft-callback',
+  '/api/compras/confirmar', // link de confirmação enviado ao fornecedor
   '/confirmar-pedido.html'
 ];
-
 const PREFIXOS_PUBLICOS = ['/css/', '/js/'];
 
 export async function onRequest({ request, env, next }) {
@@ -21,7 +21,6 @@ export async function onRequest({ request, env, next }) {
     PREFIXOS_PUBLICOS.some((p) => url.pathname.startsWith(p)) ||
     url.pathname === '/logo.png' ||
     url.pathname === '/favicon.ico';
-
   if (publico) return next();
 
   const token = lerCookie(request, 'sessao');
@@ -32,6 +31,4 @@ export async function onRequest({ request, env, next }) {
   }
 
   return next();
-
-  
 }

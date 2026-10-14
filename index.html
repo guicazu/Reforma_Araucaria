@@ -198,108 +198,155 @@
   <div id="usuariosConteudo">Carregando...</div>
 </section>
 
-<section id="viewSuprimentos" class="hidden">
-8  <div class="supr-header">
-9    <h2>📦 Suprimentos</h2>
-10    <label class="supr-select-orcamento">Obra / Orçamento
-11      <select id="suprSelectOrcamento"></select>
-12    </label>
-13  </div>
-14
-15  <div id="suprBannerSomenteLeitura" class="supr-readonly-banner hidden">
-16    Você está em modo somente leitura — fale com um administrador para liberar edição.
-17  </div>
-18
-19  <nav class="supr-tabs">
-20    <button class="supr-tab ativa" data-supraba="requisicoes">Requisições</button>
-21    <button class="supr-tab" data-supraba="cotacoes">Cotação</button>
-22    <button class="supr-tab" data-supraba="pedidos">Pedidos</button>
-23    <button class="supr-tab" data-supraba="fornecedores">Fornecedores</button>
-24    <button class="supr-tab" data-supraba="comparativo">Orçado × Executado</button>
-25  </nav>
-26
-27  <!-- ===== REQUISIÇÕES ===== -->
-28  <div id="suprPainelRequisicoes" class="supr-painel">
-29    <div id="suprRequisicoesLista">
-30      <div class="supr-toolbar">
-31        <button class="btn btn-primary btn-sm" id="suprBtnNovaRequisicao">+ Nova requisição</button>
-32      </div>
-33      <div id="suprListaRequisicoes"></div>
-34    </div>
-35
-36    <div id="suprRequisicoesNova" class="hidden">
-37      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaReq">← Voltar</button>
-38      <h3 style="margin:14px 0 8px">Selecione os itens do orçamento</h3>
-39      <input type="search" id="suprFiltroItens" placeholder="Buscar item do orçamento...">
-40      <div id="suprArvoreItens" class="supr-lista"></div>
-41    </div>
-42
-43    <div id="suprRequisicoesRevisar" class="hidden">
-44      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarSelecao">← Voltar à seleção</button>
-45      <h3 style="margin:14px 0 8px">Confirme as quantidades</h3>
-46      <div id="suprCarrinhoLista"></div>
-47      <label>Observações<textarea id="suprReqObservacoes" rows="2"></textarea></label>
-48      <div id="suprMsgRequisicao" class="supr-msg"></div>
-49      <button class="btn btn-primary" id="suprBtnSalvarRequisicao">Salvar requisição</button>
-50    </div>
-51  </div>
-52
-53  <!-- ===== COTAÇÕES ===== -->
-54  <div id="suprPainelCotacoes" class="supr-painel hidden">
-55    <div id="suprCotacoesLista">
-56      <div class="supr-toolbar">
-57        <button class="btn btn-primary btn-sm" id="suprBtnNovaCotacao">+ Nova cotação</button>
-58      </div>
-59      <div id="suprListaCotacoes"></div>
-60    </div>
-61
-62    <div id="suprCotacoesNova" class="hidden">
-63      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaCot">← Voltar</button>
-64      <h3 style="margin:14px 0 8px">1. Selecione os itens a cotar</h3>
-65      <div id="suprItensParaCotar" class="supr-lista"></div>
-66      <h3 style="margin:18px 0 8px">2. Selecione os fornecedores que vão responder</h3>
-67      <div id="suprFornecedoresParaCotar"></div>
-68      <div id="suprMsgNovaCotacao" class="supr-msg"></div>
-69      <button class="btn btn-primary" id="suprBtnCriarMapa">Criar mapa de cotação</button>
-70    </div>
-71
-72    <div id="suprMapaCotacao" class="hidden">
-73      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaCot2">← Voltar</button>
-74      <div id="suprMapaWrap"></div>
-75    </div>
-76  </div>
-77
-78  <!-- ===== PEDIDOS ===== -->
-79  <div id="suprPainelPedidos" class="supr-painel hidden">
-80    <div id="suprListaPedidos"></div>
-81  </div>
-82
-83  <!-- ===== FORNECEDORES ===== -->
-84  <div id="suprPainelFornecedores" class="supr-painel hidden">
-85    <div class="supr-form-inline">
-86      <label>Nome<input id="suprFNome" type="text"></label>
-87      <label>CNPJ<input id="suprFCnpj" type="text"></label>
-88      <label>Telefone<input id="suprFTelefone" type="text"></label>
-89      <label>E-mail<input id="suprFEmail" type="email"></label>
-90      <div class="supr-form-actions">
-91        <button class="btn btn-primary btn-sm" id="suprBtnSalvarFornecedor">+ Adicionar fornecedor</button>
-92      </div>
-93    </div>
-94    <div id="suprMsgFornecedor" class="supr-msg"></div>
-95    <div id="suprListaFornecedores" class="table-wrap"></div>
-96  </div>
-97
-98  <!-- ===== COMPARATIVO ===== -->
-99  <div id="suprPainelComparativo" class="supr-painel hidden">
-100    <div class="resumo" id="suprResumoComparativo"></div>
-101    <div class="table-wrap">
-102      <table class="tabela">
-103        <thead><tr><th>Item</th><th class="col-num">Orçado</th><th class="col-num">Comprometido</th><th class="col-num">Executado</th><th class="col-num">Saldo</th></tr></thead>
-104        <tbody id="suprCorpoComparativo"></tbody>
-105      </table>
-106    </div>
-107  </div>
-108</section>
+<section class="content hidden" id="viewSuprimentos">
+  <div class="supr-header">
+    <div>
+      <h2>🏗️ Suprimentos</h2>
+      <p>Requisição → Cotação → Mapa → Pedidos → Recebimento</p>
+    </div>
+    <div class="supr-select-orcamento">
+      <label for="suprSelectOrcamento">Obra</label>
+      <select id="suprSelectOrcamento"><option value="">— Selecione a obra —</option></select>
+    </div>
+  </div>
+
+  <div class="supr-readonly-banner hidden" id="suprReadonlyBanner">🔒 Você está em modo somente leitura. Para criar requisições, cotações e pedidos, peça liberação de edição ao administrador.</div>
+
+  <div class="supr-stepper" id="suprStepper">
+    <span class="supr-step" data-step="1"><span class="n">1</span> Requisição</span>
+    <span class="supr-step" data-step="2"><span class="n">2</span> Cotação</span>
+    <span class="supr-step" data-step="3"><span class="n">3</span> Mapa de comparação</span>
+    <span class="supr-step" data-step="4"><span class="n">4</span> Pedidos</span>
+  </div>
+
+  <div class="supr-tabs">
+    <button class="supr-tab" data-aba="requisicoes">Requisições</button>
+    <button class="supr-tab" data-aba="cotacoes">Cotações</button>
+    <button class="supr-tab" data-aba="pedidos">Pedidos</button>
+    <button class="supr-tab" data-aba="fornecedores">Fornecedores</button>
+    <button class="supr-tab" data-aba="comparativo">Orçado × Executado</button>
+  </div>
+
+  <!-- ===== REQUISIÇÕES ===== -->
+  <section class="supr-painel" id="suprPainelRequisicoes">
+    <div id="suprReqLista">
+      <div class="supr-toolbar">
+        <div class="supr-toolbar-left">
+          <label><input type="checkbox" id="suprFiltroMinhas" checked> Apenas minhas requisições</label>
+        </div>
+        <button class="btn btn-primary" id="suprBtnNovaRequisicao">+ Nova requisição</button>
+      </div>
+      <div id="suprListaRequisicoes"></div>
+    </div>
+
+    <div id="suprReqNova" class="hidden">
+      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Nova requisição</h3>
+      <p class="supr-msg" style="margin:0 0 12px">Obra: <b id="suprReqOrcamentoInfo">—</b> — selecione os itens do orçamento (via EAP ou busca).</p>
+      <input type="text" id="suprFiltroItens" placeholder="🔍 Buscar item, serviço ou caminho…" style="width:100%;max-width:420px;margin-bottom:12px">
+      <div id="suprArvoreItens"></div>
+      <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
+        <button class="btn btn-ghost" id="suprBtnCancelarNova">Cancelar</button>
+        <button class="btn btn-primary" id="suprBtnContinuarSelecao">Continuar (0 itens)</button>
+      </div>
+    </div>
+
+    <div id="suprReqRevisar" class="hidden">
+      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Revisar e definir quantidades</h3>
+      <p class="supr-msg" style="margin:0 0 6px;background:#f0f7e9;color:#4a6d00">A quantidade já vem preenchida com o orçado. Ajuste para mais ou para menos se quiser — depois o comparativo mostra se você comprou acima ou abaixo do orçado.</p>
+      <div id="suprCarrinhoLista"></div>
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--cazu-suave,#4a5d60);margin:12px 0 4px">Observações</label>
+      <textarea id="suprReqObservacoes" rows="2" style="width:100%;max-width:560px" placeholder="Ex.: prioridade, data desejada, observações da obra…"></textarea>
+      <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
+        <button class="btn btn-ghost" id="suprBtnVoltarSelecao">← Voltar à seleção</button>
+        <button class="btn btn-primary" id="suprBtnSalvarRequisicao">Salvar requisição</button>
+      </div>
+      <div id="suprMsgRequisicao"></div>
+    </div>
+  </section>
+
+  <!-- ===== COTAÇÕES ===== -->
+  <section class="supr-painel hidden" id="suprPainelCotacoes">
+    <div id="suprCotLista">
+      <div class="supr-toolbar">
+        <div></div>
+        <button class="btn btn-primary" id="suprBtnNovaCotacao">+ Nova cotação</button>
+      </div>
+      <div id="suprListaCotacoes"></div>
+    </div>
+
+    <div id="suprCotNova" class="hidden">
+      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Nova cotação — selecione itens e fornecedores</h3>
+      <p class="supr-msg" style="margin:0 0 6px;background:#f0f7e9;color:#4a6d00">Os itens vêm das requisições da obra. Dá para cotar só uma parte dos itens e ajustar as quantidades.</p>
+      <div id="suprItensParaCotar"></div>
+      <h4 style="color:var(--cazu-petroleo,#052d33);margin:18px 0 8px">Fornecedores que vão responder</h4>
+      <div id="suprFornecedoresParaCotar"></div>
+      <div class="supr-toolbar" style="justify-content:space-between;margin-top:14px">
+        <button class="btn btn-ghost" id="suprBtnVoltarListaCot">← Voltar</button>
+        <button class="btn btn-primary" id="suprBtnCriarMapa">Criar mapa de comparação</button>
+      </div>
+      <div id="suprMsgNovaCotacao"></div>
+    </div>
+
+    <div id="suprMapaCotacao" class="hidden">
+      <div id="suprMapaWrap"></div>
+    </div>
+  </section>
+
+  <!-- ===== PEDIDOS ===== -->
+  <section class="supr-painel hidden" id="suprPainelPedidos">
+    <div class="supr-toolbar">
+      <div class="supr-toolbar-left">Pedidos gerados a partir das cotações finalizadas.</div>
+    </div>
+    <div id="suprListaPedidos"></div>
+  </section>
+
+  <!-- ===== FORNECEDORES ===== -->
+  <section class="supr-painel hidden" id="suprPainelFornecedores">
+    <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 12px">Cadastro de fornecedores</h3>
+    <div class="supr-form-inline">
+      <label>Nome *<input type="text" id="suprFNome" placeholder="Razão social / nome"></label>
+      <label>CNPJ<input type="text" id="suprFCnpj" placeholder="00.000.000/0000-00"></label>
+      <label>Telefone<input type="text" id="suprFTelefone" placeholder="(16) 99999-9999"></label>
+      <label>E-mail<input type="text" id="suprFEmail" placeholder="compras@fornecedor.com.br"></label>
+      <div class="supr-form-actions"><button class="btn btn-primary" id="suprBtnSalvarFornecedor">+ Salvar</button></div>
+    </div>
+    <div id="suprMsgFornecedor"></div>
+    <div id="suprListaFornecedores"></div>
+  </section>
+
+  <!-- ===== COMPARATIVO ===== -->
+  <section class="supr-painel hidden" id="suprPainelComparativo">
+    <div class="supr-resumo-cards" id="suprResumoComparativo"></div>
+    <div class="supr-table-wrap">
+      <table class="tabela">
+        <thead>
+          <tr><th>Item</th><th>Orçado</th><th>Comprometido</th><th>Executado (recebido)</th><th>Saldo</th></tr>
+        </thead>
+        <tbody id="suprCorpoComparativo"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Dialog de recebimento -->
+  <dialog id="suprDialogRecebimento" class="modal">
+    <h3 style="margin:0 0 10px;color:#052d33">Recebimento do pedido</h3>
+    <p id="suprRecPedidoInfo" style="margin:0 0 10px;font-size:13px;color:#4a5d60"></p>
+    <div class="supr-form-inline">
+      <label>Nº da nota fiscal<input type="text" id="suprRecNotaNumero"></label>
+      <label>Chave de acesso (opcional)<input type="text" id="suprRecNotaChave"></label>
+      <label>Data do recebimento<input type="date" id="suprRecData"></label>
+      <label>Valor total da nota (R$)<input type="number" step="0.01" min="0" id="suprRecValor"></label>
+    </div>
+    <div id="suprRecItensWrap"></div>
+    <label style="display:block;font-size:12px;font-weight:700;color:#4a5d60;margin:10px 0 4px">Observações</label>
+    <textarea id="suprRecObservacoes" rows="2" style="width:100%"></textarea>
+    <div id="suprMsgRecebimento"></div>
+    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" id="suprBtnCancelarRecebimento">Cancelar</button>
+      <button class="btn btn-primary" id="suprBtnConfirmarRecebimento">Lançar recebimento</button>
+    </div>
+  </dialog>
+</section>
 
 <section class="content hidden" id="viewLiberacao">
   <div class="orcamento-head">
