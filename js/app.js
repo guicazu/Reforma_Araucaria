@@ -280,6 +280,16 @@ async function excluirOrcamento(id){
     if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;
     $('#viewOrcamento').dataset.modo='lista';
     salvar();renderTudo();
+    // Libera o bloqueio no D1 após excluir
+    try {
+      await fetch('/api/bloqueios', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+      });
+    } catch(e) {
+      console.warn('Não foi possível liberar bloqueio após exclusão:', e);
+    }
   }catch(erro){
     alert('Não foi possível excluir: '+erro.message);
   }
