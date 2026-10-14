@@ -1183,12 +1183,9 @@ window.state = state;
       throw new Error('No version info');
     })
     .then(data => {
-      const updated = data ? new Date(data.updated || data.buildTime || data.timestamp) : new Date();
-      versionEl.textContent = updated.toLocaleString('pt-BR', { 
-        day: '2-digit', month: '2-digit', year: 'numeric', 
-        hour: '2-digit', minute: '2-digit' 
-      });
-      versionEl.title = `Versão: ${updated.toISOString()}\nCommit: `;
+      const version = data ? (data.updated || data.buildTime || data.timestamp || 'desconhecida') : 'desconhecida';
+      versionEl.textContent = version;
+      versionEl.title = `Versão: ${version}\nCommit: ${version}`;
     })
     .catch(() => {
       // Final fallback: show current time (indicating live update)
