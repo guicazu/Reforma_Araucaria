@@ -730,9 +730,12 @@ function salvarReqBasica() {
 
 /* ---------- FLUXO COMPLETO REQUISIÇÃO ---------- */
 function abrirNovaReqBasica() {
+  // Passo 1: Tela de consulta (lista) - já visível
+  // Passo 2: Nova requisição - informações básicas
   document.getElementById('suprReqLista').classList.add('hidden');
   document.getElementById('suprReqNova').classList.remove('hidden');
   document.getElementById('suprReqRevisar').classList.add('hidden');
+  document.getElementById('suprReqInsumos').classList.add('hidden');
 }
 
 function salvarReqBasica() {
@@ -766,3 +769,15 @@ document.addEventListener('DOMContentLoaded', function() {
   var btnSalvarBasica = document.getElementById('btnSalvarReqBasica');
   if (btnSalvarBasica) btnSalvarBasica.addEventListener('click', salvarReqBasica);
 });
+
+function abrirReqInsumos() {
+  // Passo 3: Selecionar insumo (orçamento ou base)
+  document.getElementById('suprReqNova').classList.add('hidden');
+  document.getElementById('suprReqInsumos').classList.remove('hidden');
+}
+
+function salvarReqInsumos() {
+  // Passo 4: Quantidade + serviço de apropriação
+  document.getElementById('suprReqInsumos').classList.add('hidden');
+  document.getElementById('suprReqRevisar').classList.remove('hidden');
+}
