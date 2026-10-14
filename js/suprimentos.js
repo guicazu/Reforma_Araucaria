@@ -606,14 +606,16 @@
 
   /* ---------- EVENTOS ---------- */
   document.addEventListener('DOMContentLoaded', function () {
-    carregarMe().then(function () {
-      var banner = el('suprReadonlyBanner');
-      if (banner && !podeEditar()) banner.classList.remove('hidden');
-      carregarOrcamentos().then(function () {
-        estado.itensOrcamento = [];
-        carregarItensOrcamento().then(function (it) { estado.itensOrcamento = it; });
+    if (typeof carregarMe === 'function') {
+      carregarMe().then(function () {
+        var banner = el('suprReadonlyBanner');
+        if (banner && !podeEditar()) banner.classList.remove('hidden');
+        carregarOrcamentos().then(function () {
+          estado.itensOrcamento = [];
+          carregarItensOrcamento().then(function (it) { estado.itensOrcamento = it; });
+        });
       });
-    });
+    }
 
     var sel = el('suprSelectOrcamento');
     if (sel) sel.addEventListener('change', function () {
