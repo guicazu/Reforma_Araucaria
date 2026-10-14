@@ -384,5 +384,4 @@
         if (ids.has(i.dataset.itemreq) && !i.disabled) i.checked = true;
       });
     }, 300);
-  }
-)();
+  };
