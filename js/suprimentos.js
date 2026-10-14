@@ -1,4 +1,323 @@
-/* ---------- MAPA DE COMPARAÇÃO (continuação — versão final) ---------- */
+/* ============================================================
+   suprimentos.js — Módulo de Suprimentos (v2)
+   Requisições → Cotação → Mapa de comparação → Pedidos →
+   Confirmação → Recebimento + Comparativo orçado × executado.
+   Alinhado à API /api/compras/* (Cloudflare Pages Functions + D1).
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var API = '/api/compras';
+  var ME = null;
+  var estado = {
+    orcamentoId: '',
+    itensOrcamento: [],
+    carrinho: [],
+    requisicoes: [],
+    cotacoes: [],
+    fornecedores: [],
+    pedidos: [],
+    linksConfirmacao: {},
+    apenasMinhas: true
+  };
+
+  function el(id) { return document.getElementById(id); }
+  function $$(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+  function escS(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var fmtM = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var fmtQ = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+
+  async function api(path, opcoes) {
+    var res = await fetch(path, Object.assign({
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    }, opcoes || {}));
+    if (res.status === 401) { location.href = '/login'; throw new Error('nao_autenticado'); }
+    if (res.status === 403) return { erro: 'somente_visualizacao' };
+    return res.json().catch(function () { return {}; });
+  }
+
+  async function carregarMe() {
+    try {
+      var d = await fetch('/api/auth/me', { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+      ME = d.usuario || d;
+    } catch (e) { ME = null; }
+  }
+  function podeEditar() { return !ME || ME.podeEditar === 1 || ME.podeEditar === true || ME.isAdmin === 1 || ME.isAdmin === true; }
+  function msg(id, texto, ok) {
+    var m = el(id);
+    if (!m) return;
+    m.className = 'supr-msg ' + (ok ? 'ok' : 'erro');
+    m.textContent = texto;
+  }
+
+  /* ---------- stepper ---------- */
+  function stepper(passo) {
+    $$('.supr-step').forEach(function (s) {
+      var n = Number(s.dataset.step || 0);
+      s.classList.toggle('ativo', n === passo);
+      s.classList.toggle('concluido', n < passo);
+    });
+  }
+
+  /* ---------- orçamentos / itens ---------- */
+  async function carregarOrcamentos() {
+    var sel = el('suprSelectOrcamento');
+    if (!sel) return;
+    var lista = [];
+    try {
+      var d = await api('/api/orcamentos');
+      lista = Array.isArray(d) ? d : (d && d.orcamentos || []);
+    } catch (e) {}
+    if (!lista.length && window.state && Array.isArray(window.state.orcamentos)) lista = window.state.orcamentos;
+    sel.innerHTML = '<option value="">— Selecione a obra (orçamento) —</option>' +
+      lista.map(function (o) {
+        return '<option value="' + escS(o.id) + '">' + escS(o.codigo || '') + (o.codigo ? ' — ' : '') + escS(o.nome) + '</option>';
+      }).join('');
+    if (lista.length && !estado.orcamentoId) estado.orcamentoId = lista[0].id;
+    if (estado.orcamentoId) sel.value = estado.orcamentoId;
+  }
+
+  function normalizarUnidades(o) {
+    var conteudo = o && o.conteudo;
+    if (typeof conteudo === 'string') { try { conteudo = JSON.parse(conteudo); } catch (e) { conteudo = null; } }
+    return (conteudo && (conteudo.unidades || (conteudo.versao && conteudo.versao.unidades))) || (o && o.unidades) || [];
+  }
+
+  function qtdServico(sv) {
+    var q = sv && (sv.qtdManual != null ? sv.qtdManual : (sv.quantidade && (sv.quantidade.valor != null ? sv.quantidade.valor : sv.quantidade)));
+    return Number(q) || 0;
+  }
+
+  async function carregarItensOrcamento() {
+    var id = estado.orcamentoId;
+    if (!id) return [];
+    var o = null;
+    try {
+      var d = await api('/api/orcamentos/' + encodeURIComponent(id));
+      o = d.orcamento || d;
+    } catch (e) {}
+    if (!o) {
+      try {
+        var dl = await api('/api/orcamentos');
+        var lista = Array.isArray(dl) ? dl : (dl && dl.orcamentos || []);
+        o = lista.find(function (x) { return x.id === id; }) || null;
+      } catch (e) {}
+    }
+    if (!o) return [];
+    var itens = [];
+    normalizarUnidades(o).forEach(function (u, iu) {
+      (u.etapas || []).forEach(function (e, ie) {
+        (e.subEtapas || []).forEach(function (s, is) {
+          (s.servicos || []).forEach(function (sv, isv) {
+            if (!sv.id) return;
+            itens.push({
+              servicoId: sv.id,
+              codigo: (iu + 1) + '.' + (ie + 1) + '.' + (is + 1) + '.' + (isv + 1),
+              caminho: (u.nome || '') + ' → ' + (e.nome || '') + ' → ' + (s.nome || ''),
+              descricao: sv.nome || '',
+              unidade: sv.unidadeMedida || '',
+              quantidadeOrcada: qtdServico(sv)
+            });
+          });
+        });
+      });
+    });
+    return itens;
+  }
+
+  function renderArvore() {
+    var wrap = el('suprArvoreItens');
+    if (!wrap) return;
+    var filtro = (el('suprFiltroItens') || {}).value || '';
+    var f = filtro.toLowerCase();
+    var list = estado.itensOrcamento.filter(function (i) {
+      return !f || (i.descricao + ' ' + i.caminho + ' ' + i.codigo).toLowerCase().indexOf(f) !== -1;
+    });
+    wrap.innerHTML = list.length ? list.map(function (i) {
+      var sel = estado.carrinho.some(function (c) { return c.servicoId === i.servicoId; });
+      return '<label class="supr-item-linha">' +
+        '<input type="checkbox" data-servicoid="' + escS(i.servicoId) + '"' + (sel ? ' checked' : '') + '>' +
+        '<span class="supr-item-codigo">' + escS(i.codigo) + '</span>' +
+        '<span class="supr-item-txt"><strong>' + escS(i.descricao) + '</strong><small>' + escS(i.caminho) + '</small></span>' +
+        '<span class="supr-item-qtd">' + escS(i.unidade) + ' · orçado ' + fmtQ.format(i.quantidadeOrcada) + '</span>' +
+        '</label>';
+    }).join('') : '<p class="supr-msg">Nenhum item encontrado.</p>';
+    var btn = el('suprBtnContinuarSelecao');
+    if (btn) btn.textContent = 'Continuar (' + estado.carrinho.length + ' itens)';
+  }
+
+  /* ---------- REQUISIÇÕES ---------- */
+  async function listaRequisicoes() {
+    var wrap = el('suprListaRequisicoes');
+    if (!wrap) return;
+    var orcId = estado.orcamentoId;
+    if (!orcId) { wrap.innerHTML = '<p class="supr-msg">Selecione a obra acima.</p>'; return; }
+    wrap.innerHTML = '<p class="supr-msg">Carregando…</p>';
+    var dados = await api(API + '/requisicoes?orcamentoId=' + encodeURIComponent(orcId));
+    if (!dados || dados.erro === 'somente_visualizacao') { wrap.innerHTML = ''; return; }
+    estado.requisicoes = dados.requisicoes || [];
+    var lista = estado.requisicoes;
+    if (estado.apenasMinhas && ME && ME.email) {
+      lista = lista.filter(function (r) { return (r.solicitanteEmail || '').toLowerCase() === ME.email.toLowerCase(); });
+    }
+    if (!lista.length) {
+      wrap.innerHTML = '<p class="supr-msg">Nenhuma requisição' + (estado.apenasMinhas ? ' sua' : '') + ' ainda. Clique em "+ Nova requisição".</p>';
+      return;
+    }
+    wrap.innerHTML = lista.map(function (r) {
+      var qtdItens = (r.itens || []).length;
+      return '<div class="supr-card">' +
+        '<div class="supr-card-head">' +
+        '<strong>Req #' + escS(r.id.slice(0, 8).toUpperCase()) + '</strong>' +
+        '<span>' + new Date(r.criadoEm || Date.now()).toLocaleDateString('pt-BR') + ' · ' + badge(r.status) + '</span>' +
+        '</div>' +
+        '<div class="supr-card-body">' + escS(r.observacoes || '') +
+        '<small> · ' + qtdItens + ' item(ns) · ' + escS(r.solicitanteNome || r.solicitanteEmail || '') + '</small></div>' +
+        '<div class="supr-card-acoes">' +
+        '<button class="btn btn-sm btn-ghost" data-acao="cotar-req" data-id="' + escS(r.id) + '">Cotar</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function badge(st) {
+    var mapa = { aberta: ['Aberta', 'badge-aberta'], em_cotacao: ['Em cotação', 'badge-em-cotacao'], em_pedido: ['Em pedido', 'badge-em-pedido'], pendente: ['Pendente', 'badge-aberta'], emitido: ['Emitido', 'badge-em-pedido'], enviado: ['Enviado', 'badge-enviado'], confirmado: ['Confirmado', 'badge-confirmado'], recebido: ['Recebido', 'badge-recebido'], cancelado: ['Cancelado', 'badge-cancelado'], finalizada: ['Finalizada', 'badge-confirmado'] };
+    var m = mapa[st] || [st, 'badge-aberta'];
+    return '<span class="badge ' + m[1] + '">' + escS(m[0]) + '</span>';
+  }
+
+  function novaRequisicao() {
+    el('suprReqLista').classList.add('hidden');
+    el('suprReqNova').classList.remove('hidden');
+    el('suprReqRevisar').classList.add('hidden');
+    estado.carrinho = [];
+    var info = el('suprReqOrcamentoInfo');
+    if (info) info.textContent = estado.orcamentoId;
+    renderArvore();
+    stepper(1);
+  }
+
+  function revisarSelecao() {
+    if (!estado.carrinho.length) { alert('Selecione ao menos um item.'); return; }
+    el('suprReqNova').classList.add('hidden');
+    el('suprReqRevisar').classList.remove('hidden');
+    var wrap = el('suprCarrinhoLista');
+    if (wrap) wrap.innerHTML = estado.carrinho.map(function (c, idx) {
+      return '<div class="supr-carrinho-linha">' +
+        '<input type="number" step="any" min="0" class="supr-carrinho-qtd" data-idx="' + idx + '" value="' + (c.quantidade || c.quantidadeOrcada || 0) + '">' +
+        '<span>' + escS(c.descricao) + ' <small>' + escS(c.unidade) + ' · orçado: ' + fmtQ.format(c.quantidadeOrcada) + '</small></span>' +
+        '</div>';
+    }).join('');
+    stepper(1);
+  }
+
+  async function salvarRequisicao() {
+    if (!podeEditar()) { msg('suprMsgRequisicao', 'Você está em modo somente leitura.', false); return; }
+    var btn = el('suprBtnSalvarRequisicao');
+    if (btn) btn.disabled = true;
+    var orcamentoId = estado.orcamentoId;
+    var observacoes = (el('suprReqObservacoes') || {}).value || '';
+    var itens = [];
+    estado.carrinho.forEach(function (c, idx) {
+      var input = document.querySelector('.supr-carrinho-qtd[data-idx="' + idx + '"]');
+      var qtd = input ? Number(input.value) : 0;
+      itens.push({
+        itemOrcamentoId: c.servicoId,
+        descricao: c.descricao,
+        unidade: c.unidade,
+        quantidadeOrcamento: c.quantidadeOrcada,
+        quantidadeSolicitada: qtd || 0
+      });
+    });
+    if (!itens.length || !orcamentoId) { msg('suprMsgRequisicao', 'Selecione itens válidos.', false); if (btn) btn.disabled = false; return; }
+    var dados = await api(API + '/requisicoes', { method: 'POST', body: JSON.stringify({ orcamentoId: orcamentoId, observacoes: observacoes, itens: itens }) });
+    if (!dados || dados.erro) { msg('suprMsgRequisicao', dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Não foi possível salvar a requisição.', false); if (btn) btn.disabled = false; return; }
+    msg('suprMsgRequisicao', 'Requisição salva com sucesso ✔', true);
+    setTimeout(function () {
+      estado.carrinho = [];
+      el('suprReqObservacoes').value = '';
+      ativarAba('requisicoes');
+    }, 900);
+  }
+
+  /* ---------- COTAÇÕES ---------- */
+  async function listaCotacoes() {
+    var wrap = el('suprListaCotacoes');
+    if (!wrap) return;
+    var orcId = estado.orcamentoId;
+    if (!orcId) { wrap.innerHTML = '<p class="supr-msg">Selecione a obra acima.</p>'; return; }
+    wrap.innerHTML = '<p class="supr-msg">Carregando…</p>';
+    var dados = await api(API + '/cotacoes?orcamentoId=' + encodeURIComponent(orcId));
+    if (!dados || dados.erro) { wrap.innerHTML = ''; return; }
+    estado.cotacoes = dados.cotacoes || [];
+    if (!estado.cotacoes.length) { wrap.innerHTML = '<p class="supr-msg">Nenhuma cotação ainda.</p>'; return; }
+    wrap.innerHTML = estado.cotacoes.map(function (c) {
+      return '<div class="supr-card">' +
+        '<div class="supr-card-head"><strong>Cot. ' + escS(c.id.slice(0, 8).toUpperCase()) + '</strong>' +
+        '<span>' + badge(c.status) + ' · ' + new Date(c.criadoEm || Date.now()).toLocaleDateString('pt-BR') + '</span></div>' +
+        '<div class="supr-card-acoes">' +
+        (c.status === 'aberta' ? '<button class="btn btn-sm btn-primary" data-acao="abrir-mapa" data-id="' + escS(c.id) + '">Abrir mapa</button>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  async function novaCotacao() {
+    if (!podeEditar()) { msg('suprMsgNovaCotacao', 'Modo somente leitura.', false); return; }
+    var orcId = estado.orcamentoId;
+    if (!orcId) { msg('suprMsgNovaCotacao', 'Selecione a obra acima.', false); return; }
+    el('suprCotLista').classList.add('hidden');
+    el('suprCotNova').classList.remove('hidden');
+    el('suprMapaCotacao').classList.add('hidden');
+    msg('suprMsgNovaCotacao', '');
+    var dados = await api(API + '/requisicoes?orcamentoId=' + encodeURIComponent(orcId));
+    if (!dados || dados.erro) { msg('suprMsgNovaCotacao', 'Não foi possível carregar as requisições.', false); return; }
+    var reqs = dados.requisicoes || [];
+    var itens = [];
+    reqs.forEach(function (r) {
+      (r.itens || []).forEach(function (it) {
+        if (it.status === 'em_pedido' || it.status === 'confirmado' || it.status === 'recebido') return;
+        itens.push({ id: it.id, descricao: it.descricao, unidade: it.unidade, quantidade: it.quantidadeSolicitada || 0, quantidadeOrcamento: it.quantidadeOrcamento, reqRef: r.id.slice(0, 8).toUpperCase(), status: it.status });
+      });
+    });
+    var wrap = el('suprItensParaCotar');
+    if (wrap) wrap.innerHTML = itens.length ? itens.map(function (it) {
+      return '<label class="supr-item-linha">' +
+        '<input type="checkbox" data-itemreq="' + escS(it.id) + '"' + (it.status === 'em_cotacao' ? ' disabled' : '') + '>' +
+        '<span class="supr-item-txt"><strong>' + escS(it.descricao) + '</strong>' +
+        '<small>Req ' + escS(it.reqRef) + ' · ' + badge(it.status) + '</small></span>' +
+        '<span class="supr-item-qtd"><input type="number" step="any" min="0" class="supr-qtd-cotar" data-itemreq="' + escS(it.id) + '" value="' + (it.quantidade || 0) + '" style="width:80px"></span>' +
+        '</label>';
+    }).join('') : '<p class="supr-msg">Nenhum item de requisição disponível para cotar (crie antes uma requisição).</p>';
+    await carregarFornecedores();
+    var fwrap = el('suprFornecedoresParaCotar');
+    if (fwrap) fwrap.innerHTML = estado.fornecedores.length ? estado.fornecedores.map(function (f) {
+      return '<label class="supr-item-linha"><input type="checkbox" data-fornid="' + escS(f.id) + '" checked>' +
+        '<span class="supr-item-txt"><strong>' + escS(f.nome) + '</strong><small>' + escS(f.email || '') + '</small></span></label>';
+    }).join('') : '<p class="supr-msg">Nenhum fornecedor cadastrado — cadastre na aba Fornecedores.</p>';
+    stepper(2);
+  }
+
+  async function criarMapa() {
+    var itens = $$('#suprItensParaCotar input[type=checkbox]:checked').map(function (i) {
+      var qtd = i.closest('label').querySelector('.supr-qtd-cotar');
+      return { itemRequisicaoId: i.dataset.itemreq, quantidade: qtd ? (Number(qtd.value) || 0) : 0 };
+    });
+    var forn = $$('#suprFornecedoresParaCotar input[type=checkbox]:checked').map(function (i) { return { fornecedorId: i.dataset.fornid }; });
+    if (!itens.length || !forn.length) { msg('suprMsgNovaCotacao', 'Selecione itens e ao menos um fornecedor.', false); return; }
+    var dados = await api(API + '/cotacoes', {
+      method: 'POST',
+      body: JSON.stringify({ orcamentoId: estado.orcamentoId, itens: itens, fornecedores: forn })
+    });
+    if (!dados || dados.erro) { msg('suprMsgNovaCotacao', dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Falha ao criar a cotação.', false); return; }
+    msg('suprMsgNovaCotacao', 'Cotação criada ✔ abrindo o mapa…', true);
+    setTimeout(function () { abrirMapa(dados.id); }, 700);
+  }
+
+  /* ---------- MAPA DE COMPARAÇÃO ---------- */
   var MAPA_ID = null;
 
   async function abrirMapa(id) {
@@ -372,10 +691,7 @@
   });
 
   async function novoComItemReq(reqId) {
-    // Abre a nova cotação já com os itens da requisição marcados
     await novaCotacao();
-    var cb = document.querySelector('#suprItensParaCotar input[type=checkbox][data-itemreq]');
-    // (os itens da req específica são marcados após o carregamento)
     setTimeout(function () {
       var reqs = estado.requisicoes.find(function (r) { return r.id === reqId; });
       if (!reqs) return;
@@ -384,4 +700,5 @@
         if (ids.has(i.dataset.itemreq) && !i.disabled) i.checked = true;
       });
     }, 300);
-  };
+  }
+})();
