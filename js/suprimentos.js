@@ -704,3 +704,26 @@
     }, 300);
   }
 })();
+/* ---------- FLUXO REQUISIÇÃO (baseado no Sienge) ---------- */
+function abrirNovaReqBasica() {
+  // Tela 1: dados básicos (obra, observações)
+  document.getElementById('suprReqLista').classList.add('hidden');
+  document.getElementById('suprReqNova').classList.remove('hidden');
+  // Preencher select de obras
+  var sel = document.getElementById('reqObraSelect');
+  if (sel && !sel.options.length) {
+    // Carregar orçamentos disponíveis
+    carregarOrcamentos().then(function() {
+      // Implementar preenchimento
+    });
+  }
+}
+
+function salvarReqBasica() {
+  // Tela 2: criar número e ir para itens
+  var obs = document.getElementById('reqObservacoes').value;
+  // Criar requisição com número
+  document.getElementById('suprReqNova').classList.add('hidden');
+  document.getElementById('suprReqRevisar').classList.remove('hidden');
+  // Carregar itens do orçamento selecionado
+}
