@@ -53,3 +53,42 @@
 @media (max-width:860px){
   .supr-toolbar select,.supr-toolbar input[type="search"]{min-width:0;width:100%}
 }
+
+/* ---- v2: view embutida, seleção múltipla, mapa de cotação ---- */
+
+.supr-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.supr-header h2{margin:0;color:var(--navy-escuro)}
+.supr-select-orcamento{font-size:12px;font-weight:700;color:var(--suave);display:flex;flex-direction:column;gap:4px}
+.supr-select-orcamento select{min-width:260px}
+
+.supr-item-check{display:flex;align-items:center;gap:10px;cursor:pointer}
+.supr-item-check input[type="checkbox"]{width:18px;height:18px;flex-shrink:0}
+.supr-item-check .oi-info{flex:1}
+.supr-lista .orcamento-item.selecionado{border-color:var(--gold);background:#fdf8e8}
+
+.supr-carrinho-item{display:flex;align-items:center;gap:12px;border:1px solid var(--borda);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.supr-carrinho-item .oi-info{flex:1}
+.supr-carrinho-item input[type="number"]{width:110px}
+.supr-carrinho-item .supr-remover{background:none;border:none;color:var(--vermelho);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px}
+.supr-carrinho-resumo{font-size:13px;color:var(--suave);margin:10px 0}
+
+.supr-chip-fornecedor{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--borda);border-radius:20px;padding:6px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:13px;background:#fff}
+.supr-chip-fornecedor.selecionado{border-color:var(--gold);background:#fdf6e0;font-weight:700}
+.supr-chip-fornecedor input{margin:0}
+
+.supr-mapa-scroll{overflow-x:auto;border:1px solid var(--borda);border-radius:10px}
+table.supr-mapa{border-collapse:collapse;width:100%;min-width:640px;font-size:12px}
+table.supr-mapa th,table.supr-mapa td{border:1px solid var(--borda);padding:6px 8px;text-align:center;white-space:nowrap}
+table.supr-mapa th.supr-col-item,table.supr-mapa td.supr-col-item{text-align:left;white-space:normal;min-width:180px;position:sticky;left:0;background:#fff;z-index:1}
+table.supr-mapa thead th{background:#f3f5f9;font-size:11px}
+table.supr-mapa .supr-fornecedor-head{padding:8px}
+table.supr-mapa .supr-fornecedor-head small{display:block;color:var(--suave);font-weight:400;margin-top:2px}
+table.supr-mapa input[type="number"]{width:84px;text-align:right;padding:4px 6px;font-size:12px}
+table.supr-mapa input[type="text"]{width:100px;font-size:11px;padding:3px 5px}
+table.supr-mapa td.supr-celula-vencedora{background:#eafaf0}
+table.supr-mapa .supr-menor-preco{color:var(--verde);font-weight:800}
+table.supr-mapa .supr-flag-vencedora{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:10px}
+
+.supr-rodada-badge{font-size:10px;background:#e9ecf2;border-radius:10px;padding:1px 7px;margin-left:4px}
+
+.supr-pedido-pdf-ok{color:var(--verde);font-size:11px}

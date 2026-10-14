@@ -8,6 +8,7 @@ const CAMINHOS_PUBLICOS = [
   '/api/auth/google-callback',
   '/api/auth/microsoft',
   '/api/auth/microsoft-callback'
+  '/confirmar-pedido.html'
 ];
 
 const PREFIXOS_PUBLICOS = ['/css/', '/js/'];
@@ -31,4 +32,6 @@ export async function onRequest({ request, env, next }) {
   }
 
   return next();
+
+  
 }
