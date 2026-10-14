@@ -99,6 +99,7 @@
       <h2>Orçamentos</h2>
       <button id="btnNovoOrcamento" class="btn btn-primary btn-sm">+ Novo</button>
     </div>
+    <button class="app-sidebar-item" data-view="suprimentos">📦 Suprimentos</button>
     <ul class="orcamento-list" id="listaOrcamentos"></ul>
     <div id="listaStatusSalvamento" class="lista-save-panel hidden">
       <span id="statusListaSalvamento" class="save-status" role="status" aria-live="polite"></span>
@@ -187,6 +188,109 @@
   </div>
   <div id="usuariosConteudo">Carregando...</div>
 </section>
+
+<section id="viewSuprimentos" class="hidden">
+8  <div class="supr-header">
+9    <h2>📦 Suprimentos</h2>
+10    <label class="supr-select-orcamento">Obra / Orçamento
+11      <select id="suprSelectOrcamento"></select>
+12    </label>
+13  </div>
+14
+15  <div id="suprBannerSomenteLeitura" class="supr-readonly-banner hidden">
+16    Você está em modo somente leitura — fale com um administrador para liberar edição.
+17  </div>
+18
+19  <nav class="supr-tabs">
+20    <button class="supr-tab ativa" data-supraba="requisicoes">Requisições</button>
+21    <button class="supr-tab" data-supraba="cotacoes">Cotação</button>
+22    <button class="supr-tab" data-supraba="pedidos">Pedidos</button>
+23    <button class="supr-tab" data-supraba="fornecedores">Fornecedores</button>
+24    <button class="supr-tab" data-supraba="comparativo">Orçado × Executado</button>
+25  </nav>
+26
+27  <!-- ===== REQUISIÇÕES ===== -->
+28  <div id="suprPainelRequisicoes" class="supr-painel">
+29    <div id="suprRequisicoesLista">
+30      <div class="supr-toolbar">
+31        <button class="btn btn-primary btn-sm" id="suprBtnNovaRequisicao">+ Nova requisição</button>
+32      </div>
+33      <div id="suprListaRequisicoes"></div>
+34    </div>
+35
+36    <div id="suprRequisicoesNova" class="hidden">
+37      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaReq">← Voltar</button>
+38      <h3 style="margin:14px 0 8px">Selecione os itens do orçamento</h3>
+39      <input type="search" id="suprFiltroItens" placeholder="Buscar item do orçamento...">
+40      <div id="suprArvoreItens" class="supr-lista"></div>
+41    </div>
+42
+43    <div id="suprRequisicoesRevisar" class="hidden">
+44      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarSelecao">← Voltar à seleção</button>
+45      <h3 style="margin:14px 0 8px">Confirme as quantidades</h3>
+46      <div id="suprCarrinhoLista"></div>
+47      <label>Observações<textarea id="suprReqObservacoes" rows="2"></textarea></label>
+48      <div id="suprMsgRequisicao" class="supr-msg"></div>
+49      <button class="btn btn-primary" id="suprBtnSalvarRequisicao">Salvar requisição</button>
+50    </div>
+51  </div>
+52
+53  <!-- ===== COTAÇÕES ===== -->
+54  <div id="suprPainelCotacoes" class="supr-painel hidden">
+55    <div id="suprCotacoesLista">
+56      <div class="supr-toolbar">
+57        <button class="btn btn-primary btn-sm" id="suprBtnNovaCotacao">+ Nova cotação</button>
+58      </div>
+59      <div id="suprListaCotacoes"></div>
+60    </div>
+61
+62    <div id="suprCotacoesNova" class="hidden">
+63      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaCot">← Voltar</button>
+64      <h3 style="margin:14px 0 8px">1. Selecione os itens a cotar</h3>
+65      <div id="suprItensParaCotar" class="supr-lista"></div>
+66      <h3 style="margin:18px 0 8px">2. Selecione os fornecedores que vão responder</h3>
+67      <div id="suprFornecedoresParaCotar"></div>
+68      <div id="suprMsgNovaCotacao" class="supr-msg"></div>
+69      <button class="btn btn-primary" id="suprBtnCriarMapa">Criar mapa de cotação</button>
+70    </div>
+71
+72    <div id="suprMapaCotacao" class="hidden">
+73      <button class="btn btn-ghost btn-sm" id="suprBtnVoltarListaCot2">← Voltar</button>
+74      <div id="suprMapaWrap"></div>
+75    </div>
+76  </div>
+77
+78  <!-- ===== PEDIDOS ===== -->
+79  <div id="suprPainelPedidos" class="supr-painel hidden">
+80    <div id="suprListaPedidos"></div>
+81  </div>
+82
+83  <!-- ===== FORNECEDORES ===== -->
+84  <div id="suprPainelFornecedores" class="supr-painel hidden">
+85    <div class="supr-form-inline">
+86      <label>Nome<input id="suprFNome" type="text"></label>
+87      <label>CNPJ<input id="suprFCnpj" type="text"></label>
+88      <label>Telefone<input id="suprFTelefone" type="text"></label>
+89      <label>E-mail<input id="suprFEmail" type="email"></label>
+90      <div class="supr-form-actions">
+91        <button class="btn btn-primary btn-sm" id="suprBtnSalvarFornecedor">+ Adicionar fornecedor</button>
+92      </div>
+93    </div>
+94    <div id="suprMsgFornecedor" class="supr-msg"></div>
+95    <div id="suprListaFornecedores" class="table-wrap"></div>
+96  </div>
+97
+98  <!-- ===== COMPARATIVO ===== -->
+99  <div id="suprPainelComparativo" class="supr-painel hidden">
+100    <div class="resumo" id="suprResumoComparativo"></div>
+101    <div class="table-wrap">
+102      <table class="tabela">
+103        <thead><tr><th>Item</th><th class="col-num">Orçado</th><th class="col-num">Comprometido</th><th class="col-num">Executado</th><th class="col-num">Saldo</th></tr></thead>
+104        <tbody id="suprCorpoComparativo"></tbody>
+105      </table>
+106    </div>
+107  </div>
+108</section>
 
 <section class="content hidden" id="viewLiberacao">
   <div class="orcamento-head">
@@ -369,7 +473,23 @@
     </div>
   </form>
 </dialog>
-
+<dialog id="suprModalRecebimento" class="modal">
+5  <h3>Lançar recebimento / nota fiscal</h3>
+6  <p id="suprModalRecPedidoInfo" style="color:var(--suave);font-size:13px;margin-top:-10px"></p>
+7  <div class="grid-2">
+8    <label>Nº da nota fiscal<input id="suprRecNotaNumero" type="text"></label>
+9    <label>Chave de acesso (opcional)<input id="suprRecNotaChave" type="text"></label>
+10    <label>Data do recebimento<input id="suprRecData" type="date"></label>
+11    <label>Valor total da nota (R$)<input id="suprRecValor" type="number" step="0.01" min="0"></label>
+12  </div>
+13  <div id="suprRecItensWrap"></div>
+14  <label>Observações<textarea id="suprRecObservacoes" rows="2"></textarea></label>
+15  <div id="suprMsgRecebimento" class="supr-msg"></div>
+16  <div class="modal-actions">
+17    <button class="btn btn-ghost" id="suprBtnCancelarRecebimento">Cancelar</button>
+18    <button class="btn btn-primary" id="suprBtnConfirmarRecebimento">Lançar recebimento</button>
+19  </div>
+20</dialog>
 <section class="content hidden" id="viewInsumos">
   <div class="orcamento-head catalogo-page-head">
     <div>
@@ -574,5 +694,6 @@
 <script src="/js/sinapi-ui.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
+<script src="/js/suprimentos.js"></script>
 </body>
 </html>
