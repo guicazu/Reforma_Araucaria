@@ -727,3 +727,42 @@ function salvarReqBasica() {
   document.getElementById('suprReqRevisar').classList.remove('hidden');
   // Carregar itens do orçamento selecionado
 }
+
+/* ---------- FLUXO COMPLETO REQUISIÇÃO ---------- */
+function abrirNovaReqBasica() {
+  document.getElementById('suprReqLista').classList.add('hidden');
+  document.getElementById('suprReqNova').classList.remove('hidden');
+  document.getElementById('suprReqRevisar').classList.add('hidden');
+}
+
+function salvarReqBasica() {
+  var obra = document.getElementById('reqObraSelect').value;
+  var obs = document.getElementById('reqObservacoes').value;
+  if (!obra) { alert('Selecione uma obra'); return; }
+  // Criar número de requisição
+  var numReq = 'REQ-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(Math.random()*1000);
+  document.getElementById('suprReqNova').classList.add('hidden');
+  document.getElementById('suprReqRevisar').classList.remove('hidden');
+  // Carregar itens do orçamento selecionado
+  carregarItensOrcamento().then(function(itens) {
+    estado.itensOrcamento = itens;
+    mostrarItensParaSelecao(itens);
+  });
+}
+
+function mostrarItensParaSelecao(itens) {
+  var wrap = document.getElementById('suprArvoreItens');
+  if (!wrap) return;
+  wrap.innerHTML = itens.map(function(it) {
+    return '<label><input type="checkbox" data-item="' + it.id + '">' + it.nome + ' (' + it.unidade + ')</label>';
+  }).join('');
+}
+
+/* ---------- CONEXÃO DOS BOTÕES ---------- */
+document.addEventListener('DOMContentLoaded', function() {
+  var btnNova = document.getElementById('suprBtnNovaRequisicao');
+  if (btnNova) btnNova.addEventListener('click', abrirNovaReqBasica);
+  
+  var btnSalvarBasica = document.getElementById('btnSalvarReqBasica');
+  if (btnSalvarBasica) btnSalvarBasica.addEventListener('click', salvarReqBasica);
+});
