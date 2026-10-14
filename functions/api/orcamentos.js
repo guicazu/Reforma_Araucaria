@@ -94,7 +94,7 @@ export async function onRequestPost({ request, env }) {
     ).bind(
       versaoId,
       o.id,
-      corpo.versaoNumero,
+      0,
       corpo.rotulo || ('Versão ' + corpo.versaoNumero),
       o.codigo || '',
       o.nome || '',
@@ -154,6 +154,8 @@ export async function onRequestPost({ request, env }) {
   const ultimaVersao = await env.DB.prepare(
     'SELECT MAX(versaoNumero) as maxNum FROM orcamentos_versoes WHERE orcamentoId = ?'
   ).bind(editandoId).first();
+  const ultimaRevisao = await env.DB.prepare('SELECT MAX(revisao) as maxRev FROM orcamentos_versoes WHERE orcamentoId = ?').bind(editandoId).first();
+  const novaRevisao = (ultimaRevisao && ultimaRevisao.maxRev ? ultimaRevisao.maxRev : 0) + 1;
   const novoNum = (ultimaVersao && ultimaVersao.maxNum ? ultimaVersao.maxNum : 0) + 1;
   const versaoId = editandoId + '-v' + novoNum;
   
