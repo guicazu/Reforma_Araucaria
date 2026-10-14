@@ -1,4 +1,3 @@
-
 import { lerCookie, validarSessao } from '../_lib/session.js';
 
 async function usuarioPodeEditar(payload, env) {
@@ -13,28 +12,45 @@ async function usuarioPodeEditar(payload, env) {
 }
 
 export async function onRequestGet({ env }) {
-  const row = await env.DB.prepare(
-    "SELECT conteudo FROM orcamentos WHERE id = 'atual'"
-  ).first();
-  let dados = [];
-  if (row && row.conteudo) {
-    dados = JSON.parse(row.conteudo);
-    if (!Array.isArray(dados)) throw new Error('Snapshot de orçamentos inválido no D1');
+  // Lê todas as versões de todos os orçamentos
+  const { results: versoes } = await env.DB.prepare(
+    'SELECT * FROM orcamentos_versoes ORDER BY orcamentoId, versaoNumero DESC'
+  ).all();
+  
+  const orcamentosPorId = {};
+  for (const v of versoes) {
+    if (!orcamentosPorId[v.orcamentoId]) {
+      orcamentosPorId[v.orcamentoId] = {
+        id: v.orcamentoId,
+        codigo: v.codigo,
+        nome: v.nome,
+        criadoEm: v.criadoEm,
+        versoes: []
+      };
+    }
+    orcamentosPorId[v.orcamentoId].versoes.push({
+      id: v.id,
+      numero: v.versaoNumero,
+      rotulo: v.rotulo,
+      criadoEm: v.criadoEm,
+      unidades: JSON.parse(v.conteudo || '[]')
+    });
   }
-
-  // Anexa o bloqueio ativo de cada orçamento
+  
+  const dados = Object.values(orcamentosPorId);
+  
   const { results: bloqueios } = await env.DB.prepare(
     'SELECT orcamentoId, usuarioEmail, usuarioNome, criadoEm FROM bloqueios'
   ).all();
   const mapa = {};
   for (const b of bloqueios) mapa[b.orcamentoId] = b;
-
+  
   for (const o of dados) {
     o.bloqueio = mapa[o.id]
       ? { email: mapa[o.id].usuarioEmail, nome: mapa[o.id].usuarioNome, criadoEm: mapa[o.id].criadoEm }
       : null;
   }
-
+  
   return Response.json({ dados });
 }
 
@@ -52,10 +68,70 @@ export async function onRequestPost({ request, env }) {
   } catch (error) {
     return Response.json({ erro: 'json_invalido' }, { status: 400 });
   }
+  
   const orcamentos = corpo && (corpo.orcamentos ?? corpo.dados);
   if (!Array.isArray(orcamentos)) {
     return Response.json({ erro: 'orcamentos_invalidos' }, { status: 400 });
   }
+  
+  // Se é uma nova versão de orçamento existente
+  if (corpo.versaoNova && corpo.orcamentoId && corpo.versaoNumero) {
+    const o = orcamentos.find(x => x.id === corpo.orcamentoId);
+    if (!o) return Response.json({ erro: 'orcamento_nao_encontrado' }, { status: 404 });
+    
+    const agora = new Date().toISOString();
+    const versaoId = o.id + '-v' + corpo.versaoNumero;
+    
+    await env.DB.prepare(
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         rotulo = excluded.rotulo,
+         conteudo = excluded.conteudo,
+         atualizadoEm = excluded.atualizadoEm`
+    ).bind(
+      versaoId,
+      o.id,
+      corpo.versaoNumero,
+      corpo.rotulo || ('Versão ' + corpo.versaoNumero),
+      o.codigo || '',
+      o.nome || '',
+      o.criadoEm || agora,
+      JSON.stringify(o.versoes ? o.versoes[o.versoes.length - 1].unidades : []),
+      agora
+    ).run();
+    
+    return Response.json({ ok: true, versaoId, atualizadoEm: agora });
+  }
+  
+  // Se é criação de novo orçamento (versão 1)
+  if (corpo.novoOrcamento && corpo.orcamentoId) {
+    const o = orcamentos.find(x => x.id === corpo.orcamentoId);
+    if (!o) return Response.json({ erro: 'orcamento_nao_encontrado' }, { status: 404 });
+    
+    const agora = new Date().toISOString();
+    const versaoId = o.id + '-v1';
+    
+    await env.DB.prepare(
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO NOTHING`
+    ).bind(
+      versaoId,
+      o.id,
+      1,
+      'Versão 1',
+      o.codigo || '',
+      o.nome || '',
+      o.criadoEm || agora,
+      JSON.stringify(o.versoes ? o.versoes[0].unidades : []),
+      agora
+    ).run();
+    
+    return Response.json({ ok: true, versaoId, atualizadoEm: agora });
+  }
+  
+  // Atualização normal (salva como nova versão ou atualiza existente)
   const ids = new Set();
   for (const orcamento of orcamentos) {
     if (!orcamento || typeof orcamento.id !== 'string' || !orcamento.id || ids.has(orcamento.id)) {
@@ -64,44 +140,39 @@ export async function onRequestPost({ request, env }) {
     ids.add(orcamento.id);
   }
 
-  const atual = await env.DB.prepare(
-    "SELECT conteudo FROM orcamentos WHERE id = 'atual'"
-  ).first();
-  const anteriores = atual && atual.conteudo ? JSON.parse(atual.conteudo) : [];
-  if (!Array.isArray(anteriores)) throw new Error('Snapshot de orçamentos inválido no D1');
-  const antigosPorId = new Map(anteriores.map((orcamento) => [orcamento.id, orcamento]));
-  const novosPorId = new Map(orcamentos.map((orcamento) => [orcamento.id, orcamento]));
-  const idsAlterados = new Set([...antigosPorId.keys(), ...novosPorId.keys()]);
-  for (const id of [...idsAlterados]) {
-    if (JSON.stringify(antigosPorId.get(id)) === JSON.stringify(novosPorId.get(id))) {
-      idsAlterados.delete(id);
-    }
-  }
-  if (!idsAlterados.size) return Response.json({ ok: true, semAlteracoes: true });
-
   const editandoId = corpo.editandoId;
-  if (typeof editandoId !== 'string' || idsAlterados.size !== 1 || !idsAlterados.has(editandoId)) {
+  if (typeof editandoId !== 'string' || !ids.has(editandoId)) {
     return Response.json({ erro: 'bloqueio_obrigatorio' }, { status: 409 });
   }
+  
   const agora = new Date().toISOString();
-  const conteudo = JSON.stringify(orcamentos);
-  const gravacao = await env.DB.prepare(
-    `INSERT INTO orcamentos (id, codigo, nome, criadoEm, conteudo, atualizadoEm)
-     SELECT 'atual', 'SNAP', 'Estado atual', ?, ?, ?
-     WHERE EXISTS (
-       SELECT 1 FROM bloqueios WHERE orcamentoId = ? AND lower(usuarioEmail) = ?
-     )
-     ON CONFLICT(id) DO UPDATE SET conteudo = excluded.conteudo, atualizadoEm = excluded.atualizadoEm
-     WHERE EXISTS (
-       SELECT 1 FROM bloqueios WHERE orcamentoId = ? AND lower(usuarioEmail) = ?
-     )`
+  const o = orcamentos.find(x => x.id === editandoId);
+  
+  // Salva como nova versão (versão atual + 1) ou atualiza se já existe
+  const ultimaVersao = await env.DB.prepare(
+    'SELECT MAX(versaoNumero) as maxNum FROM orcamentos_versoes WHERE orcamentoId = ?'
+  ).bind(editandoId).first();
+  const novoNum = (ultimaVersao && ultimaVersao.maxNum ? ultimaVersao.maxNum : 0) + 1;
+  const versaoId = editandoId + '-v' + novoNum;
+  
+  await env.DB.prepare(
+    `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       rotulo = excluded.rotulo,
+       conteudo = excluded.conteudo,
+       atualizadoEm = excluded.atualizadoEm`
   ).bind(
-    agora, conteudo, agora,
-    editandoId, session.email.toLowerCase(),
-    editandoId, session.email.toLowerCase()
+    versaoId,
+    editandoId,
+    novoNum,
+    'Versão ' + novoNum,
+    o.codigo || '',
+    o.nome || '',
+    o.criadoEm || agora,
+    JSON.stringify(o.versoes ? o.versoes[o.versoes.length - 1].unidades : []),
+    agora
   ).run();
-  if (!gravacao.meta || gravacao.meta.changes !== 1) {
-    return Response.json({ erro: 'bloqueio_nao_permitido' }, { status: 409 });
-  }
-  return Response.json({ ok: true, atualizadoEm: agora });
+  
+  return Response.json({ ok: true, versaoId, atualizadoEm: agora });
 }

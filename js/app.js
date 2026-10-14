@@ -236,6 +236,28 @@ async function criarOrcamento(){
     state.orcamentos.push(novo);state.ativoId=novo.id;
     $('#viewOrcamento').dataset.modo='editor';
     salvar();renderTudo();
+    // Cria a versão 1 como linha separada no D1
+    (async () => {
+      try {
+        const resposta = await fetch('/api/orcamentos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            novoOrcamento: true,
+            orcamentoId: novo.id,
+            orcamentos: [novo]
+          })
+        });
+        const resultado = await resposta.json();
+        if(resposta.ok && resultado.ok) {
+          console.log('Orçamento criado no D1:', resultado.versaoId);
+        } else {
+          console.warn('Orçamento criado localmente mas não salvo no D1:', resultado);
+        }
+      } catch(e) {
+        console.error('Erro ao salvar orçamento no D1:', e);
+      }
+    })();
   }catch(erro){
     alert('Não foi possível criar o orçamento para edição: '+erro.message);
   }
