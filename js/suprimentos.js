@@ -756,6 +756,9 @@ function salvarReqBasica() {
 }
 
 function mostrarItensParaSelecao(itens) {
+  // Não sobrescrever se as opções de insumo estão ativas
+  var wrap = document.getElementById('suprArvoreItens');
+  if (wrap && wrap.querySelector('button[onclick*="selecionarInsumo"]')) return;
   var wrap = document.getElementById('suprArvoreItens');
   if (!wrap) return;
   wrap.innerHTML = itens.map(function(it) {
