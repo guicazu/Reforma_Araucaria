@@ -706,6 +706,7 @@
 })();
 /* ---------- FLUXO REQUISIÇÃO (baseado no Sienge) ---------- */
 function abrirNovaReqBasica() {
+  mostrarOpcoesInsumo();
   // Tela 1: dados básicos (obra, observações)
   document.getElementById('suprReqLista').classList.add('hidden');
   document.getElementById('suprReqNova').classList.remove('hidden');
@@ -730,6 +731,7 @@ function salvarReqBasica() {
 
 /* ---------- FLUXO COMPLETO REQUISIÇÃO ---------- */
 function abrirNovaReqBasica() {
+  mostrarOpcoesInsumo();
   // Passo 1: Tela de consulta (lista) - já visível
   // Passo 2: Nova requisição - informações básicas
   document.getElementById('suprReqLista').classList.add('hidden');
