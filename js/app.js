@@ -1130,6 +1130,13 @@ async function carregarDoServidor(){
     document.dispatchEvent(new CustomEvent('app:profilechange'));
     const remotos = resposta.dados.map(orcamento=>{
       const copia = Object.assign({}, orcamento);
+      // Extrai unidades da última versão (se existir)
+      if(copia.versoes && copia.versoes.length > 0) {
+        const ultimaVersao = copia.versoes[copia.versoes.length - 1];
+        copia.unidades = ultimaVersao.unidades || [];
+      } else {
+        copia.unidades = [];
+      }
       if(copia.bloqueio)bloqueiosPorOrcamento[copia.id]=copia.bloqueio;
       else delete bloqueiosPorOrcamento[copia.id];
       delete copia.bloqueio;
