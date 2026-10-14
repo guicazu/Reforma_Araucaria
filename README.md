@@ -6,7 +6,7 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 ## Funcionalidades
 
 - Múltiplos orçamentos, com EAP em 4 níveis: Unidade Construtiva → Etapa → Sub Etapa → Serviço
-- Colunas: EAP, descrição, quantidade, unidade, valor unitário, valor total
+- Colunas EAP, descrição, quantidade, unidade, valor unitário, valor total
 - Memória de cálculo por serviço (soma automática das quantidades)
 - Subtotais por sub etapa, etapa e unidade construtiva
 - Dados salvos no navegador (localStorage) e enviados ao banco compartilhado ao clicar em
