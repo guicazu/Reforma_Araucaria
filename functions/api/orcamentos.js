@@ -99,7 +99,7 @@ export async function onRequestPost({ request, env }) {
       o.codigo || '',
       o.nome || '',
       o.criadoEm || agora,
-      JSON.stringify((o.versoes && o.versoes[o.versoes.length - 1] && o.versoes[o.versoes.length - 1].unidades && o.versoes[o.versoes.length - 1].unidades.length > 0) ? o.versoes[o.versoes.length - 1].unidades : (o.versoes && o.versoes[0] && o.versoes[0].unidades ? o.versoes[0].unidades : [])),
+      JSON.stringify((o.versoes && o.versoes[o.versoes.length - 1] && o.versoes[o.versoes.length - 1].unidades) ? o.versoes[o.versoes.length - 1].unidades : (o.unidades ? o.unidades : [])),
       agora
     ).run();
     
@@ -174,7 +174,7 @@ export async function onRequestPost({ request, env }) {
     o.codigo || '',
     o.nome || '',
     o.criadoEm || agora,
-    JSON.stringify((o.versoes && o.versoes[o.versoes.length - 1] && o.versoes[o.versoes.length - 1].unidades && o.versoes[o.versoes.length - 1].unidades.length > 0) ? o.versoes[o.versoes.length - 1].unidades : (o.versoes && o.versoes[0] && o.versoes[0].unidades ? o.versoes[0].unidades : [])),
+    JSON.stringify((o.versoes && o.versoes[o.versoes.length - 1] && o.versoes[o.versoes.length - 1].unidades) ? o.versoes[o.versoes.length - 1].unidades : (o.unidades ? o.unidades : [])),
     agora
   ).run();
   
