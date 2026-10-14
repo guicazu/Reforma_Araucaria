@@ -1178,7 +1178,7 @@ window.state = state;
     .then(r => r.ok ? r.json() : Promise.reject())
     .catch(() => {
       // Fallback: try to get from a meta tag or build info
-      const meta = document.querySelector('meta[name="build-time"]');
+      const meta = document.querySelector('meta[name="version"]');
       if (meta) return { updated: meta.content };
       throw new Error('No version info');
     })
@@ -1188,7 +1188,7 @@ window.state = state;
         day: '2-digit', month: '2-digit', year: 'numeric', 
         hour: '2-digit', minute: '2-digit' 
       });
-      versionEl.title = `Última atualização: ${updated.toISOString()}\nFonte: Cloudflare`;
+      versionEl.title = `Versão: ${updated.toISOString()}\nCommit: `;
     })
     .catch(() => {
       // Final fallback: show current time (indicating live update)
@@ -1197,6 +1197,6 @@ window.state = state;
         day: '2-digit', month: '2-digit', year: 'numeric', 
         hour: '2-digit', minute: '2-digit' 
       });
-      versionEl.title = 'Última atualização: agora (Cloudflare)';
+      versionEl.title = 'Versão: agora (Cloudflare)';
     });
 })();
