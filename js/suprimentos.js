@@ -781,3 +781,44 @@ function salvarReqInsumos() {
   document.getElementById('suprReqInsumos').classList.add('hidden');
   document.getElementById('suprReqRevisar').classList.remove('hidden');
 }
+
+/* ---------- OPÇÕES DE INSUMO ---------- */
+function mostrarOpcoesInsumo() {
+  var wrap = document.getElementById('suprArvoreItens');
+  if (!wrap) return;
+  wrap.innerHTML = 
+    '<div style="margin-bottom:12px">' +
+    '<button class="btn btn-primary" onclick="selecionarInsumoOrcamento()">📋 Selecionar item do orçamento</button>' +
+    '<button class="btn btn-ghost" onclick="selecionarInsumoBase()">📦 Selecionar insumo da base</button>' +
+    '</div>' +
+    '<div id="suprSelecaoInsumo"></div>';
+}
+
+function selecionarInsumoOrcamento() {
+  // Carrega itens do orçamento com referência automática
+  carregarItensOrcamento().then(function(itens) {
+    var div = document.getElementById('suprSelecaoInsumo');
+    if (!div) return;
+    div.innerHTML = '<h4>Itens do orçamento (já referenciados)</h4>' +
+      itens.map(function(it) {
+        return '<label><input type="checkbox" data-item="' + it.id + '" data-servico="' + (it.servico || '') + '">' +
+        it.nome + ' — <small>' + (it.servico || 'Serviço não definido') + '</small></label>';
+      }).join('');
+  });
+}
+
+function selecionarInsumoBase() {
+  // Carrega insumos da base e pede serviço
+  var div = document.getElementById('suprSelecaoInsumo');
+  if (!div) return;
+  div.innerHTML = '<h4>Insumos da base</h4>' +
+    '<label>Serviço / Etapa para apropriação: <select id="suprServApropriacao"><option>Fundação</option><option>Estrutura</option><option>Alvenaria</option></select></label>' +
+    '<div id="suprListaInsumosBase"></div>';
+  // Carregar base de insumos
+  carregarInsumosBase().then(function(insumos) {
+    var lista = document.getElementById('suprListaInsumosBase');
+    if (lista) lista.innerHTML = insumos.map(function(i) {
+      return '<label><input type="checkbox" data-insumo="' + i.id + '">' + i.nome + '</label>';
+    }).join('');
+  });
+}
