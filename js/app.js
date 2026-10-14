@@ -350,6 +350,30 @@ function gerarVersao(){
   state.expandidos={};
   salvar();renderTudo();
   if($('#modalVersoes').open)renderVersoes(o);
+  // Salva a nova versão como linha separada no D1
+  (async () => {
+    try {
+      const resposta = await fetch('/api/orcamentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          versaoNova: true,
+          orcamentoId: o.id,
+          versaoNumero: novoNum,
+          rotulo: rotulo.trim() || ('Versão ' + novoNum),
+          orcamentos: [{ id: o.id, nome: o.nome, codigo: o.codigo, criadoEm: o.criadoEm, versoes: o.versoes }]
+        })
+      });
+      const resultado = await resposta.json();
+      if(resposta.ok && resultado.ok) {
+        console.log('Versão ' + novoNum + ' salva como nova linha no D1:', resultado.versaoId);
+      } else {
+        console.warn('Versão criada localmente mas não salva no D1:', resultado);
+      }
+    } catch(e) {
+      console.error('Erro ao salvar versão no D1:', e);
+    }
+  })();
 }
 function totalVersao(v){let t=0;for(const u of v.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function flatServicos(unidades){
