@@ -27,9 +27,6 @@
       <button class="app-sidebar-item" data-view="planejamento" title="Planejamento">
         <span class="icone">📅</span><span class="rotulo">Planejamento</span>
       </button>
-      <button class="app-sidebar-item" data-view="suprimentos" title="Suprimentos">
-        <span class="icone">📦</span><span class="rotulo">Suprimentos</span>
-      </button>
       <button class="app-sidebar-item" data-view="composicoes" title="Composições">
         <span class="icone">🧱</span><span class="rotulo">Composições</span>
       </button>
@@ -38,6 +35,12 @@
       </button>
       <button class="app-sidebar-item" data-view="unidades" title="Unidades">
         <span class="icone">📏</span><span class="rotulo">Unidades</span>
+      </button>
+    </div>
+    <div class="app-sidebar-group">
+      <span class="app-sidebar-group-label">Suprimentos</span>
+      <button class="app-sidebar-item" data-view="suprimentos" title="Suprimentos">
+        <span class="icone">📦</span><span class="rotulo">Suprimentos</span>
       </button>
     </div>
     <div class="app-sidebar-group">
@@ -50,6 +53,12 @@
 </button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
         <span class="icone">💾</span><span class="rotulo">Backup</span>
+      </button>
+    </div>
+    <div class="app-sidebar-group">
+      <span class="app-sidebar-group-label">Financeiro</span>
+      <button class="app-sidebar-item" data-view="financeiro" title="Financeiro">
+        <span class="icone">💰</span><span class="rotulo">Financeiro</span>
       </button>
     </div>
   </div>
@@ -695,5 +704,26 @@
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
 <script src="/js/suprimentos.js"></script>
+
+<section id="viewFinanceiro" class="hidden">
+  <div class="content">
+    <h2>💰 Financeiro</h2>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>Contas a Pagar</h3>
+        <p>Acesse relatórios e controle de pagamentos.</p>
+      </div>
+      <div class="dash-card">
+        <h3>Relatórios</h3>
+        <p>Emissão de relatórios financeiros.</p>
+      </div>
+      <div class="dash-card">
+        <h3>Orçamento Financeiro</h3>
+        <p>Controle orçamentário e fluxo de caixa.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 </body>
 </html>
