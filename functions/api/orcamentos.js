@@ -28,12 +28,14 @@ export async function onRequestGet({ env }) {
         versoes: []
       };
     }
+    // Reconstrói a versão a partir do conteúdo salvo
+    const unidades = JSON.parse(v.conteudo || '[]');
     orcamentosPorId[v.orcamentoId].versoes.push({
       id: v.id,
       numero: v.versaoNumero,
       rotulo: v.rotulo,
       criadoEm: v.criadoEm,
-      unidades: JSON.parse(v.conteudo || '[]')
+      unidades: unidades
     });
   }
   
