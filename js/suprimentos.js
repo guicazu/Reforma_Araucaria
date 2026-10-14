@@ -1,508 +1,646 @@
-/* Suprimentos — embutido na sidebar via erp-nav.js (view "suprimentos") */
-(function () {
-  'use strict';
+/* ============================================================
+   suprimentos.js — Módulo de Suprimentos
+   Requisições → Cotação → Pedidos → Fornecedores → Orçado × Exec.
+   Integra com functions/api/compras/* (Cloudflare + D1).
+   Carregar DEPOIS de app.js (usa esc/uid/qtdServico/fmtBRL quando existem).
+   ============================================================ */
+'use strict';
 
-  const estado = {
-    usuario: null,
-    orcamentos: [],
-    orcamentoId: null,
-    servicosFlat: [],
-    carrinho: [],          // seleção em andamento pra nova requisição: [{itemOrcamentoId, descricao, unidade, quantidadeOrcamento, quantidadeSolicitada}]
-    requisicoes: [],
-    fornecedores: [],
-    cotacoes: [],
-    novaCotacaoItens: [],        // itens escolhidos pra cotar: [{itemRequisicaoId, descricao, unidade, quantidade}]
-    novaCotacaoFornecedores: {}, // { fornecedorId: {selecionado, condicaoPagamento} }
-    mapaAtual: null,             // {cotacao, itens, fornecedores, precos}
-    pedidos: [],
-    comparativo: null,
+/* ---------- helpers seguros (fallback se app.js não expor) ---------- */
+const $s = (s, c = document) => c.querySelector(s);
+const $$s = (s, c = document) => [...c.querySelectorAll(s)];
+const escS = (typeof esc === 'function') ? esc
+  : (x => String(x ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])));
+const fmtM = (typeof fmtBRL !== 'undefined' && fmtBRL.format) ? fmtBRL
+  : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtQ = (typeof fmtNum !== 'undefined' && fmtNum.format) ? fmtNum
+  : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
+
+function suprEl(id) { return document.getElementById(id); }
+function suprMsg(id, texto, ok) {
+  const el = suprEl(id);
+  if (!el) return;
+  el.textContent = texto || '';
+  el.className = 'supr-msg' + (ok ? ' ok' : (texto ? ' erro' : ''));
+}
+
+/* ---------- sessão / permissão ---------- */
+let suprSomenteLeitura = false;
+async function suprApi(path, opcoes = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    ...opcoes,
+  });
+  if (res.status === 401) { location.href = '/login'; throw new Error('nao_autenticado'); }
+  if (res.status === 403) {
+    suprSomenteLeitura = true;
+    const b = suprEl('suprBannerSomenteLeitura');
+    if (b) b.classList.remove('hidden');
+    return null;
+  }
+  const dados = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(dados.erro || ('erro ' + res.status));
+  return dados;
+}
+
+/* ---------- estado ---------- */
+const suprEstado = {
+  abaAtiva: null,
+  carrinho: [],          // itens selecionados na nova requisição
+  requisicoes: [],
+  cotacoes: [],
+  fornecedores: [],
+  pedidos: [],
+  cotacaoAtual: null,
+  pedidoAtual: null,     // pedido do modal de recebimento
+};
+
+/* ---------- orçamentos (obra = orçamento) ---------- */
+function suprOrcamentos() {
+  try {
+    if (typeof state !== 'undefined' && Array.isArray(state.orcamentos)) return state.orcamentos;
+    const raw = localStorage.getItem('ibuild_orcamentos_v5');
+    const s = raw ? JSON.parse(raw) : { orcamentos: [] };
+    return Array.isArray(s.orcamentos) ? s.orcamentos : [];
+  } catch (e) { return []; }
+}
+function suprPreencherOrcamentos() {
+  const sel = suprEl('suprSelectOrcamento');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Selecione o orçamento (obra) —</option>' +
+    suprOrcamentos().map(o => `<option value="${o.id}">${escS(o.codigo || '')} — ${escS(o.nome)}</option>`).join('');
+}
+
+/* ---------- sub-abas ---------- */
+function suprAtivarAba(aba) {
+  suprEstado.abaAtiva = aba;
+  $$s('.supr-tab').forEach(b => {
+    const v = b.dataset.suprAba || b.dataset.aba;
+    b.classList.toggle('ativa', v === aba);
+  });
+  const paineis = {
+    requisicoes: 'suprPainelRequisicoes',
+    cotacoes: 'suprPainelCotacoes',
+    pedidos: 'suprPainelPedidos',
+    fornecedores: 'suprPainelFornecedores',
+    comparativo: 'suprPainelComparativo',
   };
+  Object.entries(paineis).forEach(([k, id]) => {
+    const p = suprEl(id);
+    if (p) p.classList.toggle('hidden', k !== aba);
+  });
+  if (aba === 'requisicoes') suprRequisicoesLista();
+  else if (aba === 'cotacoes') suprCotacoesLista();
+  else if (aba === 'pedidos') suprPedidosLista();
+  else if (aba === 'fornecedores') suprFornecedoresLista();
+  else if (aba === 'comparativo') suprComparativoCarregar();
+}
 
-  function $(sel) { return document.querySelector(sel); }
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* ============================================================
+   REQUISIÇÕES
+   ============================================================ */
+async function suprRequisicoesLista() {
+  const box = suprEl('suprListaRequisicoes');
+  if (!box) return;
+  suprEl('suprRequisicoesLista').classList.remove('hidden');
+  suprEl('suprRequisicoesNova').classList.add('hidden');
+  suprEl('suprRequisicoesRevisar').classList.add('hidden');
+  const orcId = suprEl('suprSelectOrcamento').value;
+  if (!orcId) { box.innerHTML = '<p class="supr-msg">Selecione o orçamento (obra) acima.</p>'; return; }
+  box.innerHTML = '<p class="supr-msg">Carregando…</p>';
+  const dados = await suprApi('/api/compras/requisicoes?orcamentoId=' + encodeURIComponent(orcId));
+  if (!dados) return;
+  suprEstado.requisicoes = dados.requisicoes || [];
+  if (!suprEstado.requisicoes.length) {
+    box.innerHTML = '<p class="supr-msg">Nenhuma requisição ainda. Clique em "+ Nova requisição".</p>';
+    return;
   }
-  function fmtBRL(v) { return (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-  function fmtNum(v) { return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 }); }
-  function hoje() { return new Date().toISOString().slice(0, 10); }
-  function uid() { return crypto.randomUUID(); }
+  box.innerHTML = suprEstado.requisicoes.map(r => `
+    <div class="supr-card">
+      <div class="supr-card-head">
+        <strong>Req #${escS(r.codigo || r.id)}</strong>
+        <span>${new Date(r.criadoEm || Date.now()).toLocaleDateString('pt-BR')} · ${escS(r.status || '')}</span>
+      </div>
+      <div class="supr-card-body">${escS(r.observacoes || '')}</div>
+      <div class="supr-card-acoes">
+        <button class="btn btn-sm btn-ghost" data-acao="cotar-req" data-id="${r.id}">Cotar</button>
+      </div>
+    </div>`).join('');
+}
 
-  async function api(path, opts) {
-    opts = opts || {};
-    const res = await fetch(path, Object.assign({ credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }, opts));
-    let data = null;
-    try { data = await res.json(); } catch (e) {}
-    if (!res.ok) { const err = new Error((data && data.erro) || ('erro_http_' + res.status)); err.status = res.status; err.data = data; throw err; }
-    return data;
+/* Ítens do orçamento: todos os serviços da EAP (unidade → etapa → sub → serviço) */
+function suprItensOrcamento() {
+  const o = suprOrcamentos().find(x => x.id === suprEl('suprSelectOrcamento').value);
+  if (!o) return [];
+  const versao = Array.isArray(o.versoes) && o.versoes.length ? o.versoes[o.versoes.length - 1] : null;
+  const unidades = versao ? versao.unidades : (Array.isArray(o.unidades) ? o.unidades : []);
+  const itens = [];
+  unidades.forEach((u, iu) => (u.etapas || []).forEach((e, ie) => (e.subEtapas || []).forEach((s, is) => (s.servicos || []).forEach((sv, isv) => {
+    itens.push({
+      servicoId: sv.id,
+      codigo: `${iu + 1}.${ie + 1}.${is + 1}.${isv + 1}`,
+      caminho: `${u.nome} → ${e.nome} → ${s.nome}`,
+      descricao: sv.nome,
+      unidade: sv.unidadeMedida || '',
+      quantidadeOrcada: (typeof qtdServico === 'function') ? (Number(qtdServico(sv)) || 0) : (Number(sv.qtdManual) || 0),
+    });
+  }))));
+  return itens;
+}
+
+function suprRenderArvore() {
+  const wrap = suprEl('suprArvoreItens');
+  if (!wrap) return;
+  const filtro = (suprEl('suprFiltroItens') || {}).value || '';
+  const f = filtro.toLowerCase();
+  const list = suprItensOrcamento().filter(i =>
+    !f || (i.descricao + ' ' + i.caminho + ' ' + i.codigo).toLowerCase().includes(f));
+  wrap.innerHTML = list.length ? list.map(i => {
+    const sel = suprEstado.carrinho.some(c => c.servicoId === i.servicoId);
+    return `<label class="supr-item-linha">
+      <input type="checkbox" data-servicoid="${i.servicoId}" ${sel ? 'checked' : ''}>
+      <span class="supr-item-codigo">${escS(i.codigo)}</span>
+      <span class="supr-item-txt"><strong>${escS(i.descricao)}</strong><small>${escS(i.caminho)}</small></span>
+      <span class="supr-item-qtd">${escS(i.unidade)} · orçado ${fmtQ.format(i.quantidadeOrcada)}</span>
+    </label>`;
+  }).join('') : '<p class="supr-msg">Nenhum item encontrado.</p>';
+  // botão Continuar (criado dinamicamente para não depender do HTML)
+  let btn = suprEl('suprBtnContinuarSelecao');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'suprBtnContinuarSelecao';
+    btn.className = 'btn btn-primary';
+    btn.style.marginTop = '12px';
+    btn.textContent = 'Continuar (0 itens)';
+    wrap.parentNode.appendChild(btn);
   }
-  const MSG = {
-    nao_autenticado: 'Sessão expirada — faça login novamente.',
-    somente_visualizacao: 'Seu usuário não tem permissão de edição.',
-    parametros_invalidos: 'Preencha os campos obrigatórios.',
-    nenhuma_cotacao_vencedora_marcada: 'Marque ao menos um fornecedor vencedor antes de finalizar.',
-    pdf_nao_gerado: 'PDF deste pedido ainda não foi gerado.',
-    fornecedor_sem_email: 'Este fornecedor não tem e-mail cadastrado.',
+  btn.textContent = 'Continuar (' + suprEstado.carrinho.length + ' itens)';
+}
+
+function suprNovaRequisicao() {
+  suprEl('suprRequisicoesLista').classList.add('hidden');
+  suprEl('suprRequisicoesNova').classList.remove('hidden');
+  suprEl('suprRequisicoesRevisar').classList.add('hidden');
+  suprEstado.carrinho = [];
+  suprRenderArvore();
+}
+
+function suprRevisarSelecao() {
+  if (!suprEstado.carrinho.length) { alert('Selecione ao menos um item.'); return; }
+  suprEl('suprRequisicoesNova').classList.add('hidden');
+  suprEl('suprRequisicoesRevisar').classList.remove('hidden');
+  suprEl('suprCarrinhoLista').innerHTML = suprEstado.carrinho.map((c, idx) => `
+    <div class="supr-carrinho-linha">
+      <input type="number" step="any" min="0" class="supr-carrinho-qtd" data-idx="${idx}" value="${c.quantidade}">
+      <span>${escS(c.descricao)} <small>${escS(c.unidade)} · orçado: ${fmtQ.format(c.quantidadeOrcada)}</small></span>
+    </div>`).join('');
+}
+
+async function suprSalvarRequisicao() {
+  const btn = suprEl('suprBtnSalvarRequisicao');
+  btn.disabled = true;
+  const orcamentoId = suprEl('suprSelectOrcamento').value;
+  const observacoes = suprEl('suprReqObservacoes').value;
+  const itens = suprEstado.carrinho.map(c => ({
+    servicoId: c.servicoId,
+    descricao: c.descricao,
+    unidade: c.unidade,
+    quantidade: Number(c.quantidade) || 0,
+    quantidadeOrcada: c.quantidadeOrcada,
+  }));
+  try {
+    const dados = await suprApi('/api/compras/requisicoes',
+      { method: 'POST', body: JSON.stringify({ orcamentoId, observacoes, itens }) });
+    if (!dados) return;
+    suprMsg('suprMsgRequisicao', 'Requisição salva com sucesso ✅', true);
+    setTimeout(() => { suprEstado.carrinho = []; suprEl('suprReqObservacoes').value = ''; suprAtivarAba('requisicoes'); }, 800);
+  } catch (e) { suprMsg('suprMsgRequisicao', e.message); }
+  finally { btn.disabled = false; }
+}
+
+/* ============================================================
+   FORNECEDORES (cadastro completo)
+   ============================================================ */
+async function suprCarregarFornecedores() {
+  const dados = await suprApi('/api/compras/fornecedores');
+  if (!dados) return false;
+  suprEstado.fornecedores = dados.fornecedores || [];
+  return true;
+}
+async function suprFornecedoresLista() {
+  const wrap = suprEl('suprListaFornecedores');
+  if (!wrap) return;
+  if (!(await suprCarregarFornecedores())) return;
+  if (!suprEstado.fornecedores.length) {
+    wrap.innerHTML = '<p class="supr-msg">Nenhum fornecedor cadastrado.</p>';
+    return;
+  }
+  wrap.innerHTML = `<table class="tabela"><thead><tr><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th></th></tr></thead><tbody>` +
+    suprEstado.fornecedores.map(f => `<tr>
+      <td>${escS(f.nome)}</td><td>${escS(f.cnpj || '—')}</td><td>${escS(f.telefone || '—')}</td><td>${escS(f.email || '—')}</td>
+      <td><button class="btn-icon btn-danger" data-acao="del-forn" data-id="${f.id}" title="Excluir">🗑</button></td>
+    </tr>`).join('') + '</tbody></table>';
+}
+async function suprSalvarFornecedor() {
+  const payload = {
+    nome: suprEl('suprFNome').value.trim(),
+    cnpj: suprEl('suprFCnpj').value.trim(),
+    telefone: suprEl('suprFTelefone').value.trim(),
+    email: suprEl('suprFEmail').value.trim(),
   };
-  function msgErro(e) { return MSG[e && e.message] || 'Não foi possível concluir. Tente novamente.'; }
+  if (!payload.nome) { suprMsg('suprMsgFornecedor', 'Informe o nome do fornecedor.'); return; }
+  const dados = await suprApi('/api/compras/fornecedores', { method: 'POST', body: JSON.stringify(payload) });
+  if (!dados) return;
+  ['suprFNome', 'suprFCnpj', 'suprFTelefone', 'suprFEmail'].forEach(id => suprEl(id).value = '');
+  suprMsg('suprMsgFornecedor', 'Fornecedor salvo ✅', true);
+  suprFornecedoresLista();
+}
 
-  // ---- cálculo de quantidade orçada (replica o memo do orçamento) ----
-  function numBR(v) { if (v === '' || v == null) return 1; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 1 : n; }
-  function qtdServico(s) {
-    if (s.qtdManual != null && s.qtdManual !== '') return Number(s.qtdManual) || 0;
-    if (!s.memo || !s.memo.length) return 0;
-    return s.memo.reduce((acc, m) => acc + ['comprimento', 'altura', 'largura', 'coeficiente', 'quantidade'].map((k) => numBR(m[k])).reduce((a, b) => a * b, 1), 0);
-  }
-  function flattenServicos(orc) {
-    const linhas = []; const versao = orc.versoes && orc.versoes[orc.versoes.length - 1]; if (!versao) return linhas;
-    (function andar(nivel, caminho) {
-      (nivel.servicos || []).forEach((s) => {
-        const quantidade = qtdServico(s);
-        linhas.push({ id: s.id, caminho: caminho.join(' › '), nome: s.nome, unidade: s.unidadeMedida || '', valorUnitario: s.valorUnitario || 0, quantidade, valorOrcado: quantidade * (s.valorUnitario || 0) });
-      });
-      (nivel.subEtapas || []).forEach((se) => andar(se, caminho.concat(se.nome)));
-      (nivel.etapas || []).forEach((e) => andar(e, caminho.concat(e.nome)));
-      (nivel.unidades || []).forEach((u) => andar(u, caminho.concat(u.nome)));
-    })(versao, []);
-    return linhas;
-  }
+/* ============================================================
+   COTAÇÕES (montar mapa a partir de 1+ requisições, itens parciais)
+   ============================================================ */
+async function suprCotacoesLista() {
+  const wrap = suprEl('suprListaCotacoes');
+  if (!wrap) return;
+  suprEl('suprCotacoesLista').classList.remove('hidden');
+  suprEl('suprCotacoesNova').classList.add('hidden');
+  suprEl('suprMapaCotacao').classList.add('hidden');
+  const orcId = suprEl('suprSelectOrcamento').value;
+  if (!orcId) { wrap.innerHTML = '<p class="supr-msg">Selecione o orçamento acima.</p>'; return; }
+  wrap.innerHTML = '<p class="supr-msg">Carregando…</p>';
+  const dados = await suprApi('/api/compras/cotacoes?orcamentoId=' + encodeURIComponent(orcId));
+  if (!dados) return;
+  suprEstado.cotacoes = dados.cotacoes || [];
+  if (!suprEstado.cotacoes.length) { wrap.innerHTML = '<p class="supr-msg">Nenhuma cotação ainda.</p>'; return; }
+  wrap.innerHTML = suprEstado.cotacoes.map(c => `
+    <div class="supr-card">
+      <div class="supr-card-head">
+        <strong>Cot. ${escS(c.codigo || c.id)}</strong>
+        <span>${escS(c.status || '')} · ${new Date(c.criadoEm || Date.now()).toLocaleDateString('pt-BR')}</span>
+      </div>
+      <div class="supr-card-acoes">
+        <button class="btn btn-sm btn-primary" data-acao="abrir-mapa" data-id="${c.id}">Abrir mapa</button>
+      </div>
+    </div>`).join('');
+}
 
-  const ROTULO_STATUS = {
-    aberta: 'Aberta', em_cotacao: 'Em cotação', pedido_gerado: 'Pedido gerado', concluida: 'Concluída', cancelada: 'Cancelada',
-    pendente: 'Pendente', atendido_parcial: 'Atendido (parcial)', atendido_total: 'Atendido', cancelado: 'Cancelado',
-    finalizada: 'Finalizada', emitido: 'Emitido', enviado: 'Enviado', confirmado: 'Confirmado pelo fornecedor',
-    recebido_parcial: 'Recebido (parcial)', recebido_total: 'Recebido (total)',
+async function suprNovaCotacao() {
+  suprEl('suprCotacoesLista').classList.add('hidden');
+  suprEl('suprCotacoesNova').classList.remove('hidden');
+  suprEl('suprMapaCotacao').classList.add('hidden');
+  suprMsg('suprMsgNovaCotacao', '');
+  const orcId = suprEl('suprSelectOrcamento').value;
+  const dados = await suprApi('/api/compras/requisicoes?orcamentoId=' + encodeURIComponent(orcId));
+  if (!dados) return;
+  const itens = (dados.requisicoes || []).flatMap(r =>
+    (r.itens || []).map(it => ({ ...it, reqId: r.id, reqCodigo: r.codigo || r.id })));
+  suprEl('suprItensParaCotar').innerHTML = itens.length ? itens.map(it => `
+    <label class="supr-item-linha">
+      <input type="checkbox" data-itemreq="${it.id}" ${it.status === 'em_cotacao' ? 'disabled title="Já está em cotação"' : ''}>
+      <span class="supr-item-txt"><strong>${escS(it.descricao)}</strong>
+        <small>Req ${escS(it.reqCodigo)} · ${escS(it.status || '')}</small></span>
+      <span class="supr-item-qtd">
+        <input type="number" step="any" min="0" class="supr-qtd-cotar" data-itemreq="${it.id}" value="${it.quantidade ?? 0}" style="width:80px">
+      </span>
+    </label>`).join('') : '<p class="supr-msg">Nenhum item de requisição disponível para cotar.</p>';
+  await suprCarregarFornecedores();
+  suprEl('suprFornecedoresParaCotar').innerHTML =
+    (suprEstado.fornecedores.length ? suprEstado.fornecedores.map(f => `
+      <label class="supr-item-linha">
+        <input type="checkbox" data-fornid="${f.id}" checked>
+        <span class="supr-item-txt"><strong>${escS(f.nome)}</strong><small>${escS(f.email || '')}</small></span>
+      </label>`).join('') : '<p class="supr-msg">Nenhum fornecedor cadastrado — cadastre na aba Fornecedores.</p>');
+}
+
+async function suprCriarMapa() {
+  const itens = $$s('#suprItensParaCotar input[type=checkbox]:checked').map(i => ({
+    itemRequisicaoId: i.dataset.itemreq,
+    quantidade: Number(i.closest('label').querySelector('.supr-qtd-cotar').value) || 0,
+  }));
+  const forn = $$s('#suprFornecedoresParaCotar input[type=checkbox]:checked').map(i => ({ fornecedorId: i.dataset.fornid }));
+  if (!itens.length || !forn.length) { suprMsg('suprMsgNovaCotacao', 'Selecione itens e ao menos um fornecedor.'); return; }
+  const dados = await suprApi('/api/compras/cotacoes', {
+    method: 'POST',
+    body: JSON.stringify({ orcamentoId: suprEl('suprSelectOrcamento').value, itens, fornecedores: forn }),
+  });
+  if (!dados) return;
+  suprMsg('suprMsgNovaCotacao', 'Cotação criada ✅ abrindo o mapa…', true);
+  setTimeout(() => suprAbrirMapa(dados.id), 700);
+}
+
+/* ---- Mapa de comparação (itens × fornecedores) ---- */
+async function suprAbrirMapa(id) {
+  suprEl('suprCotacoesLista').classList.add('hidden');
+  suprEl('suprCotacoesNova').classList.add('hidden');
+  suprEl('suprMapaCotacao').classList.remove('hidden');
+  const wrap = suprEl('suprMapaWrap');
+  wrap.innerHTML = '<p class="supr-msg">Carregando mapa…</p>';
+  const dados = await suprApi('/api/compras/cotacoes/' + id);
+  if (!dados) return;
+  const c = dados.cotacao || dados;
+  suprEstado.cotacaoAtual = c;
+  const fornecedores = c.fornecedores || [];
+  const itens = c.itens || [];
+  let html = `<div class="cmp-head">
+    <b>Mapa de comparação</b>
+    <span>Rodada: <input id="suprRodada" type="number" min="1" value="${c.rodada || 1}" style="width:64px;padding:4px"></span>
+  </div>`;
+  html += '<div class="table-wrap"><table class="cmp-tabela"><thead><tr><th>Item</th>';
+  fornecedores.forEach(f => { html += `<th>${escS(f.nome || f.fornecedorNome || '')}<br><small>${escS(f.condicaoPagamento || '')}</small></th><th>✔ comprar</th>`; });
+  html += '</tr></thead><tbody>';
+  itens.forEach(it => {
+    const qtd = it.quantidade ?? 0;
+    html += `<tr><td>${escS(it.descricao)} <small>${fmtQ.format(qtd)}</small></td>`;
+    fornecedores.forEach(f => {
+      const val = (f.precos && f.precos[it.id]) || (it.precos && it.precos[f.id]) || '';
+      const venc = !!(c.vencedores && c.vencedores[it.id] && c.vencedores[it.id].fornecedorId === f.id);
+      html += `<td><input class="supr-preco" data-item="${it.id}" data-forn="${f.id}" value="${escS(val)}" placeholder="R$" style="width:92px"></td>`;
+      html += `<td><input type="checkbox" class="supr-venc" data-item="${it.id}" data-forn="${f.id}" ${venc ? 'checked' : ''}></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += `<div class="supr-form-actions" style="margin-top:12px;gap:8px">
+    <button class="btn" id="suprBtnSalvarPrecos">💾 Salvar valores</button>
+    <button class="btn btn-primary" id="suprBtnFinalizarCotacao">Finalizar → gerar pedidos</button>
+  </div>`;
+  wrap.innerHTML = html;
+  // apenas um vencedor por item
+  wrap.addEventListener('change', ev => {
+    const v = ev.target.closest('.supr-venc');
+    if (!v || !v.checked) return;
+    $$s('.supr-venc', wrap).forEach(x => {
+      if (x !== v && x.dataset.item === v.dataset.item) x.checked = false;
+    });
+  });
+  suprEl('suprBtnSalvarPrecos').addEventListener('click', suprSalvarPrecos);
+  suprEl('suprBtnFinalizarCotacao').addEventListener('click', suprFinalizarCotacao);
+}
+
+async function suprSalvarPrecos() {
+  const c = suprEstado.cotacaoAtual;
+  const precos = $$s('.supr-preco').map(inp => ({
+    itemRequisicaoId: inp.dataset.item,
+    fornecedorId: inp.dataset.forn,
+    valor: Number(String(inp.value).replace(/[^\d,.-]/g, '').replace(',', '.')) || 0,
+  }));
+  const rodada = Number(suprEl('suprRodada')?.value) || 1;
+  const dados = await suprApi('/api/compras/cotacoes/' + c.id + '/precos',
+    { method: 'POST', body: JSON.stringify({ precos, rodada }) });
+  if (!dados) return;
+  alert('Valores salvos ✅');
+}
+
+async function suprFinalizarCotacao() {
+  const c = suprEstado.cotacaoAtual;
+  const vencedores = $$s('.supr-venc:checked').map(v => ({
+    itemRequisicaoId: v.dataset.item,
+    fornecedorId: v.dataset.forn,
+    quantidade: null, // null = item inteiro; preencha p/ compra parcial
+  }));
+  if (!vencedores.length) { alert('Marque ao menos um item como comprado (✔).'); return; }
+  if (!confirm('Finalizar a cotação e gerar os pedidos de compra dos itens marcados?')) return;
+  const dados = await suprApi('/api/compras/cotacoes/' + c.id + '/finalizar',
+    { method: 'POST', body: JSON.stringify({ vencedores }) });
+  if (!dados) return;
+  alert('Pedidos de compra gerados ✅');
+  suprAtivarAba('pedidos');
+}
+
+/* ============================================================
+   PEDIDOS (lista, PDF, envio por e-mail, recebimento)
+   ============================================================ */
+async function suprPedidosLista() {
+  const wrap = suprEl('suprListaPedidos');
+  if (!wrap) return;
+  const orcId = suprEl('suprSelectOrcamento').value;
+  if (!orcId) { wrap.innerHTML = '<p class="supr-msg">Selecione o orçamento acima.</p>'; return; }
+  wrap.innerHTML = '<p class="supr-msg">Carregando…</p>';
+  const dados = await suprApi('/api/compras/pedidos?orcamentoId=' + encodeURIComponent(orcId));
+  if (!dados) return;
+  suprEstado.pedidos = dados.pedidos || [];
+  if (!suprEstado.pedidos.length) { wrap.innerHTML = '<p class="supr-msg">Nenhum pedido de compra gerado.</p>'; return; }
+  wrap.innerHTML = suprEstado.pedidos.map(p => `
+    <div class="supr-card">
+      <div class="supr-card-head">
+        <strong>Pedido ${escS(p.codigo || p.id)}</strong>
+        <span>${escS(p.status || '')} · ${escS(p.fornecedorNome || '')} · ${fmtM.format(Number(p.total || 0))}</span>
+      </div>
+      <div class="supr-card-acoes">
+        <button class="btn btn-sm" data-acao="pdf-pedido" data-id="${p.id}">📄 PDF</button>
+        <button class="btn btn-sm btn-primary" data-acao="enviar-pedido" data-id="${p.id}">✉ Enviar por e-mail</button>
+        <button class="btn btn-sm" data-acao="receber-pedido" data-id="${p.id}">📦 Lançar recebimento</button>
+      </div>
+    </div>`).join('');
+}
+
+function suprPdfPedido(p) {
+  const itensHtml = (p.itens || []).map(i =>
+    `<tr><td>${escS(i.descricao)}</td><td style="text-align:center">${escS(i.unidade || '')}</td>
+     <td style="text-align:right">${fmtQ.format(i.quantidade)}</td><td style="text-align:right">${fmtM.format(i.valorUnitario || 0)}</td>
+     <td style="text-align:right">${fmtM.format(i.total || 0)}</td></tr>`).join('');
+  const win = window.open('', '_blank');
+  if (!win) { alert('Permita pop-ups para gerar o PDF.'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Pedido ${escS(p.codigo || p.id)}</title>
+  <style>body{font-family:Arial,sans-serif;margin:30px;font-size:13px}h1{font-size:18px}table{width:100%;border-collapse:collapse;margin-top:14px}
+  th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#e9e4d6}.tot{font-weight:800}</style></head>
+  <body><h1>Pedido de Compra ${escS(p.codigo || p.id)}</h1>
+  <p><b>Fornecedor:</b> ${escS(p.fornecedorNome || '')} ${p.fornecedorCnpj ? '· CNPJ ' + escS(p.fornecedorCnpj) : ''}<br>
+  <b>E-mail:</b> ${escS(p.fornecedorEmail || '')}<br><b>Status:</b> ${escS(p.status || '')}</p>
+  <table><thead><tr><th>Item</th><th>Un.</th><th>Qtd</th><th>Valor unit.</th><th>Total</th></tr></thead>
+  <tbody>${itensHtml}</tbody></table>
+  <p class="tot">Total: ${fmtM.format(Number(p.total || 0))}</p>
+  <p style="margin-top:26px;font-size:11px;color:#555">Gerado por iBuild — Cazú Projetos e Construções</p></body></html>`);
+  win.document.close(); win.focus(); win.print();
+}
+
+async function suprEnviarPedido(id) {
+  if (!confirm('Enviar este pedido por e-mail para o fornecedor cadastrado?')) return;
+  const dados = await suprApi('/api/compras/pedidos/' + id + '/enviar', { method: 'POST' });
+  if (!dados) return;
+  alert('Pedido enviado ✅' + (dados.linkConfirmacao ? '\nLink de confirmação: ' + dados.linkConfirmacao : ''));
+  suprPedidosLista();
+}
+
+/* ---- Modal de recebimento / baixa de nota ---- */
+function suprAbrirRecebimento(id) {
+  const p = suprEstado.pedidos.find(x => x.id === id);
+  if (!p) return;
+  suprEstado.pedidoAtual = p;
+  suprEl('suprModalRecPedidoInfo').textContent = `Pedido ${p.codigo || p.id} — ${p.fornecedorNome || ''}`;
+  suprEl('suprRecItensWrap').innerHTML = '<h4 style="margin:10px 0 6px">Itens recebidos</h4>' +
+    (p.itens || []).map(i => `
+      <label class="supr-item-linha">
+        <input type="checkbox" data-itemid="${i.id}" checked>
+        <span class="supr-item-txt"><strong>${escS(i.descricao)}</strong>
+          <small>pedido: ${fmtQ.format(i.quantidade)}</small></span>
+        <span class="supr-item-qtd"><input type="number" step="any" min="0" class="supr-rec-qtd"
+          data-itemid="${i.id}" value="${i.quantidade}" style="width:80px"></span>
+      </label>`).join('');
+  suprEl('suprRecData').value = new Date().toISOString().slice(0, 10);
+  suprMsg('suprMsgRecebimento', '');
+  suprEl('suprModalRecebimento').showModal();
+}
+async function suprConfirmarRecebimento() {
+  const p = suprEstado.pedidoAtual;
+  const itens = $$s('#suprRecItensWrap input[type=checkbox]:checked').map(i => ({
+    pedidoItemId: i.dataset.itemid,
+    quantidade: Number(i.closest('label').querySelector('.supr-rec-qtd').value) || 0,
+  }));
+  if (!itens.length) { suprMsg('suprMsgRecebimento', 'Marque ao menos um item recebido.'); return; }
+  const payload = {
+    pedidoId: p.id,
+    notaNumero: suprEl('suprRecNotaNumero').value.trim(),
+    chaveAcesso: suprEl('suprRecNotaChave').value.trim(),
+    data: suprEl('suprRecData').value,
+    valorTotal: Number(suprEl('suprRecValor').value) || 0,
+    itens,
+    observacoes: suprEl('suprRecObservacoes').value,
   };
-  function badge(status) { return `<span class="supr-badge supr-badge-${esc(status)}">${esc(ROTULO_STATUS[status] || status)}</span>`; }
+  const dados = await suprApi('/api/compras/recebimentos', { method: 'POST', body: JSON.stringify(payload) });
+  if (!dados) return;
+  suprMsg('suprMsgRecebimento', 'Recebimento lançado ✅', true);
+  setTimeout(() => { suprEl('suprModalRecebimento').close(); suprPedidosLista(); }, 800);
+}
 
-  // ======================= INIT =======================
-  async function init() {
-    try { estado.usuario = await api('/api/auth/me'); } catch (e) { return; }
-    if (!estado.usuario.podeEditar) { const b = $('#suprBannerSomenteLeitura'); if (b) b.classList.remove('hidden'); }
-    ligarEventos();
-    await carregarOrcamentos();
-    await carregarFornecedores();
+/* ============================================================
+   COMPARATIVO (Orçado × Comprometido × Executado)
+   ============================================================ */
+async function suprComparativoCarregar() {
+  const orcId = suprEl('suprSelectOrcamento').value;
+  if (!orcId) return;
+  suprEl('suprResumoComparativo').innerHTML = '<p class="supr-msg">Carregando…</p>';
+  suprEl('suprCorpoComparativo').innerHTML = '';
+  const dados = await suprApi('/api/compras/comparativo?orcamentoId=' + encodeURIComponent(orcId));
+  if (!dados) return;
+  const resumo = dados.resumo || {};
+  suprEl('suprResumoComparativo').innerHTML =
+    `<div class="resumo-card"><span>Orçado</span><strong class="total-grande">${fmtM.format(resumo.orcado || 0)}</strong></div>
+     <div class="resumo-card"><span>Comprometido</span><strong>${fmtM.format(resumo.comprometido || 0)}</strong></div>
+     <div class="resumo-card"><span>Executado (recebido)</span><strong>${fmtM.format(resumo.executado || 0)}</strong></div>
+     <div class="resumo-card"><span>Saldo</span><strong>${fmtM.format(resumo.saldo || 0)}</strong></div>`;
+  suprEl('suprCorpoComparativo').innerHTML = (dados.itens || []).map(i => `
+    <tr><td>${escS(i.descricao)}</td>
+      <td class="col-num">${fmtM.format(i.orcado || 0)}</td>
+      <td class="col-num">${fmtM.format(i.comprometido || 0)}</td>
+      <td class="col-num">${fmtM.format(i.executado || 0)}</td>
+      <td class="col-num"><b>${fmtM.format(i.saldo || 0)}</b></td></tr>`).join('');
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  suprPreencherOrcamentos();
+
+  // orçamento selecionado → recarrega a aba atual
+  const sel = suprEl('suprSelectOrcamento');
+  if (sel) sel.addEventListener('change', () => {
+    suprEstado.carrinho = [];
+    if (suprEstado.abaAtiva) suprAtivarAba(suprEstado.abaAtiva);
+  });
+
+  // sub-abas (funciona com data-supraba OU data-aba)
+  $$s('.supr-tabs').forEach(tabs => tabs.addEventListener('click', ev => {
+    const b = ev.target.closest('.supr-tab');
+    if (b) suprAtivarAba(b.dataset.suprAba || b.dataset.aba);
+  }));
+
+  // quando a view Suprimentos for exibida (template troca por class hidden)
+  const view = suprEl('viewSuprimentos');
+  if (view) {
+    new MutationObserver(() => {
+      if (!view.classList.contains('hidden')) {
+        suprPreencherOrcamentos();
+        if (!suprEstado.abaAtiva) suprAtivarAba('requisicoes');
+      }
+    }).observe(view, { attributes: true, attributeFilter: ['class'] });
   }
 
-  function ligarEventos() {
-    document.querySelectorAll('.supr-tab').forEach((btn) => btn.addEventListener('click', () => mostrarAba(btn.dataset.supraba)));
-    $('#suprSelectOrcamento').addEventListener('change', (e) => selecionarOrcamento(e.target.value));
+  // nova requisição
+  const bNova = suprEl('suprBtnNovaRequisicao');
+  if (bNova) bNova.addEventListener('click', suprNovaRequisicao);
+  const bVoltar = suprEl('suprBtnVoltarListaReq');
+  if (bVoltar) bVoltar.addEventListener('click', () => suprAtivarAba('requisicoes'));
+  const bVoltarSel = suprEl('suprBtnVoltarSelecao');
+  if (bVoltarSel) bVoltarSel.addEventListener('click', suprNovaRequisicao);
 
-    // Requisições
-    $('#suprBtnNovaRequisicao').addEventListener('click', () => { estado.carrinho = []; mostrarSubRequisicao('nova'); renderArvoreItens(); });
-    $('#suprBtnVoltarListaReq').addEventListener('click', () => mostrarSubRequisicao('lista'));
-    $('#suprFiltroItens').addEventListener('input', renderArvoreItens);
-    $('#suprBtnVoltarSelecao').addEventListener('click', () => mostrarSubRequisicao('nova'));
-    $('#suprBtnSalvarRequisicao').addEventListener('click', salvarRequisicao);
+  // filtro + seleção de itens do orçamento
+  const filtro = suprEl('suprFiltroItens');
+  if (filtro) filtro.addEventListener('input', suprRenderArvore);
+  const arvore = suprEl('suprArvoreItens');
+  if (arvore) arvore.addEventListener('change', ev => {
+    const cb = ev.target.closest('input[data-servicoid]');
+    if (!cb) return;
+    const id = cb.dataset.servicoid;
+    const item = suprItensOrcamento().find(i => i.servicoId === id);
+    if (!item) return;
+    if (cb.checked) suprEstado.carrinho.push({ ...item, quantidade: item.quantidadeOrcada });
+    else suprEstado.carrinho = suprEstado.carrinho.filter(c => c.servicoId !== id);
+    suprRenderArvore();
+  });
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('#suprBtnContinuarSelecao');
+    if (b) suprRevisarSelecao();
+  });
 
-    // Cotações
-    $('#suprBtnNovaCotacao').addEventListener('click', () => { estado.novaCotacaoItens = []; estado.novaCotacaoFornecedores = {}; mostrarSubCotacao('nova'); renderItensParaCotar(); renderFornecedoresParaCotar(); });
-    $('#suprBtnVoltarListaCot').addEventListener('click', () => mostrarSubCotacao('lista'));
-    $('#suprBtnVoltarListaCot2').addEventListener('click', () => mostrarSubCotacao('lista'));
-    $('#suprBtnCriarMapa').addEventListener('click', criarMapaCotacao);
+  // quantidades no carrinho
+  const carrinho = suprEl('suprCarrinhoLista');
+  if (carrinho) carrinho.addEventListener('input', ev => {
+    const inp = ev.target.closest('.supr-carrinho-qtd');
+    if (!inp) return;
+    suprEstado.carrinho[Number(inp.dataset.idx)].quantidade = Number(inp.value) || 0;
+  });
 
-    // Fornecedores
-    $('#suprBtnSalvarFornecedor').addEventListener('click', salvarFornecedor);
+  // salvar requisição
+  const bSalvar = suprEl('suprBtnSalvarRequisicao');
+  if (bSalvar) bSalvar.addEventListener('click', suprSalvarRequisicao);
 
-    // Modal recebimento
-    $('#suprBtnCancelarRecebimento').addEventListener('click', () => $('#suprModalRecebimento').close());
-    $('#suprBtnConfirmarRecebimento').addEventListener('click', confirmarRecebimento);
+  // fornecedores
+  const bForn = suprEl('suprBtnSalvarFornecedor');
+  if (bForn) bForn.addEventListener('click', suprSalvarFornecedor);
 
-    document.addEventListener('app:viewchange', (e) => { if (e.detail.view === 'suprimentos') mostrarAba('requisicoes'); });
-  }
+  // cotações
+  const bNovaCot = suprEl('suprBtnNovaCotacao');
+  if (bNovaCot) bNovaCot.addEventListener('click', suprNovaCotacao);
+  const bCriarMapa = suprEl('suprBtnCriarMapa');
+  if (bCriarMapa) bCriarMapa.addEventListener('click', suprCriarMapa);
+  const bVoltarCot = suprEl('suprBtnVoltarListaCot');
+  if (bVoltarCot) bVoltarCot.addEventListener('click', () => suprAtivarAba('cotacoes'));
+  const bVoltarCot2 = suprEl('suprBtnVoltarListaCot2');
+  if (bVoltarCot2) bVoltarCot2.addEventListener('click', () => suprAtivarAba('cotacoes'));
 
-  function mostrarAba(nome) {
-    document.querySelectorAll('.supr-tab').forEach((b) => b.classList.toggle('ativa', b.dataset.supraba === nome));
-    ['requisicoes', 'cotacoes', 'pedidos', 'fornecedores', 'comparativo'].forEach((n) => {
-      $('#suprPainel' + n[0].toUpperCase() + n.slice(1)).classList.toggle('hidden', n !== nome);
-    });
-    if (nome === 'requisicoes') mostrarSubRequisicao('lista');
-    if (nome === 'cotacoes') mostrarSubCotacao('lista');
-    if (nome === 'pedidos') carregarPedidos();
-    if (nome === 'comparativo') carregarComparativo();
-  }
-  function mostrarSubRequisicao(nome) {
-    ['Lista', 'Nova', 'Revisar'].forEach((n) => $('#suprRequisicoes' + n).classList.toggle('hidden', n.toLowerCase() !== nome));
-  }
-  function mostrarSubCotacao(nome) {
-    $('#suprCotacoesLista').classList.toggle('hidden', nome !== 'lista');
-    $('#suprCotacoesNova').classList.toggle('hidden', nome !== 'nova');
-    $('#suprMapaCotacao').classList.toggle('hidden', nome !== 'mapa');
-    if (nome === 'lista') carregarCotacoes();
-  }
+  // modal recebimento
+  const bCancelRec = suprEl('suprBtnCancelarRecebimento');
+  if (bCancelRec) bCancelRec.addEventListener('click', () => suprEl('suprModalRecebimento').close());
+  const bConfRec = suprEl('suprBtnConfirmarRecebimento');
+  if (bConfRec) bConfRec.addEventListener('click', suprConfirmarRecebimento);
 
-  // ======================= ORÇAMENTO =======================
-  async function carregarOrcamentos() {
-    const { dados } = await api('/api/orcamentos');
-    estado.orcamentos = dados || [];
-    const sel = $('#suprSelectOrcamento');
-    if (!estado.orcamentos.length) { sel.innerHTML = '<option value="">Nenhum orçamento</option>'; return; }
-    sel.innerHTML = estado.orcamentos.map((o) => `<option value="${esc(o.id)}">${esc(o.codigo || '')} — ${esc(o.nome)}</option>`).join('');
-    await selecionarOrcamento(estado.orcamentos[0].id);
-  }
-  async function selecionarOrcamento(id) {
-    estado.orcamentoId = id;
-    $('#suprSelectOrcamento').value = id;
-    const orc = estado.orcamentos.find((o) => o.id === id);
-    estado.servicosFlat = orc ? flattenServicos(orc) : [];
-    await carregarRequisicoes();
-    renderArvoreItens();
-  }
-
-  // ======================= REQUISIÇÕES (multi-item) =======================
-  function renderArvoreItens() {
-    const filtro = ($('#suprFiltroItens').value || '').trim().toLowerCase();
-    const wrap = $('#suprArvoreItens');
-    const linhas = estado.servicosFlat.filter((s) => !filtro || s.nome.toLowerCase().includes(filtro) || s.caminho.toLowerCase().includes(filtro));
-    if (!linhas.length) { wrap.innerHTML = '<div class="supr-empty">Nenhum item encontrado.</div>'; return; }
-    wrap.innerHTML = linhas.slice(0, 250).map((s) => {
-      const sel = estado.carrinho.some((c) => c.itemOrcamentoId === s.id);
-      return `<label class="orcamento-item supr-item-check ${sel ? 'selecionado' : ''}">
-        <input type="checkbox" data-item="${esc(s.id)}" ${sel ? 'checked' : ''}>
-        <div class="oi-info">
-          <strong>${esc(s.nome)}</strong><span>${esc(s.caminho)}</span>
-          <span>${esc(s.unidade)} · ${fmtBRL(s.valorUnitario)}/${esc(s.unidade)} · Qtd. orçada: ${fmtNum(s.quantidade)}</span>
-        </div>
-      </label>`;
-    }).join('') + `<div class="supr-carrinho-resumo">${estado.carrinho.length} item(ns) selecionado(s)</div>
-      <button class="btn btn-primary btn-sm" id="suprBtnRevisarCarrinho" ${estado.carrinho.length ? '' : 'disabled'}>Revisar e definir quantidades →</button>`;
-    wrap.querySelectorAll('[data-item]').forEach((chk) => chk.addEventListener('change', () => {
-      const s = estado.servicosFlat.find((x) => x.id === chk.dataset.item);
-      if (chk.checked) estado.carrinho.push({ itemOrcamentoId: s.id, descricao: s.nome, unidade: s.unidade, quantidadeOrcamento: s.quantidade, quantidadeSolicitada: s.quantidade });
-      else estado.carrinho = estado.carrinho.filter((c) => c.itemOrcamentoId !== s.id);
-      renderArvoreItens();
-    }));
-    const btnRev = $('#suprBtnRevisarCarrinho');
-    if (btnRev) btnRev.addEventListener('click', () => { mostrarSubRequisicao('revisar'); renderCarrinhoRevisar(); });
-  }
-
-  function renderCarrinhoRevisar() {
-    $('#suprCarrinhoLista').innerHTML = estado.carrinho.map((c, i) => `
-      <div class="supr-carrinho-item">
-        <div class="oi-info"><strong>${esc(c.descricao)}</strong><span>Orçado: ${fmtNum(c.quantidadeOrcamento)} ${esc(c.unidade)}</span></div>
-        <input type="number" step="0.01" min="0.01" value="${c.quantidadeSolicitada}" data-qtd-idx="${i}">
-        <span>${esc(c.unidade)}</span>
-        <button class="supr-remover" data-remover-idx="${i}" title="Remover">×</button>
-      </div>`).join('');
-    $('#suprCarrinhoLista').querySelectorAll('[data-qtd-idx]').forEach((inp) => inp.addEventListener('input', () => {
-      estado.carrinho[Number(inp.dataset.qtdIdx)].quantidadeSolicitada = parseFloat(inp.value) || 0;
-    }));
-    $('#suprCarrinhoLista').querySelectorAll('[data-remover-idx]').forEach((btn) => btn.addEventListener('click', () => {
-      estado.carrinho.splice(Number(btn.dataset.removerIdx), 1);
-      renderCarrinhoRevisar();
-      if (!estado.carrinho.length) mostrarSubRequisicao('nova');
-    }));
-  }
-
-  async function salvarRequisicao() {
-    const msgEl = $('#suprMsgRequisicao');
-    if (!estado.carrinho.length || estado.carrinho.some((c) => !c.quantidadeSolicitada || c.quantidadeSolicitada <= 0)) {
-      msgEl.textContent = 'Confira as quantidades — todas devem ser maiores que zero.'; msgEl.className = 'supr-msg erro'; return;
+  // delegação global para botões dinâmicos das listas
+  document.addEventListener('click', async ev => {
+    const b = ev.target.closest('[data-acao]');
+    if (!b) return;
+    switch (b.dataset.acao) {
+      case 'cotar-req':
+        suprEl('suprSelectOrcamento').value = suprEl('suprSelectOrcamento').value || suprEstado.orcamentoId;
+        suprAtivarAba('cotacoes');
+        break;
+      case 'abrir-mapa': suprAbrirMapa(b.dataset.id); break;
+      case 'del-forn':
+        if (confirm('Excluir este fornecedor?')) {
+          await suprApi('/api/compras/fornecedores/' + b.dataset.id, { method: 'DELETE' }).catch(() => null);
+          suprFornecedoresLista();
+        }
+        break;
+      case 'pdf-pedido': {
+        const p = suprEstado.pedidos.find(x => x.id === b.dataset.id);
+        if (p) suprPdfPedido(p);
+        break;
+      }
+      case 'enviar-pedido': suprEnviarPedido(b.dataset.id); break;
+      case 'receber-pedido': suprAbrirRecebimento(b.dataset.id); break;
+      case 'preencher-pedidos': suprPedidosLista(); break;
     }
-    try {
-      await api('/api/compras/requisicoes', { method: 'POST', body: JSON.stringify({ orcamentoId: estado.orcamentoId, observacoes: $('#suprReqObservacoes').value || null, itens: estado.carrinho }) });
-      estado.carrinho = []; $('#suprReqObservacoes').value = ''; msgEl.textContent = '';
-      mostrarSubRequisicao('lista');
-      await carregarRequisicoes();
-    } catch (e) { msgEl.textContent = msgErro(e); msgEl.className = 'supr-msg erro'; }
-  }
-
-  async function carregarRequisicoes() {
-    if (!estado.orcamentoId) { estado.requisicoes = []; renderRequisicoes(); return; }
-    const { requisicoes } = await api('/api/compras/requisicoes?orcamentoId=' + encodeURIComponent(estado.orcamentoId));
-    estado.requisicoes = requisicoes || [];
-    renderRequisicoes();
-  }
-  function renderRequisicoes() {
-    const wrap = $('#suprListaRequisicoes');
-    if (!estado.requisicoes.length) { wrap.innerHTML = '<div class="supr-empty">Nenhuma requisição criada ainda para este orçamento.</div>'; return; }
-    wrap.innerHTML = estado.requisicoes.map((r) => `
-      <div class="supr-pedido-card">
-        <div class="supr-pedido-head">
-          <div><h4>${r.itens.length} item(ns) — ${esc(r.solicitanteNome || r.solicitanteEmail)}</h4>
-          <p>${(r.criadoEm || '').slice(0, 10)}${r.observacoes ? ' · ' + esc(r.observacoes) : ''}</p></div>
-          <div>${badge(r.status)}</div>
-        </div>
-        <table class="tabela" style="margin-top:8px"><tbody>
-          ${r.itens.map((it) => `<tr><td>${esc(it.descricao)}</td><td class="col-num">${fmtNum(it.quantidadeSolicitada)} ${esc(it.unidade || '')}</td><td>${badge(it.status)}</td></tr>`).join('')}
-        </tbody></table>
-        ${estado.usuario.podeEditar && r.status === 'aberta' ? `<div class="supr-pedido-acoes"><button class="btn btn-xs btn-danger" data-cancelar-req="${esc(r.id)}">Cancelar requisição</button></div>` : ''}
-      </div>`).join('');
-    wrap.querySelectorAll('[data-cancelar-req]').forEach((btn) => btn.addEventListener('click', async () => {
-      if (!confirm('Cancelar esta requisição e todos os itens dela?')) return;
-      await api('/api/compras/requisicoes/' + btn.dataset.cancelarReq, { method: 'PUT', body: JSON.stringify({ status: 'cancelada' }) });
-      await carregarRequisicoes();
-    }));
-  }
-
-  // ======================= COTAÇÕES =======================
-  async function carregarCotacoes() {
-    if (!estado.orcamentoId) { estado.cotacoes = []; renderCotacoesLista(); return; }
-    const { cotacoes } = await api('/api/compras/cotacoes?orcamentoId=' + encodeURIComponent(estado.orcamentoId));
-    estado.cotacoes = cotacoes || [];
-    renderCotacoesLista();
-  }
-  function renderCotacoesLista() {
-    const wrap = $('#suprListaCotacoes');
-    if (!estado.cotacoes.length) { wrap.innerHTML = '<div class="supr-empty">Nenhuma cotação criada ainda.</div>'; return; }
-    wrap.innerHTML = estado.cotacoes.map((c) => `
-      <div class="supr-pedido-card">
-        <div class="supr-pedido-head">
-          <div><h4>Cotação de ${(c.criadoEm || '').slice(0, 10)}</h4><p>${esc(c.criadoPorEmail)}</p></div>
-          <div>${badge(c.status)}</div>
-        </div>
-        <div class="supr-pedido-acoes"><button class="btn btn-xs btn-ghost" data-abrir-mapa="${esc(c.id)}">${c.status === 'aberta' ? 'Abrir mapa de comparação' : 'Ver mapa'}</button></div>
-      </div>`).join('');
-    wrap.querySelectorAll('[data-abrir-mapa]').forEach((btn) => btn.addEventListener('click', () => abrirMapaCotacao(btn.dataset.abrirMapa)));
-  }
-
-  function itensRequisicaoDisponiveis() {
-    const linhas = [];
-    estado.requisicoes.forEach((r) => {
-      (r.itens || []).forEach((it) => {
-        if (['pendente', 'em_cotacao'].includes(it.status)) linhas.push(Object.assign({}, it, { requisicaoInfo: r.solicitanteNome || r.solicitanteEmail }));
-      });
-    });
-    return linhas;
-  }
-  function renderItensParaCotar() {
-    const wrap = $('#suprItensParaCotar');
-    const disponiveis = itensRequisicaoDisponiveis();
-    if (!disponiveis.length) { wrap.innerHTML = '<div class="supr-empty">Nenhum item de requisição pendente de cotação neste orçamento.</div>'; return; }
-    wrap.innerHTML = disponiveis.map((it) => {
-      const sel = estado.novaCotacaoItens.find((x) => x.itemRequisicaoId === it.id);
-      return `<label class="orcamento-item supr-item-check ${sel ? 'selecionado' : ''}">
-        <input type="checkbox" data-itreq="${esc(it.id)}" ${sel ? 'checked' : ''}>
-        <div class="oi-info"><strong>${esc(it.descricao)}</strong><span>Solicitado por ${esc(it.requisicaoInfo)} · Qtd. requisitada: ${fmtNum(it.quantidadeSolicitada)} ${esc(it.unidade || '')}</span></div>
-        ${sel ? `<input type="number" step="0.01" min="0.01" style="width:100px" value="${sel.quantidade}" data-itreq-qtd="${esc(it.id)}">` : ''}
-      </label>`;
-    }).join('');
-    wrap.querySelectorAll('[data-itreq]').forEach((chk) => chk.addEventListener('change', () => {
-      const it = disponiveis.find((x) => x.id === chk.dataset.itreq);
-      if (chk.checked) estado.novaCotacaoItens.push({ itemRequisicaoId: it.id, descricao: it.descricao, unidade: it.unidade, quantidade: it.quantidadeSolicitada });
-      else estado.novaCotacaoItens = estado.novaCotacaoItens.filter((x) => x.itemRequisicaoId !== it.id);
-      renderItensParaCotar();
-    }));
-    wrap.querySelectorAll('[data-itreq-qtd]').forEach((inp) => inp.addEventListener('input', () => {
-      const alvo = estado.novaCotacaoItens.find((x) => x.itemRequisicaoId === inp.dataset.itreqQtd);
-      if (alvo) alvo.quantidade = parseFloat(inp.value) || 0;
-    }));
-  }
-  function renderFornecedoresParaCotar() {
-    const wrap = $('#suprFornecedoresParaCotar');
-    if (!estado.fornecedores.length) { wrap.innerHTML = '<div class="supr-empty">Cadastre fornecedores na aba "Fornecedores" primeiro.</div>'; return; }
-    wrap.innerHTML = estado.fornecedores.map((f) => {
-      const sel = estado.novaCotacaoFornecedores[f.id];
-      return `<label class="supr-chip-fornecedor ${sel ? 'selecionado' : ''}">
-        <input type="checkbox" data-forn="${esc(f.id)}" ${sel ? 'checked' : ''}> ${esc(f.nome)}
-      </label>`;
-    }).join('');
-    wrap.querySelectorAll('[data-forn]').forEach((chk) => chk.addEventListener('change', () => {
-      if (chk.checked) estado.novaCotacaoFornecedores[chk.dataset.forn] = { condicaoPagamento: null };
-      else delete estado.novaCotacaoFornecedores[chk.dataset.forn];
-      renderFornecedoresParaCotar();
-    }));
-  }
-  async function criarMapaCotacao() {
-    const msgEl = $('#suprMsgNovaCotacao');
-    const fornecedorIds = Object.keys(estado.novaCotacaoFornecedores);
-    if (!estado.novaCotacaoItens.length || !fornecedorIds.length) {
-      msgEl.textContent = 'Selecione ao menos 1 item e 1 fornecedor.'; msgEl.className = 'supr-msg erro'; return;
-    }
-    try {
-      const r = await api('/api/compras/cotacoes', {
-        method: 'POST',
-        body: JSON.stringify({
-          orcamentoId: estado.orcamentoId,
-          itens: estado.novaCotacaoItens.map((it) => ({ itemRequisicaoId: it.itemRequisicaoId, quantidade: it.quantidade })),
-          fornecedores: fornecedorIds.map((id) => ({ fornecedorId: id, condicaoPagamento: estado.novaCotacaoFornecedores[id].condicaoPagamento })),
-        }),
-      });
-      await carregarRequisicoes();
-      abrirMapaCotacao(r.id);
-    } catch (e) { msgEl.textContent = msgErro(e); msgEl.className = 'supr-msg erro'; }
-  }
-
-  async function abrirMapaCotacao(cotacaoId) {
-    estado.mapaAtual = await api('/api/compras/cotacoes/' + cotacaoId);
-    mostrarSubCotacao('mapa');
-    renderMapa();
-  }
-  function precoCelula(cotacaoItemId, fornecedorId) {
-    return estado.mapaAtual.precos.find((p) => p.cotacaoItemId === cotacaoItemId && p.fornecedorId === fornecedorId);
-  }
-  function renderMapa() {
-    const { cotacao, itens, fornecedores } = estado.mapaAtual;
-    const finalizada = cotacao.status !== 'aberta';
-    const wrap = $('#suprMapaWrap');
-    if (!itens.length || !fornecedores.length) { wrap.innerHTML = '<div class="supr-empty">Mapa vazio.</div>'; return; }
-
-    let html = `<div class="supr-mapa-scroll"><table class="supr-mapa"><thead><tr><th class="supr-col-item">Item</th>`;
-    fornecedores.forEach((f) => {
-      html += `<th class="supr-fornecedor-head">${esc(f.nome)}<small>${esc(f.condicaoPagamento || 'condição não informada')}</small><span class="supr-rodada-badge">Rodada ${f.rodada}</span></th>`;
-    });
-    html += '</tr></thead><tbody>';
-
-    itens.forEach((it) => {
-      const precosDaLinha = fornecedores.map((f) => precoCelula(it.cotacaoItemId, f.fornecedorId)).filter((p) => p && p.precoUnitario);
-      const menor = precosDaLinha.length ? Math.min(...precosDaLinha.map((p) => p.precoUnitario)) : null;
-      html += `<tr><td class="supr-col-item"><strong>${esc(it.descricao)}</strong><br><span style="color:var(--suave)">Qtd.: ${fmtNum(it.quantidade)} ${esc(it.unidade || '')}</span></td>`;
-      fornecedores.forEach((f) => {
-        const p = precoCelula(it.cotacaoItemId, f.fornecedorId);
-        const classes = ['supr-celula'];
-        if (p && p.vencedora) classes.push('supr-celula-vencedora');
-        html += `<td class="${classes.join(' ')}">
-          <input type="number" step="0.01" min="0" placeholder="R$" value="${p ? p.precoUnitario : ''}"
-            class="${p && menor != null && p.precoUnitario === menor ? 'supr-menor-preco' : ''}"
-            data-preco data-cotitem="${esc(it.cotacaoItemId)}" data-forn="${esc(f.fornecedorId)}" ${finalizada || !estado.usuario.podeEditar ? 'disabled' : ''}>
-          ${p ? `<label class="supr-flag-vencedora"><input type="checkbox" data-vencedora data-cotitem="${esc(it.cotacaoItemId)}" data-forn="${esc(f.fornecedorId)}" ${p.vencedora ? 'checked' : ''} ${finalizada || !estado.usuario.podeEditar ? 'disabled' : ''}> vencedor</label>` : ''}
-        </td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-
-    if (!finalizada && estado.usuario.podeEditar) {
-      html += `<div id="suprMsgMapa" class="supr-msg"></div><button class="btn btn-primary" id="suprBtnFinalizarCotacao" style="margin-top:16px">Finalizar cotação e gerar pedidos</button>`;
-    } else if (cotacao.status === 'finalizada') {
-      html += `<p style="color:var(--verde);font-weight:700;margin-top:14px">✓ Cotação finalizada — veja os pedidos gerados na aba "Pedidos".</p>`;
-    }
-    wrap.innerHTML = html;
-
-    wrap.querySelectorAll('[data-preco]').forEach((inp) => inp.addEventListener('change', async () => {
-      const valor = parseFloat(inp.value);
-      if (!valor || valor <= 0) return;
-      await api(`/api/compras/cotacoes/${cotacao.id}/precos`, { method: 'PUT', body: JSON.stringify({ cotacaoItemId: inp.dataset.cotitem, fornecedorId: inp.dataset.forn, precoUnitario: valor }) });
-      estado.mapaAtual = await api('/api/compras/cotacoes/' + cotacao.id);
-      renderMapa();
-    }));
-    wrap.querySelectorAll('[data-vencedora]').forEach((chk) => chk.addEventListener('change', async () => {
-      await api(`/api/compras/cotacoes/${cotacao.id}/vencedores`, { method: 'PUT', body: JSON.stringify({ cotacaoItemId: chk.dataset.cotitem, fornecedorId: chk.dataset.forn, vencedora: chk.checked }) });
-      estado.mapaAtual = await api('/api/compras/cotacoes/' + cotacao.id);
-      renderMapa();
-    }));
-    const btnFin = $('#suprBtnFinalizarCotacao');
-    if (btnFin) btnFin.addEventListener('click', async () => {
-      const msgEl = $('#suprMsgMapa');
-      if (!confirm('Finalizar cotação? Isso vai gerar os pedidos de compra (um por fornecedor vencedor) e não pode ser desfeito.')) return;
-      try {
-        const r = await api(`/api/compras/cotacoes/${cotacao.id}/finalizar`, { method: 'POST' });
-        alert(`${r.pedidos.length} pedido(s) gerado(s):\n` + r.pedidos.map((p) => `${p.numero} — ${p.fornecedorNome} — ${fmtBRL(p.valorTotal)}`).join('\n'));
-        mostrarAba('pedidos');
-      } catch (e) { msgEl.textContent = msgErro(e); msgEl.className = 'supr-msg erro'; }
-    });
-  }
-
-  // ======================= PEDIDOS =======================
-  async function carregarPedidos() {
-    if (!estado.orcamentoId) { estado.pedidos = []; renderPedidos(); return; }
-    const { pedidos } = await api('/api/compras/pedidos?orcamentoId=' + encodeURIComponent(estado.orcamentoId));
-    estado.pedidos = pedidos || [];
-    renderPedidos();
-  }
-  function renderPedidos() {
-    const wrap = $('#suprListaPedidos');
-    if (!estado.pedidos.length) { wrap.innerHTML = '<div class="supr-empty">Nenhum pedido gerado ainda.</div>'; return; }
-    wrap.innerHTML = estado.pedidos.map((p) => `
-      <div class="supr-pedido-card">
-        <div class="supr-pedido-head">
-          <div><h4>${esc(p.numero)} — ${esc(p.fornecedorNome)}</h4><p>Emitido em ${(p.dataEmissao || '').slice(0, 10)}${p.emailEnviadoEm ? ' · e-mail enviado' : ''}${p.confirmadoEm ? ' · confirmado pelo fornecedor ✓' : ''}</p></div>
-          <div style="text-align:right">${badge(p.status)}<div class="supr-pedido-valor">${fmtBRL(p.valorTotal)}</div></div>
-        </div>
-        <div class="supr-pedido-acoes">
-          <button class="btn btn-xs btn-ghost" data-ver-pdf="${esc(p.id)}">Ver PDF</button>
-          ${estado.usuario.podeEditar && !p.emailEnviadoEm ? `<button class="btn btn-xs btn-primary" data-enviar="${esc(p.id)}">Enviar por e-mail</button>` : ''}
-          ${estado.usuario.podeEditar && !['recebido_total', 'cancelado'].includes(p.status) ? `<button class="btn btn-xs btn-primary" data-receber="${esc(p.id)}">Lançar recebimento</button>` : ''}
-        </div>
-      </div>`).join('');
-    wrap.querySelectorAll('[data-ver-pdf]').forEach((btn) => btn.addEventListener('click', () => window.open('/api/compras/pedidos/' + btn.dataset.verPdf + '/pdf', '_blank')));
-    wrap.querySelectorAll('[data-enviar]').forEach((btn) => btn.addEventListener('click', async () => {
-      btn.disabled = true; btn.textContent = 'Enviando...';
-      try { const r = await api('/api/compras/pedidos/' + btn.dataset.enviar + '/enviar', { method: 'POST' }); alert('E-mail enviado para ' + r.enviadoPara); await carregarPedidos(); }
-      catch (e) { alert(msgErro(e)); btn.disabled = false; btn.textContent = 'Enviar por e-mail'; }
-    }));
-    wrap.querySelectorAll('[data-receber]').forEach((btn) => btn.addEventListener('click', () => abrirModalRecebimento(btn.dataset.receber)));
-  }
-
-  async function abrirModalRecebimento(pedidoId) {
-    const { pedido, itens } = await api('/api/compras/pedidos/' + pedidoId);
-    $('#suprModalRecebimento').dataset.pedidoId = pedidoId;
-    $('#suprModalRecPedidoInfo').textContent = `${pedido.numero} — ${pedido.fornecedorNome}`;
-    $('#suprRecNotaNumero').value = ''; $('#suprRecNotaChave').value = ''; $('#suprRecData').value = hoje();
-    $('#suprRecValor').value = pedido.valorTotal; $('#suprRecObservacoes').value = ''; $('#suprMsgRecebimento').textContent = '';
-    $('#suprRecItensWrap').innerHTML = `<h4 style="margin:14px 0 8px">Quantidade recebida por item</h4>` + itens.map((it) => `
-      <div class="supr-carrinho-item">
-        <div class="oi-info"><strong>${esc(it.descricao)}</strong><span>Pedido: ${fmtNum(it.quantidade)} ${esc(it.unidade || '')}</span></div>
-        <input type="number" step="0.01" min="0" value="${it.quantidade}" data-item-pedido="${esc(it.id)}">
-        <span>${esc(it.unidade || '')}</span>
-      </div>`).join('');
-    $('#suprModalRecebimento').showModal();
-  }
-  async function confirmarRecebimento() {
-    const pedidoId = $('#suprModalRecebimento').dataset.pedidoId;
-    const msgEl = $('#suprMsgRecebimento');
-    const itensInputs = [...document.querySelectorAll('[data-item-pedido]')];
-    const itens = itensInputs.map((inp) => ({ itemPedidoId: inp.dataset.itemPedido, quantidadeRecebida: parseFloat(inp.value) || 0 })).filter((it) => it.quantidadeRecebida > 0);
-    const valorNota = parseFloat($('#suprRecValor').value);
-    if (!itens.length || isNaN(valorNota) || valorNota < 0 || !$('#suprRecData').value) {
-      msgEl.textContent = 'Informe ao menos 1 item recebido, a data e o valor da nota.'; msgEl.className = 'supr-msg erro'; return;
-    }
-    try {
-      await api('/api/compras/recebimentos', { method: 'POST', body: JSON.stringify({ pedidoId, notaFiscalNumero: $('#suprRecNotaNumero').value || null, notaFiscalChave: $('#suprRecNotaChave').value || null, dataRecebimento: $('#suprRecData').value, valorNota, observacoes: $('#suprRecObservacoes').value || null, itens }) });
-      $('#suprModalRecebimento').close();
-      await carregarPedidos();
-    } catch (e) { msgEl.textContent = msgErro(e); msgEl.className = 'supr-msg erro'; }
-  }
-
-  // ======================= FORNECEDORES =======================
-  async function carregarFornecedores() {
-    const { fornecedores } = await api('/api/compras/fornecedores');
-    estado.fornecedores = fornecedores || [];
-    renderFornecedores();
-  }
-  function renderFornecedores() {
-    const wrap = $('#suprListaFornecedores');
-    if (!estado.fornecedores.length) { wrap.innerHTML = '<div class="supr-empty">Nenhum fornecedor cadastrado ainda.</div>'; return; }
-    wrap.innerHTML = `<table class="tabela"><thead><tr><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th></tr></thead><tbody>${estado.fornecedores.map((f) => `<tr><td>${esc(f.nome)}</td><td>${esc(f.cnpj || '—')}</td><td>${esc(f.telefone || '—')}</td><td>${esc(f.email || '—')}</td></tr>`).join('')}</tbody></table>`;
-  }
-  async function salvarFornecedor() {
-    const nome = $('#suprFNome').value.trim();
-    const msgEl = $('#suprMsgFornecedor');
-    if (!nome) { msgEl.textContent = 'Informe o nome do fornecedor.'; msgEl.className = 'supr-msg erro'; return; }
-    try {
-      await api('/api/compras/fornecedores', { method: 'POST', body: JSON.stringify({ nome, cnpj: $('#suprFCnpj').value || null, telefone: $('#suprFTelefone').value || null, email: $('#suprFEmail').value || null }) });
-      ['#suprFNome', '#suprFCnpj', '#suprFTelefone', '#suprFEmail'].forEach((s) => { $(s).value = ''; });
-      msgEl.textContent = 'Fornecedor adicionado.'; msgEl.className = 'supr-msg ok';
-      await carregarFornecedores();
-    } catch (e) { msgEl.textContent = msgErro(e); msgEl.className = 'supr-msg erro'; }
-  }
-
-  // ======================= COMPARATIVO =======================
-  async function carregarComparativo() {
-    if (!estado.orcamentoId) { estado.comparativo = null; renderComparativo(); return; }
-    estado.comparativo = await api('/api/compras/comparativo?orcamentoId=' + encodeURIComponent(estado.orcamentoId));
-    renderComparativo();
-  }
-  function renderComparativo() {
-    const corpo = $('#suprCorpoComparativo'); const resumo = $('#suprResumoComparativo');
-    if (!estado.comparativo) { corpo.innerHTML = ''; resumo.innerHTML = ''; return; }
-    const comprometidoPorItem = {}; (estado.comparativo.comprometido || []).forEach((r) => { comprometidoPorItem[r.itemOrcamentoId] = r.valor; });
-    const executadoPorItem = {}; (estado.comparativo.executado || []).forEach((r) => { executadoPorItem[r.itemOrcamentoId] = r.valor; });
-    const itensComMovimento = estado.servicosFlat.filter((s) => comprometidoPorItem[s.id] != null || executadoPorItem[s.id] != null);
-    if (!itensComMovimento.length) { corpo.innerHTML = '<tr><td colspan="5" class="sem-servicos">Nenhuma compra iniciada ainda para este orçamento.</td></tr>'; resumo.innerHTML = ''; return; }
-    let totalOrcado = 0, totalComprometido = 0, totalExecutado = 0;
-    corpo.innerHTML = itensComMovimento.map((s) => {
-      const comprometido = comprometidoPorItem[s.id] || 0, executado = executadoPorItem[s.id] || 0, saldo = s.valorOrcado - comprometido - executado;
-      totalOrcado += s.valorOrcado; totalComprometido += comprometido; totalExecutado += executado;
-      return `<tr><td><strong>${esc(s.nome)}</strong><br><span style="color:var(--suave);font-size:11px">${esc(s.caminho)}</span></td>
-        <td class="col-num">${fmtBRL(s.valorOrcado)}</td><td class="col-num">${fmtBRL(comprometido)}</td><td class="col-num">${fmtBRL(executado)}</td>
-        <td class="col-num" style="color:${saldo < 0 ? 'var(--vermelho)' : 'var(--verde)'};font-weight:700">${fmtBRL(saldo)}</td></tr>`;
-    }).join('');
-    resumo.innerHTML = `
-      <div class="resumo-card"><span>Orçado (itens em compra)</span><strong>${fmtBRL(totalOrcado)}</strong></div>
-      <div class="resumo-card"><span>Comprometido</span><strong>${fmtBRL(totalComprometido)}</strong></div>
-      <div class="resumo-card"><span>Executado</span><strong>${fmtBRL(totalExecutado)}</strong></div>
-      <div class="resumo-card"><span>Saldo</span><strong class="total-grande">${fmtBRL(totalOrcado - totalComprometido - totalExecutado)}</strong></div>`;
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
-})();
+  });
+});
