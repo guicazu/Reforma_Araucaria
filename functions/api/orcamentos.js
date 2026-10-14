@@ -76,7 +76,7 @@ export async function onRequestPost({ request, env }) {
     return Response.json({ erro: 'orcamentos_invalidos' }, { status: 400 });
   }
   
-  // Se é uma nova versão de orçamento existente
+  // Se é uma nova versão (versaoNova) - incrementa versão, revisao = 0
   if (corpo.versaoNova && corpo.orcamentoId && corpo.versaoNumero) {
     const o = orcamentos.find(x => x.id === corpo.orcamentoId);
     if (!o) return Response.json({ erro: 'orcamento_nao_encontrado' }, { status: 404 });
@@ -85,7 +85,7 @@ export async function onRequestPost({ request, env }) {
     const versaoId = o.id + '-v' + corpo.versaoNumero;
     
     await env.DB.prepare(
-      `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          rotulo = excluded.rotulo,
@@ -115,7 +115,7 @@ export async function onRequestPost({ request, env }) {
     const versaoId = o.id + '-v1';
     
     await env.DB.prepare(
-      `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO NOTHING`
     ).bind(
@@ -158,7 +158,7 @@ export async function onRequestPost({ request, env }) {
   const versaoId = editandoId + '-v' + novoNum;
   
   await env.DB.prepare(
-    `INSERT INTO orcamentos_versoes (id, orcamentoId, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
+    `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        rotulo = excluded.rotulo,
