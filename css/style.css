@@ -95,6 +95,15 @@ button:disabled{cursor:wait;opacity:.65}
 .resumo-card strong{font-size:20px;color:var(--navy)}
 .resumo-card strong.total-grande{color:var(--gold-2);font-size:24px}
 
+/* Níveis da EAP (1 a 5): recolhe/expande a tabela até a camada escolhida */
+.niveis-eap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.niveis-rotulo{font-size:12px;font-weight:700;color:var(--suave);text-transform:uppercase;letter-spacing:.4px;margin-right:2px}
+.nivel-btn{width:30px;height:30px;padding:0;border:1px solid var(--borda);border-radius:6px;background:#fff;color:var(--navy);font-weight:700;font-size:13px;line-height:1;cursor:pointer}
+.nivel-btn:hover{border-color:var(--gold-2);background:#fbf8f0}
+.nivel-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.nivel-btn[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.niveis-legenda{font-size:12px;color:var(--suave);margin-left:4px}
+
 .table-wrap{background:#fff;border:1px solid var(--borda);border-radius:12px;overflow-x:auto;box-shadow:var(--som)}
 .tabela{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
 .tabela th{text-align:left;padding:9px 12px;background:#e9e4d6;color:#1c2b36;border:1px solid var(--borda);font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}

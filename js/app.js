@@ -250,6 +250,50 @@ function estaAberto(key){return state.expandidos[key]!==false;}
 function alternar(key){state.expandidos[key]=!estaAberto(key);salvar();renderTudo();}
 function seta(aberto){return aberto?'▾':'▸';}
 
+/* ---------- níveis da EAP (botões 1 a 5) ---------- */
+// Cada ▸/▾ revela um nível: unidade → 2 (etapas), etapa → 3 (sub etapas e serviços direto na etapa),
+// sub etapa → 4 (serviços), serviço com memória → 5 (memória de cálculo)
+const NOMES_NIVEIS={1:'Unidades construtivas',2:'Até etapas',3:'Até sub etapas',4:'Até serviços',5:'Tudo, com memórias de cálculo'};
+const nivelEscolhido={};
+function percorrerAlternadores(o,fn,soVisiveis){
+  uu(o).forEach(u=>{
+    if(!fn('u-'+u.id,2)&&soVisiveis)return;
+    u.etapas.forEach(e=>{
+      if(!fn('e-'+e.id,3)&&soVisiveis)return;
+      (e.servicos||[]).forEach(sv=>{if(sv.memo&&sv.memo.length)fn('sv-'+sv.id,5);});
+      e.subEtapas.forEach(s=>{
+        if(!fn('s-'+s.id,4)&&soVisiveis)return;
+        s.servicos.forEach(sv=>{if(sv.memo&&sv.memo.length)fn('sv-'+sv.id,5);});
+      });
+    });
+  });
+}
+function expandirAteNivel(n){
+  const o=orcamentoAtivo();if(!o)return;
+  percorrerAlternadores(o,(key,nivel)=>(state.expandidos[key]=nivel<=n),false);
+  nivelEscolhido[o.id]=n;
+  salvar();renderTudo();
+}
+// Nível exibido quando toda a parte visível da árvore está uniforme; null se estiver misturado
+function nivelExibido(o){
+  const combina=(n)=>{
+    let ok=true;
+    percorrerAlternadores(o,(key,nivel)=>{const aberto=estaAberto(key);if(aberto!==(nivel<=n))ok=false;return aberto;},true);
+    return ok;
+  };
+  // Com níveis equivalentes (ex.: 4 e 5 sem nenhuma memória), mantém o que foi clicado
+  if(nivelEscolhido[o.id]&&combina(nivelEscolhido[o.id]))return nivelEscolhido[o.id];
+  for(let n=1;n<=5;n++)if(combina(n))return n;
+  return null;
+}
+function atualizarBotoesNivel(o){
+  const barra=$('#niveisEap');if(!barra)return;
+  barra.classList.toggle('hidden',!uu(o).length);
+  const n=nivelExibido(o);
+  barra.querySelectorAll('[data-nivel]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.nivel)===n)));
+  $('#nivelLegenda').textContent=n?NOMES_NIVEIS[n]:'Personalizado';
+}
+
 /* ---------- navegação na árvore ---------- */
 function acharUnidade(o,uid_){return uu(o).find(u=>u.id===uid_);}
 function acharEtapa(o,uid_,eid){const u=acharUnidade(o,uid_);return u?u.etapas.find(e=>e.id===eid):null;}
@@ -754,7 +798,8 @@ $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
 $('#versaoAtivaLabel').textContent='V'+versaoAtiva(o).numero+' · Rev. '+(versaoAtiva(o).revisao||0);
 $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
-$('#corpoTabela').innerHTML=renderTabela(o);}
+$('#corpoTabela').innerHTML=renderTabela(o);
+atualizarBotoesNivel(o);}
 
 function renderTabela(o){
   const unidades=uu(o);
@@ -1162,6 +1207,10 @@ $('#btnEntrarEdicao').addEventListener('click',()=>{
 });
 $('#btnLiberarBloqueio').addEventListener('click',liberarEdicaoAtual);
 $('#btnLiberarBloqueioLista').addEventListener('click',liberarEdicaoAtual);
+$('#niveisEap').addEventListener('click',(ev)=>{
+  const b=ev.target.closest('[data-nivel]');
+  if(b)expandirAteNivel(Number(b.dataset.nivel));
+});
 $('#btnVoltarLista').addEventListener('click',()=>{
   modoEdicao=false;
   atualizarStatusSalvamento();
