@@ -1,4 +1,4 @@
-/* Pesquisa de serviços (lupa da nova linha do orçamento): escolhe a base, busca por palavras
+/* Pesquisa de serviços (lupa da nova linha e "Editar" de um serviço do orçamento): escolhe a base, busca por palavras
    em qualquer ordem (mais palavras encontradas primeiro) e exclui termos separados por vírgula.
    SINAPI vem de /api/sinapi/buscar; composições próprias, do catálogo já carregado. */
 (function () {
@@ -11,8 +11,10 @@
   var MAX_RESULTADOS = 60;
   var fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  var modal, campoPalavras, campoExcluir, statusEl, resultadosEl;
+  var modal, campoPalavras, campoExcluir, statusEl, resultadosEl, tituloEl, atualEl;
   var aoEscolher = null;
+  var chaveAtual = '';     // resultado que já está no orçamento (ao editar um serviço)
+  var rotuloUsar = 'Usar';
   var buscaId = 0;
   var timer = null;
   var opcoes = new Map();   // chave do resultado -> item exibido
@@ -155,8 +157,10 @@
         '</div>' +
         '<div class="sinapi-resultado-acoes">' +
           (item.base === 'sinapi' ? '<button type="button" class="btn btn-ghost btn-sm" data-ver="' + esc(item.codigo) + '">Ver composição</button>' : '') +
-          '<button type="button" class="btn btn-primary btn-sm" data-usar="' + esc(item.chave) + '"' +
-            (semPreco ? ' disabled title="Composição sem preço unitário"' : '') + '>Usar</button>' +
+          (item.chave === chaveAtual
+            ? '<button type="button" class="btn btn-ghost btn-sm" disabled>Em uso</button>'
+            : '<button type="button" class="btn btn-primary btn-sm" data-usar="' + esc(item.chave) + '"' +
+              (semPreco ? ' disabled title="Composição sem preço unitário"' : '') + '>' + esc(rotuloUsar) + '</button>') +
         '</div>' +
         '<div class="sinapi-composicao-detalhes" hidden></div>' +
       '</article>';
@@ -230,10 +234,12 @@
     if (usar) {
       var item = opcoes.get(usar.getAttribute('data-usar'));
       if (!item || !aoEscolher) return;
-      if (aoEscolher(item.escolha) === false) {
-        definirStatus('Não foi possível incluir este serviço. Feche a janela e tente de novo.', 'erro');
+      var resultado = aoEscolher(item.escolha);
+      if (resultado === false) {
+        definirStatus('Não foi possível usar este serviço. Feche a janela e tente de novo.', 'erro');
         return;
       }
+      if (resultado === 'manter') return; // a pessoa desistiu na confirmação: segue escolhendo
       modal.close();
     } else if (ver) {
       verComposicao(ver, ver.getAttribute('data-ver'));
@@ -247,6 +253,8 @@
     campoExcluir = document.getElementById('pesquisaExcluir');
     statusEl = document.getElementById('pesquisaStatus');
     resultadosEl = document.getElementById('pesquisaResultados');
+    tituloEl = document.getElementById('pesquisaServicoTitulo');
+    atualEl = document.getElementById('pesquisaAtual');
     [campoPalavras, campoExcluir].forEach(function (campo) {
       campo.addEventListener('input', agendar);
       campo.addEventListener('keydown', function (ev) {
@@ -262,10 +270,17 @@
   }
 
   window.PesquisaServico = {
-    // opcoesAbertura: { texto: busca inicial, aoEscolher(escolha) -> false se não conseguiu incluir }
+    // opcoesAbertura: { texto: busca inicial, aoEscolher(escolha) -> false se não conseguiu usar ou
+    //   'manter' para continuar na janela, titulo, rotuloUsar, atual: { chave, texto } ao editar }
     abrir: function (opcoesAbertura) {
       if (!modal) return false;
-      aoEscolher = (opcoesAbertura && opcoesAbertura.aoEscolher) || null;
+      var op = opcoesAbertura || {};
+      aoEscolher = op.aoEscolher || null;
+      chaveAtual = (op.atual && op.atual.chave) || '';
+      rotuloUsar = op.rotuloUsar || 'Usar';
+      tituloEl.textContent = op.titulo || 'Pesquisar serviço';
+      atualEl.textContent = (op.atual && op.atual.texto) || '';
+      atualEl.hidden = !atualEl.textContent;
       var base = lerBase();
       var radios = Array.from(modal.querySelectorAll('input[name="pesquisaBase"]'));
       if (!radios.some(function (r) { return r.value === base; })) base = 'todas';

@@ -694,84 +694,6 @@ function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etap
   salvar();renderTudo();
 }
 
-function preencherCatalogoServico(sv){
-  const select=$('#fCatalogoItem');
-  select.replaceChildren(new Option('Selecione uma composição própria',''));
-  const composicoes=window.Composicoes?window.Composicoes.carregar().filter(item=>item.base==='propria'||!item.base):[];
-  composicoes.forEach(item=>{
-    const codigo=item.codigo||'';
-    select.appendChild(new Option(`${codigo?codigo+' — ':''}${item.nome} · ${fmtBRL.format(num(item.valorUnitario)||0)}/${item.unidade||'un'}`,item.id));
-  });
-  select.value=sv&&sv.catalogoTipo==='composicao'?(sv.catalogoId||''):'';
-}
-
-function aplicarItemCatalogo(){
-  const id=$('#fCatalogoItem').value;
-  const item=window.Composicoes&&window.Composicoes.carregar().find(registro=>registro.id===id&&(registro.base==='propria'||!registro.base));
-  if(!item){limparFonteServico();return;}
-  $('#fCatalogoTipo').value='composicao';$('#fCatalogoId').value=item.id;$('#fCatalogoDetalheId').value='';
-  $('#fCodigoSinapi').value='';
-  $('#fNome').value=item.nome||'';
-  $('#fUnidadeMedida').value=item.unidade||'un';
-  definirPrecoServico(item.valorUnitario);
-  $('#fonteServicoResumo').textContent='Composição própria · '+(item.codigo||'')+(item.componentes&&item.componentes.length?' · '+item.componentes.length+' insumo(s)':'');
-  $('#sinapiStatus').textContent='';
-}
-
-function definirPrecoServico(valor){
-  const preco=num(valor);
-  $('#fValor').value=preco==null?'':String(preco);
-  $('#fValorExibicao').textContent=preco==null?'Selecione uma fonte':fmtBRL.format(preco);
-}
-
-function limparFonteServico(){
-  $('#fCatalogoTipo').value='';$('#fCatalogoId').value='';$('#fCatalogoDetalheId').value='';$('#fCodigoSinapi').value='';$('#fCatalogoItem').value='';
-  $('#fNome').value='';$('#fUnidadeMedida').value='';definirPrecoServico(null);
-  $('#fonteServicoResumo').textContent='Selecione uma composição própria ou busque uma composição SINAPI.';
-}
-
-window.selecionarComposicaoSinapiServico=function(resultado){
-  if(!resultado||!resultado.codigo||!resultado.descricao||resultado.valor==null)return false;
-  $('#fCatalogoTipo').value='sinapi';$('#fCatalogoId').value=String(resultado.codigo);$('#fCatalogoDetalheId').value='';
-  $('#fCatalogoItem').value='';$('#fCodigoSinapi').value=String(resultado.codigo);
-  $('#fNome').value=resultado.descricao;$('#fUnidadeMedida').value=resultado.unidade||'';
-  definirPrecoServico(resultado.valor);
-  $('#fonteServicoResumo').textContent='SINAPI · Código '+resultado.codigo+(resultado.referencia?' · Referência '+resultado.referencia:'');
-  $('#sinapiStatus').textContent='Composição SINAPI selecionada';
-  $('#sinapiStatus').className='sinapi-status ok';
-  return true;
-}
-
-function abrirModalServico(sv, sub, etapa, unidade){
-  if(!sv&&typeof window.limparBuscaSinapi==='function')window.limparBuscaSinapi();
-  $('#fServicoId').value=sv?sv.id:'';
-  $('#fSubId').value=sub?sub.id:'';
-  $('#fEtapaId').value=etapa?etapa.id:'';
-  $('#fUnidadeId').value=unidade?unidade.id:'';
-  $('#fCatalogoTipo').value=sv?sv.catalogoTipo||'':'';
-  $('#fCatalogoId').value=sv?sv.catalogoId||'':'';
-  $('#fCatalogoDetalheId').value=sv?sv.catalogoDetalheId||'':'';
-  $('#modalTitulo').textContent=sv?'Editar serviço':'Adicionar serviço';
-  $('#fNome').value=sv?sv.nome:'';
-  $('#fCodigoSinapi').value=sv?sv.codigo||'':'';
-  $('#fUnidadeMedida').value=sv?sv.unidadeMedida:'m²';
-  definirPrecoServico(sv&&sv.valorUnitario!=null?sv.valorUnitario:null);
-  preencherCatalogoServico(sv);
-  if(sv&&sv.catalogoTipo==='composicao')aplicarItemCatalogo();
-  else if(sv&&sv.catalogoTipo==='sinapi'){
-    $('#fNome').value=sv.nome||'';$('#fUnidadeMedida').value=sv.unidadeMedida||'';$('#fCodigoSinapi').value=sv.codigo||'';
-    $('#fonteServicoResumo').textContent='SINAPI · Código '+(sv.codigo||sv.catalogoId||'');
-    $('#sinapiStatus').textContent='Composição SINAPI selecionada';
-    $('#sinapiStatus').className='sinapi-status ok';
-  }else if(sv){
-    $('#fonteServicoResumo').textContent='Serviço antigo sem composição vinculada. Selecione uma fonte para continuar.';
-    $('#sinapiStatus').textContent='';
-  }else{
-    limparFonteServico();
-  }
-  $('#modalServico').showModal();
-  if(!sv||!sv.catalogoTipo)$('#fCatalogoItem').focus();
-}
 /* ---------- nova linha de serviço: código digitado na própria tabela ---------- */
 // A linha é um rascunho: só vira serviço quando o código é encontrado (ou pela janela da lupa)
 let rascunhoServico=null; // {orcamentoId,uid,eid,sid,codigo,mensagem,erro,buscando,pesquisando,cancelado}
@@ -904,6 +826,43 @@ function incluirServicoEscolhido(r,escolha){
   // a quantidade só pode receber o foco depois que a janela fechar
   setTimeout(()=>{const qtd=document.getElementById('qtdsv_'+sv.id);if(qtd){qtd.focus();qtd.select();}},0);
   return true;
+}
+
+/* "Editar" um serviço: a mesma pesquisa da lupa, para trocar a composição.
+   Quantidade, memória de cálculo e posição na EAP continuam as mesmas. */
+const PALAVRAS_FORA_DA_BUSCA=new Set(['de','da','do','das','dos','com','para','por','sem','em','na','no','nas','nos','ou','os','as','até','entre','tipo','inclusive','incluso','exclusive']);
+// começo da descrição como busca inicial: traz o próprio serviço e os parecidos
+function textoBuscaDoServico(sv){
+  return String(sv.nome||'').split(/[\s,.;:()"*]+/)
+    .filter(p=>p.length>=3&&!/[\d_]/.test(p)&&!PALAVRAS_FORA_DA_BUSCA.has(p.toLowerCase()))
+    .slice(0,5).join(' ');
+}
+function mesmaUnidade(a,b){const n=x=>String(x||'').trim().toUpperCase().replace('²','2').replace('³','3');return n(a)===n(b);}
+function editarServico(sv){
+  const o=orcamentoAtivo();if(!sv||!o||!window.PesquisaServico)return;
+  const orcamentoId=o.id,svid=sv.id;
+  const f=fonteServico(sv,mapaComposicoes());
+  const chave=sv.catalogoTipo==='sinapi'?'sinapi:'+(sv.codigo||sv.catalogoId):sv.catalogoTipo==='composicao'?'propria:'+sv.catalogoId:'';
+  const preco=sv.valorUnitario==null?'sem preço':fmtBRL.format(num(sv.valorUnitario))+'/'+(sv.unidadeMedida||'un');
+  window.PesquisaServico.abrir({
+    titulo:'Trocar serviço',
+    rotuloUsar:'Trocar',
+    texto:textoBuscaDoServico(sv),
+    atual:{chave,texto:'Atual: '+[f.codigo,f.base,sv.nome,preco].filter(Boolean).join(' · ')},
+    aoEscolher:(escolha)=>{
+      const oa=orcamentoAtivo();
+      if(!oa||oa.id!==orcamentoId||!modoEdicao||orcamentoEditandoId!==oa.id)return false;
+      const alvo=acharServicoPorId(oa,svid);if(!alvo)return false;
+      const dados=escolha.tipo==='propria'?dadosServicoPropria(escolha.composicao):dadosServicoSinapi(escolha.resultado);
+      if(!dados.nome||!dados.unidadeMedida||dados.valorUnitario==null)return false;
+      const temMemo=alvo.memo&&alvo.memo.length;
+      if(!mesmaUnidade(alvo.unidadeMedida,dados.unidadeMedida)&&qtdServico(alvo)>0&&
+        !confirm(`A unidade muda de ${alvo.unidadeMedida} para ${dados.unidadeMedida}. A quantidade${temMemo?' e a memória de cálculo continuam':' continua'} igual; confira depois de trocar.\n\nTrocar mesmo assim?`))return 'manter';
+      Object.assign(alvo,dados);
+      salvar();renderTudo();
+      return true;
+    }
+  });
 }
 
 function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=primeiraMaiuscula(n)||sv.nome;salvar();renderTudo();}
@@ -1196,33 +1155,6 @@ function renderMemo(sv){
 }
 
 /* ---------- formulário serviço ---------- */
-$('#formServico').addEventListener('submit',(ev)=>{
-  ev.preventDefault();
-  const o=orcamentoAtivo();if(!o)return;
-  const svid=$('#fServicoId').value;
-  const etapaId=$('#fEtapaId').value;
-  const subId=$('#fSubId').value;
-  const dados={nome:primeiraMaiuscula($('#fNome').value),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null,catalogoDetalheId:$('#fCatalogoDetalheId').value||null};
-  if(!['composicao','sinapi'].includes(dados.catalogoTipo)||!dados.catalogoId||!dados.nome||!dados.unidadeMedida||dados.valorUnitario==null){alert('Selecione uma composição própria ou uma composição SINAPI válida.');return;}
-  if(dados.catalogoTipo==='composicao'){
-    const composicao=window.Composicoes&&window.Composicoes.carregar().find(item=>item.id===dados.catalogoId&&(item.base==='propria'||!item.base));
-    if(!composicao){alert('A composição própria selecionada não está mais disponível. Escolha outra composição.');return;}
-    dados.nome=primeiraMaiuscula(composicao.nome);dados.unidadeMedida=composicao.unidade||'un';dados.valorUnitario=num(composicao.valorUnitario);
-    dados.codigo=composicao.codigo||'';
-  }
-  if(svid){
-    const sv=acharServicoPorId(o,svid);
-    if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;sv.codigo=dados.codigo;sv.catalogoTipo=dados.catalogoTipo;sv.catalogoId=dados.catalogoId;sv.catalogoDetalheId=dados.catalogoDetalheId;}
-  }else{
-    if(!adicionarServico(o,$('#fUnidadeId').value,etapaId,subId,dados)){
-      alert('Não foi possível localizar a etapa para salvar o serviço.');
-      return;
-    }
-    // serviço novo pela lupa: a linha em rascunho deu lugar ao serviço
-    rascunhoServico=null;
-  }
-  salvar();renderTudo();$('#modalServico').close();
-});
 
 /* ---------- exportar Excel / PDF ---------- */
 function exportarExcel(){
@@ -1350,7 +1282,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
 
     case 'up-sv':moverServico(e,s,sv,-1);break;
     case 'down-sv':moverServico(e,s,sv,1);break;
-    case 'edit-sv':abrirModalServico(sv);break;
+    case 'edit-sv':editarServico(sv);break;
     case 'del-sv':excluirServico(e,s,sv);break;
     case 'mover-sv-para':{
       // Mover serviço para outra sub-étapa (precisa selecionar destino)
@@ -1459,8 +1391,6 @@ $('#btnNovoOrcamento').addEventListener('click',criarOrcamento);
 $('#btnNovoVazio').addEventListener('click',criarOrcamento);
 $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
-$('#btnCancelarModal').addEventListener('click',()=>$('#modalServico').close());
-$('#fCatalogoItem').addEventListener('change',aplicarItemCatalogo);
 $('#btnDuplicar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o)duplicarOrcamento(o.id);});
 $('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)return;renderVersoes(o);$('#comparacaoVersoes').innerHTML='';$('#modalVersoes').showModal();});
 $('#btnGerarVersao').addEventListener('click',gerarVersao);
@@ -1567,10 +1497,6 @@ document.addEventListener('app:viewchange', function (ev) {
 });
 document.addEventListener('catalogos:loaded', function () {
   renderTudo();
-  const modalServico = document.getElementById('modalServico');
-  if (modalServico && modalServico.open) {
-    preencherCatalogoServico({catalogoTipo: 'composicao', catalogoId: $('#fCatalogoItem').value});
-  }
 });
 carregarDoServidor();
 window.state = state;

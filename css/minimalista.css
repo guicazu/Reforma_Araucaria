@@ -272,6 +272,7 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 .sinapi-un{margin-left:0;text-transform:none;font-size:11px;color:var(--fraco)}
 .sinapi-codigo{padding:0;background:transparent;color:var(--suave);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .pesquisa-item .sinapi-resultado-descricao mark{background:#e4e4e7;color:inherit}
+.pesquisa-atual{margin:-6px 0 14px;padding:7px 10px;border-left:2px solid #d4d4d8;background:#fafafa;font-size:12px;line-height:1.45;color:var(--suave)}
 .sinapi-filtros{border-color:var(--borda)}
 .sinapi-filtros summary{color:var(--suave);font-weight:500}
 

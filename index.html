@@ -717,45 +717,6 @@
 
 </div>
 
-<dialog id="modalServico" class="modal">
-  <form id="formServico">
-    <h3 id="modalTitulo">Adicionar serviço</h3>
-    <input type="hidden" id="fServicoId" />
-    <input type="hidden" id="fSubId" />
-<input type="hidden" id="fUnidadeId" />
-<input type="hidden" id="fEtapaId" />
-    <input type="hidden" id="fCatalogoTipo" />
-    <input type="hidden" id="fCatalogoId" />
-    <input type="hidden" id="fCatalogoDetalheId" />
-    <input type="hidden" id="fCodigoSinapi" />
-    <div class="fonte-servico">
-      <div class="fonte-servico-head">
-        <div><strong>Composição do serviço</strong><span>Selecione uma composição própria ou busque uma composição SINAPI.</span></div>
-        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-buscar"/></svg>Buscar SINAPI</button>
-      </div>
-      <label>Composição própria
-        <select id="fCatalogoItem"><option value="">Selecione uma composição</option></select>
-      </label>
-      <div id="fonteServicoResumo" class="fonte-servico-resumo" aria-live="polite">Selecione uma das fontes para preencher o serviço.</div>
-      <span class="sinapi-status" id="sinapiStatus" aria-live="polite"></span>
-    </div>
-    <div class="grid-2">
-      <label>Serviço<input type="text" id="fNome" placeholder="Definido pela composição selecionada" readonly required /></label>
-      <label>Unidade de medida<input type="text" id="fUnidadeMedida" readonly required /></label>
-    </div>
-    <div class="servico-preco-fonte">
-      <span>Preço unitário da composição</span>
-      <strong id="fValorExibicao">R$ 0,00</strong>
-      <input type="hidden" id="fValor" />
-    </div>
-
-    <div class="modal-actions">
-      <button type="button" id="btnCancelarModal" class="btn btn-ghost">Cancelar</button>
-      <button type="submit" class="btn btn-primary">Salvar serviço</button>
-    </div>
-  </form>
-</dialog>
-
 <dialog id="modalPesquisaServico" class="modal modal-lg" aria-labelledby="pesquisaServicoTitulo">
   <div class="sinapi-modal-heading">
     <div>
@@ -763,6 +724,7 @@
       <p>SINAPI: preços de São Paulo · Desonerado</p>
     </div>
   </div>
+  <p id="pesquisaAtual" class="pesquisa-atual" hidden></p>
   <div class="pesquisa-bases" role="radiogroup" aria-label="Base da pesquisa">
     <label><input type="radio" name="pesquisaBase" value="todas" checked /><span>Todas</span></label>
     <label><input type="radio" name="pesquisaBase" value="sinapi" /><span>SINAPI</span></label>
@@ -781,36 +743,6 @@
   </div>
 </dialog>
 
-<dialog id="modalBuscaSinapi" class="modal modal-lg">
-  <div class="sinapi-modal-heading">
-    <div>
-      <h3>Buscar composição SINAPI</h3>
-      <p>Preços de São Paulo · Desonerado</p>
-    </div>
-  </div>
-  <div class="sinapi-busca-principal">
-    <label for="buscaCodigo">Já tem o código SINAPI?</label>
-    <div class="sinapi-busca-codigo">
-      <input type="text" id="buscaCodigo" inputmode="numeric" autocomplete="off" placeholder="Digite o código, ex.: 87263" aria-label="Código SINAPI" />
-      <button type="button" class="btn btn-primary" id="btnBuscarCodigo">Buscar código</button>
-    </div>
-  </div>
-  <div class="sinapi-busca-separador"><span>ou busque pela descrição</span></div>
-  <label class="sinapi-label-principal" for="buscaInc1">O que você precisa executar?</label>
-  <input class="sinapi-descricao-input" type="search" id="buscaInc1" placeholder="Ex.: revestimento cerâmico para piso" autocomplete="off" />
-  <p class="sinapi-ajuda-busca">Digite uma descrição ou algumas palavras; os resultados são filtrados automaticamente.</p>
-  <details class="sinapi-filtros">
-    <summary>Filtros avançados</summary>
-    <label for="buscaExc1">Excluir resultados que contenham
-      <input type="text" id="buscaExc1" placeholder="Ex.: estrutural" autocomplete="off" />
-    </label>
-  </details>
-  <p id="sinapiBuscaStatus" class="sinapi-status" role="status" aria-live="polite"></p>
-  <div id="buscaSinapiResultados" class="sinapi-resultados"></div>
-  <div class="modal-actions">
-    <button type="button" class="btn btn-ghost" id="btnFecharBuscaSinapi">Fechar</button>
-  </div>
-</dialog>
 
 <dialog id="modalVersoes" class="modal modal-lg">
   <h3 id="versoesTitulo">Versões do orçamento</h3>
