@@ -29,7 +29,8 @@ export async function onRequestGet({ env }) {
       };
     }
     // Reconstrói a versão a partir do conteúdo salvo
-    const unidades = JSON.parse(v.conteudo || '[]');
+    let unidades = [];
+    try { unidades = JSON.parse(v.conteudo || '[]'); } catch(e) { unidades = []; }
     orcamentosPorId[v.orcamentoId].versoes.push({
       id: v.id,
       numero: v.versaoNumero,
