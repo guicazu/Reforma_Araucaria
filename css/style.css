@@ -184,6 +184,15 @@ button:disabled{cursor:wait;opacity:.65}
 #tabelaOrcamento th{padding:7px 9px;font-size:11px}
 #tabelaOrcamento td{padding:6px 8px}
 #tabelaOrcamento .col-codigo{width:100px}
+#tabelaOrcamento{min-width:1100px}
+#tabelaOrcamento .col-cod-item{width:118px}
+#tabelaOrcamento td.col-cod-item{white-space:nowrap;color:#3c5d78;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700}
+#tabelaOrcamento .col-base{width:78px;text-align:center}
+#tabelaOrcamento td.col-base{white-space:nowrap}
+/* Base da composição: mesmas cores das etiquetas do catálogo */
+.tag-base{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.tag-base-propria{background:#f2efdf;color:#74601c}
+.tag-base-sinapi{background:#eaf1f7;color:#315676}
 #tabelaOrcamento .col-un{width:54px}
 #tabelaOrcamento .col-num{width:112px}
 #tabelaOrcamento .col-acoes{width:260px}

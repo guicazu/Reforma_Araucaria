@@ -177,7 +177,9 @@
       <table class="tabela" id="tabelaOrcamento">
         <thead>
           <tr>
-            <th class="col-codigo">Código</th>
+            <th class="col-codigo">Código EAP</th>
+            <th class="col-cod-item" title="Código do serviço ou insumo na base de origem">Código serviço / insumo</th>
+            <th class="col-base" title="Base da composição: SINAPI, Própria…">Base</th>
             <th>Descrição</th>
             <th class="col-un">Un.</th>
             <th class="col-num">Quantidade orçada</th>
@@ -189,9 +191,9 @@
         <tbody id="corpoTabela"></tbody>
         <tfoot>
           <tr class="linha-total">
-            <td colspan="5">TOTAL DO ORÇAMENTO</td>
+            <td colspan="7">TOTAL DO ORÇAMENTO</td>
             <td id="totalRodape">R$ 0,00</td>
-            <td></td>
+            <td class="col-acoes"></td>
           </tr>
         </tfoot>
       </table>

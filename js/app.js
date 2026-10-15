@@ -801,15 +801,33 @@ $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 $('#corpoTabela').innerHTML=renderTabela(o);
 atualizarBotoesNivel(o);}
 
+/* ---------- código e base do serviço ---------- */
+function mapaComposicoes(){return new Map((window.Composicoes?window.Composicoes.carregar():[]).map(c=>[c.id,c]));}
+// Código e base conforme a fonte do serviço: composição SINAPI ou composição própria do catálogo
+function fonteServico(sv,composicoes){
+  if(sv.catalogoTipo==='sinapi')return{codigo:sv.codigo||sv.catalogoId||'',base:'SINAPI',classe:'sinapi',referencia:''};
+  if(sv.catalogoTipo==='composicao'){
+    const c=composicoes.get(sv.catalogoId);
+    return{codigo:(c&&c.codigo)||sv.codigo||'',base:'Própria',classe:'propria',referencia:(c&&c.codigoReferencia)||''};
+  }
+  return{codigo:sv.codigo||'',base:'',classe:'',referencia:''};
+}
+function celulasFonte(sv,composicoes){
+  const f=fonteServico(sv,composicoes);
+  const titulo=f.referencia?` title="Composição própria baseada no SINAPI ${esc(f.referencia)}"`:'';
+  return `<td class="col-cod-item"${titulo}>${f.codigo?esc(f.codigo):'—'}</td><td class="col-base">${f.base?`<span class="tag-base tag-base-${f.classe}">${f.base}</span>`:'—'}</td>`;
+}
+
 function renderTabela(o){
   const unidades=uu(o);
-  if(!unidades.length)return `<tr><td colspan="7" class="sem-servicos">${modoEdicao?'Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.':'Este orçamento ainda não tem unidades construtivas.'}</td></tr>`;
+  const composicoes=mapaComposicoes();
+  if(!unidades.length)return `<tr><td colspan="9" class="sem-servicos">${modoEdicao?'Nenhuma unidade construtiva ainda.<br>Clique em <strong>+ Unidade construtiva</strong> para começar.':'Este orçamento ainda não tem unidades construtivas.'}</td></tr>`;
   let html='';
   unidades.forEach((u,iu)=>{
     const cU=iu+1;
     const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
-      <td class="col-codigo codigo">${cU}</td>
+      <td class="col-codigo codigo">${cU}</td><td class="col-cod-item"></td><td class="col-base"></td>
       <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome.toLocaleUpperCase('pt-BR'))}</strong></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
       <td class="col-num total" id="subtotalUnidade_${u.id}">${fmtBRL.format(subtotalUnidade(o,u))}</td>
@@ -826,7 +844,7 @@ function renderTabela(o){
       const cE=cU+'.'+(ie+1);
       const abertaE=estaAberto('e-'+e.id);
       html+=`<tr class="grupo n2">
-        <td class="col-codigo codigo">${cE}</td>
+        <td class="col-codigo codigo">${cE}</td><td class="col-cod-item"></td><td class="col-base"></td>
         <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(primeiraMaiuscula(e.nome))}</strong></td>
         <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
         <td class="col-num total" id="subtotalEtapa_${e.id}">${fmtBRL.format(subtotalEtapa(e))}</td>
@@ -847,7 +865,7 @@ function renderTabela(o){
         const memoAberta=estaAberto('sv-'+sv.id);
         html+=`<tr class="linha-servico linha-direta">
           <td class="col-codigo codigo">${cSv}</td>
-          <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
+          ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
           <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -867,7 +885,7 @@ function renderTabela(o){
         const cS=cE+'.'+((e.servicos||[]).length+is+1);
         const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
-          <td class="col-codigo codigo">${cS}</td>
+          <td class="col-codigo codigo">${cS}</td><td class="col-cod-item"></td><td class="col-base"></td>
           <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(primeiraMaiuscula(s.nome))}</strong></td>
           <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
           <td class="col-num total" id="subtotalSub_${s.id}">${fmtBRL.format(subtotalSub(s))}</td>
@@ -887,7 +905,7 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            <td><strong>${sv.codigo?esc(sv.codigo)+' ':''}${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
+            ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -924,7 +942,7 @@ function renderMemo(sv){
   </tr>`;}).join('');
   const soma=qtdServico(sv);
   return `
-  <tr class="linha-memo"><td colspan="7">
+  <tr class="linha-memo"><td colspan="9">
     <div class="memo-box">
       <div class="memo-head">
         <div><h4>Memória de cálculo</h4><p>${esc(sv.nome)} · ${sv.memo.length} linha(s)</p></div>
@@ -979,27 +997,32 @@ $('#formServico').addEventListener('submit',(ev)=>{
 function exportarExcel(){
   const o=orcamentoAtivo();if(!o)return;
   const unidades=uu(o);
+  const composicoes=mapaComposicoes();
+  const linhaServico=(codigoEap,recuo,sv)=>{
+    const f=fonteServico(sv,composicoes);
+    return [codigoEap,f.codigo,f.base,recuo+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))];
+  };
   const rows=[];
-  rows.push(['CÓDIGO','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
+  rows.push(['CÓDIGO EAP','CÓDIGO SERVIÇO/INSUMO','BASE','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
   unidades.forEach((u,iu)=>{
-    rows.push([String(iu+1),u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
+    rows.push([String(iu+1),'','',u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
     u.etapas.forEach((e,ie)=>{
       const codigoEtapa=`${iu+1}.${ie+1}`;
-      rows.push([codigoEtapa,'   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
+      rows.push([codigoEtapa,'','','   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
       (e.servicos||[]).forEach((sv,isv)=>{
-        rows.push([`${codigoEtapa}.${isv+1}`,'      '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
+        rows.push(linhaServico(`${codigoEtapa}.${isv+1}`,'      ',sv));
       });
       e.subEtapas.forEach((s,is)=>{
         const codigoSub=`${codigoEtapa}.${(e.servicos||[]).length+is+1}`;
-        rows.push([codigoSub,'      '+s.nome,'',null,null,num2(subtotalSub(s))]);
+        rows.push([codigoSub,'','','      '+s.nome,'',null,null,num2(subtotalSub(s))]);
         s.servicos.forEach((sv,isv)=>{
-          rows.push([`${codigoSub}.${isv+1}`,'         '+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))]);
+          rows.push(linhaServico(`${codigoSub}.${isv+1}`,'         ',sv));
         });
       });
     });
   });
   rows.push([]);
-  rows.push(['','TOTAL GERAL','','','',num2(totalOrcamento(o))]);
+  rows.push(['','','','TOTAL GERAL','','','',num2(totalOrcamento(o))]);
 
   const mrows=[['CÓDIGO DO SERVIÇO','SERVIÇO','DESCRIÇÃO','QTD','COEF.','COMPR.','ALTURA','LARGURA','RESULTADO']];
   unidades.forEach((u,iu)=>{
@@ -1033,7 +1056,7 @@ function exportarExcel(){
   try{
     if(typeof XLSX!=='undefined'){
       const ws=XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols']=[{wch:14},{wch:50},{wch:6},{wch:14},{wch:14},{wch:16}];
+      ws['!cols']=[{wch:14},{wch:16},{wch:9},{wch:50},{wch:6},{wch:14},{wch:14},{wch:16}];
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,'Orçamento');
       if(mrows.length>1){
