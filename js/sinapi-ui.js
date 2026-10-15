@@ -30,11 +30,9 @@
       : '—';
   }
 
+  // padrão de escrita do site: só a primeira letra maiúscula (js/texto.js)
   function tituloAmigavel(texto) {
-    if (!texto) return '';
-    return texto.toLowerCase().replace(/(^|\s|\/|-)\p{L}/gu, function (m) {
-      return m.toUpperCase();
-    });
+    return window.primeiraMaiuscula(texto);
   }
 
   function iniciar() {

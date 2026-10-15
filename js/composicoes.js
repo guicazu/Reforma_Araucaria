@@ -113,8 +113,15 @@
       if (!Array.isArray(dados[tipo])) throw new Error('A resposta do catálogo está incompleta.');
       catalogos[tipo] = dados[tipo];
     }
+    // nomes no padrão do site (js/texto.js), inclusive os já gravados em maiúsculas pela SINAPI
+    catalogos.composicoes.concat(catalogos.insumos).forEach(padronizarNome);
     erroCatalogos = '';
     document.dispatchEvent(new CustomEvent('catalogos:loaded'));
+  }
+
+  function padronizarNome(item) {
+    item.nome = window.primeiraMaiuscula(item.nome);
+    (item.componentes || []).forEach(function (c) { c.nome = window.primeiraMaiuscula(c.nome); });
   }
 
   function erroCatalogo(container) {
@@ -163,13 +170,6 @@
     return prefixo + '-' + ano + '-' + String(max + 1).padStart(3, '0');
   }
 
-  function tituloAmigavel(texto) {
-    if (!texto) return '';
-    return texto.toLowerCase().replace(/(^|\s|\/|-)\p{L}/gu, function (m) {
-      return m.toUpperCase();
-    });
-  }
-
   function unidadeSinapi(unidade) {
     const mapa = {KG: 'kg', M: 'm', M2: 'm²', M3: 'm³', UN: 'un', H: 'h', L: 'L', T: 't', DIA: 'dia', MES: 'mês', CJ: 'cj', JG: 'jg', PAR: 'par', MIL: 'mil', CENTO: 'cento', SC25KG: 'sc 25kg', KWH: 'kWh'};
     const valor = (unidade || '').trim();
@@ -182,7 +182,7 @@
       const item = {
         id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'c-' + Date.now()),
         codigo: proximoCodigo('composicoes'),
-        nome: (nome || '').trim() || 'Nova composição',
+        nome: window.primeiraMaiuscula(nome) || 'Nova composição',
         descricao: descricao || '',
         unidade: unidade || 'un',
         valorUnitario: parseReal(valorUnitario),
@@ -199,7 +199,7 @@
       const item = carregarComposicoes().find(function (c) { return c.id === id; });
       if (!item) return null;
       const resposta = await enviarCatalogo('PUT', {tipo: 'composicoes', item: Object.assign({}, item, {
-        nome: (dados.nome || '').trim(),
+        nome: window.primeiraMaiuscula(dados.nome),
         descricao: dados.descricao || '',
         unidade: dados.unidade || 'un',
         valorUnitario: parseReal(dados.valorUnitario),
@@ -222,7 +222,7 @@
       const item = {
         id: (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'i-' + Date.now()),
         codigo: proximoCodigo('insumos'),
-        nome: (nome || '').trim() || 'Novo insumo',
+        nome: window.primeiraMaiuscula(nome) || 'Novo insumo',
         descricao: descricao || '',
         unidade: unidade || 'un',
         valorUnitario: parseReal(valorUnitario),
@@ -241,7 +241,7 @@
       const item = carregarInsumos().find(function (i) { return i.id === id; });
       if (!item) return null;
       const resposta = await enviarCatalogo('PUT', {tipo: 'insumos', item: Object.assign({}, item, {
-        nome: (dados.nome || '').trim(),
+        nome: window.primeiraMaiuscula(dados.nome),
         descricao: dados.descricao || '',
         unidade: dados.unidade || 'un',
         valorUnitario: parseReal(dados.valorUnitario),

@@ -416,7 +416,7 @@
       const faseId = 'fase_' + unidade.id;
       eap.push({
         id: faseId,
-        nome: unidade.nome,
+        nome: window.tudoMaiusculo(unidade.nome),
         tipo: 'fase',
         nivel: 0,
         duracao: 0, // summary, will be calculated from children
@@ -432,7 +432,7 @@
         const atividadeId = 'atividade_' + etapa.id;
         eap.push({
           id: atividadeId,
-          nome: etapa.nome,
+          nome: window.primeiraMaiuscula(etapa.nome),
           tipo: 'atividade',
           nivel: 1,
           duracao: 0,
@@ -448,7 +448,7 @@
           const subAtividadeId = 'subatividade_' + subEtapa.id;
           eap.push({
             id: subAtividadeId,
-            nome: subEtapa.nome || 'SubEtapa',
+            nome: window.primeiraMaiuscula(subEtapa.nome) || 'SubEtapa',
             tipo: 'subEtapa',
             nivel: 2,
             duracao: 0,
@@ -466,7 +466,7 @@
             const duracao = servico.duracao !== undefined && servico.duracao !== null ? servico.duracao : 1;
             eap.push({
               id: servicoId,
-              nome: servico.nome || 'Serviço sem nome',
+              nome: window.primeiraMaiuscula(servico.nome) || 'Serviço sem nome',
               tipo: 'servico',
               nivel: 3,
               duracao: duracao,

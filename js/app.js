@@ -6,7 +6,6 @@ const fmtNum=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:2});
 
 function uid(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
 function esc(s){return String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
-function primeiraMaiuscula(s){const texto=String(s??'');return texto?texto.charAt(0).toLocaleUpperCase('pt-BR')+texto.slice(1):'';}
 function num(v){if(v==null||String(v).trim()==='')return null;let s=String(v).trim();if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.');}else{const d=(s.match(/\./g)||[]).length;if(d>1)s=s.replace(/\./g,'');}const n=Number(s);return isNaN(n)?null:n;}
 function num2(n){return Math.round((Number(n)||0)*100)/100;}
 function clone(x){return JSON.parse(JSON.stringify(x));}
@@ -16,6 +15,17 @@ function carregarEstado(){try{const raw=localStorage.getItem(DB_KEY);if(!raw)ret
 const state=carregarEstado();
 
 /* --- migrar estrutura antiga (unidades no topo) para versões --- */
+// Padrão de escrita (js/texto.js) em todas as versões, para os dados antigos ou importados
+function padronizarNomes(o){
+  (o.versoes||[]).forEach(v=>(v.unidades||[]).forEach(u=>{
+    u.nome=tudoMaiusculo(u.nome);
+    (u.etapas||[]).forEach(e=>{
+      e.nome=primeiraMaiuscula(e.nome);
+      (e.servicos||[]).forEach(sv=>{sv.nome=primeiraMaiuscula(sv.nome);});
+      (e.subEtapas||[]).forEach(s=>{s.nome=primeiraMaiuscula(s.nome);(s.servicos||[]).forEach(sv=>{sv.nome=primeiraMaiuscula(sv.nome);});});
+    });
+  }));
+}
 function migrarOrcamento(o){
   if(!Array.isArray(o.versoes)||!o.versoes.length){
     o.versoes=[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',criadoEm:o.criadoEm||new Date().toISOString(),unidades:Array.isArray(o.unidades)?o.unidades:[]}];
@@ -24,6 +34,7 @@ function migrarOrcamento(o){
   // a versão ativa é a última do array: garante ordem crescente de número
   o.versoes.sort((a,b)=>(Number(a.numero)||0)-(Number(b.numero)||0));
   delete o.unidades;
+  padronizarNomes(o);
   return o;
 }
 state.orcamentos.forEach(migrarOrcamento);
@@ -656,8 +667,8 @@ function compararVersoes(){
 }
 
 /* ---------- CRUD níveis ---------- */
-function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;uu(o).push({id:uid(),nome:n.trim(),etapas:[]});salvar();renderTudo();}
-function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=n.trim()||u.nome;salvar();renderTudo();}
+function addUnidade(){const o=orcamentoAtivo();const n=prompt('Nome da unidade construtiva (ex.: Casa 01):','');if(n===null||!n.trim())return;uu(o).push({id:uid(),nome:tudoMaiusculo(n),etapas:[]});salvar();renderTudo();}
+function renomearUnidade(u){const n=prompt('Renomear unidade construtiva:',u.nome);if(n===null)return;u.nome=tudoMaiusculo(n)||u.nome;salvar();renderTudo();}
 function excluirUnidade(o,u){
   if(!confirm(`Excluir a unidade "${u.nome}" e tudo dentro dela?`))return;
   const arr=uu(o);const i=arr.indexOf(u);
@@ -665,13 +676,13 @@ function excluirUnidade(o,u){
   salvar();renderTudo();
 }function moverUnidade(o,u,dir){const arr=uu(o);const i=arr.indexOf(u);const j=i+dir;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]];salvar();renderTudo();}
 
-function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:n.trim(),subEtapas:[],servicos:[],servicos:[],servicos:[]});salvar();renderTudo();}
-function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=n.trim()||e.nome;salvar();renderTudo();}
+function addEtapa(u){const n=prompt('Nome da etapa (ex.: Estrutura):','');if(n===null||!n.trim())return;u.etapas.push({id:uid(),nome:primeiraMaiuscula(n),subEtapas:[],servicos:[]});salvar();renderTudo();}
+function renomearEtapa(e){const n=prompt('Renomear etapa:',e.nome);if(n===null)return;e.nome=primeiraMaiuscula(n)||e.nome;salvar();renderTudo();}
 function excluirEtapa(u,e){if(!confirm(`Excluir a etapa "${e.nome}" e tudo dentro dela?`))return;u.etapas=u.etapas.filter(x=>x.id!==e.id);salvar();renderTudo();}
 function moverEtapa(u,e,dir){const i=u.etapas.indexOf(e);const j=i+dir;if(j<0||j>=u.etapas.length)return;[u.etapas[i],u.etapas[j]]=[u.etapas[j],u.etapas[i]];salvar();renderTudo();}
 
-function addSub(e){const n=prompt('Nome da sub etapa (ex.: Paredes):','');if(n===null||!n.trim())return;e.subEtapas.push({id:uid(),nome:n.trim(),servicos:[]});salvar();renderTudo();}
-function renomearSub(s){const n=prompt('Renomear sub etapa:',s.nome);if(n===null)return;s.nome=n.trim()||s.nome;salvar();renderTudo();}
+function addSub(e){const n=prompt('Nome da sub etapa (ex.: Paredes):','');if(n===null||!n.trim())return;e.subEtapas.push({id:uid(),nome:primeiraMaiuscula(n),servicos:[]});salvar();renderTudo();}
+function renomearSub(s){const n=prompt('Renomear sub etapa:',s.nome);if(n===null)return;s.nome=primeiraMaiuscula(n)||s.nome;salvar();renderTudo();}
 function excluirSub(e,s){if(!confirm(`Excluir a sub etapa "${s.nome}" e seus serviços?`))return;e.subEtapas=e.subEtapas.filter(x=>x.id!==s.id);salvar();renderTudo();}
 function moverSub(e,s,dir){const i=e.subEtapas.indexOf(s);const j=i+dir;if(j<0||j>=e.subEtapas.length)return;[e.subEtapas[i],e.subEtapas[j]]=[e.subEtapas[j],e.subEtapas[i]];salvar();renderTudo();}
 function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etapa para outra
@@ -798,10 +809,10 @@ function renderLinhaRascunho(codigoEap){
   </tr>`;
 }
 function dadosServicoSinapi(r){
-  return{nome:String(r.descricao||'').trim(),unidadeMedida:String(r.unidade||'').trim(),valorUnitario:num(r.valor),codigo:String(r.codigo),catalogoTipo:'sinapi',catalogoId:String(r.codigo),catalogoDetalheId:null};
+  return{nome:primeiraMaiuscula(r.descricao),unidadeMedida:String(r.unidade||'').trim(),valorUnitario:num(r.valor),codigo:String(r.codigo),catalogoTipo:'sinapi',catalogoId:String(r.codigo),catalogoDetalheId:null};
 }
 function dadosServicoPropria(c){
-  return{nome:c.nome,unidadeMedida:c.unidade||'un',valorUnitario:num(c.valorUnitario),codigo:c.codigo||'',catalogoTipo:'composicao',catalogoId:c.id,catalogoDetalheId:null};
+  return{nome:primeiraMaiuscula(c.nome),unidadeMedida:c.unidade||'un',valorUnitario:num(c.valorUnitario),codigo:c.codigo||'',catalogoTipo:'composicao',catalogoId:c.id,catalogoDetalheId:null};
 }
 // Procura primeiro nas composições próprias (código COMP-…) e depois no SINAPI (códigos numéricos).
 // Devolve os dados do serviço, null se o código não existe, ou lança erro com a mensagem para a linha.
@@ -895,7 +906,7 @@ function incluirServicoEscolhido(r,escolha){
   return true;
 }
 
-function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
+function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=primeiraMaiuscula(n)||sv.nome;salvar();renderTudo();}
 function colecaoDeServicos(etapa,sub){return sub?sub.servicos:(etapa&&Array.isArray(etapa.servicos)?etapa.servicos:null);}
 function excluirServico(etapa,sub,sv){
   const servicos=colecaoDeServicos(etapa,sub);
@@ -1072,7 +1083,7 @@ function renderTabela(o){
     const abertaU=estaAberto('u-'+u.id);
     html+=`<tr class="grupo n1">
       <td class="col-codigo codigo">${cU}</td><td class="col-cod-item"></td><td class="col-base"></td>
-      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome.toLocaleUpperCase('pt-BR'))}</strong></td>
+      <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(tudoMaiusculo(u.nome))}</strong></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
       <td class="col-num total" id="subtotalUnidade_${u.id}">${fmtBRL.format(subtotalUnidade(o,u))}</td>
 <td class="col-acoes">${menuAcoes({uid:u.id},[['Adicionar etapa','add-etapa','mais'],null,['Subir','up-un','subir'],['Descer','down-un','descer'],['Renomear','ren-un','editar'],null,['Excluir unidade','del-un','excluir',true]])}</td>
@@ -1191,12 +1202,12 @@ $('#formServico').addEventListener('submit',(ev)=>{
   const svid=$('#fServicoId').value;
   const etapaId=$('#fEtapaId').value;
   const subId=$('#fSubId').value;
-  const dados={nome:$('#fNome').value.trim(),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null,catalogoDetalheId:$('#fCatalogoDetalheId').value||null};
+  const dados={nome:primeiraMaiuscula($('#fNome').value),unidadeMedida:$('#fUnidadeMedida').value.trim(),valorUnitario:num($('#fValor').value),codigo:$('#fCodigoSinapi').value.trim(),catalogoTipo:$('#fCatalogoTipo').value||null,catalogoId:$('#fCatalogoId').value||null,catalogoDetalheId:$('#fCatalogoDetalheId').value||null};
   if(!['composicao','sinapi'].includes(dados.catalogoTipo)||!dados.catalogoId||!dados.nome||!dados.unidadeMedida||dados.valorUnitario==null){alert('Selecione uma composição própria ou uma composição SINAPI válida.');return;}
   if(dados.catalogoTipo==='composicao'){
     const composicao=window.Composicoes&&window.Composicoes.carregar().find(item=>item.id===dados.catalogoId&&(item.base==='propria'||!item.base));
     if(!composicao){alert('A composição própria selecionada não está mais disponível. Escolha outra composição.');return;}
-    dados.nome=composicao.nome;dados.unidadeMedida=composicao.unidade||'un';dados.valorUnitario=num(composicao.valorUnitario);
+    dados.nome=primeiraMaiuscula(composicao.nome);dados.unidadeMedida=composicao.unidade||'un';dados.valorUnitario=num(composicao.valorUnitario);
     dados.codigo=composicao.codigo||'';
   }
   if(svid){
@@ -1225,7 +1236,7 @@ function exportarExcel(){
   const rows=[];
   rows.push(['CÓDIGO EAP','CÓDIGO SERVIÇO/INSUMO','BASE','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
   unidades.forEach((u,iu)=>{
-    rows.push([String(iu+1),'','',u.nome,'',null,null,num2(subtotalUnidade(o,u))]);
+    rows.push([String(iu+1),'','',tudoMaiusculo(u.nome),'',null,null,num2(subtotalUnidade(o,u))]);
     u.etapas.forEach((e,ie)=>{
       const codigoEtapa=`${iu+1}.${ie+1}`;
       rows.push([codigoEtapa,'','','   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);

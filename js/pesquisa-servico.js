@@ -73,7 +73,7 @@
     return html + (aberto ? '</mark>' : '');
   }
   function titulo(texto) {
-    return window.SinapiUI ? window.SinapiUI.tituloAmigavel(texto) : String(texto || '');
+    return window.primeiraMaiuscula(texto);
   }
   function unidadeSinapi(unidade) {
     return window.SinapiUI ? window.SinapiUI.unidadeAmigavel(unidade) : String(unidade || '');

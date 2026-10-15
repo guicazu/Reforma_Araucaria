@@ -118,8 +118,8 @@
             itens.push({
               servicoId: sv.id,
               codigo: (iu + 1) + '.' + (ie + 1) + '.' + (is + 1) + '.' + (isv + 1),
-              caminho: (u.nome || '') + ' → ' + (e.nome || '') + ' → ' + (s.nome || ''),
-              descricao: sv.nome || '',
+              caminho: window.tudoMaiusculo(u.nome) + ' → ' + window.primeiraMaiuscula(e.nome) + ' → ' + window.primeiraMaiuscula(s.nome),
+              descricao: window.primeiraMaiuscula(sv.nome),
               unidade: sv.unidadeMedida || '',
               quantidadeOrcada: qtdServico(sv)
             });

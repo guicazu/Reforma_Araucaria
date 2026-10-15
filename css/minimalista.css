@@ -154,7 +154,7 @@ input::placeholder{color:var(--fraco)}
 .grupo.n2 td{background:#efeff1;color:var(--tinta)}
 .grupo.n3 td{background:#f6f6f7;color:var(--tinta)}
 .grupo.n1 td strong,.grupo.n2 td strong,#tabelaOrcamento .grupo.n1 td strong,#tabelaOrcamento .grupo.n2 td strong{font-size:12.5px;font-weight:600}
-.grupo.n3 td strong,#tabelaOrcamento .grupo.n3 td strong{font-size:12.5px;font-weight:500}
+.grupo.n3 td strong,#tabelaOrcamento .grupo.n3 td strong{font-size:12.5px;font-weight:400}
 .linha-servico td strong,#tabelaOrcamento .linha-servico td strong{font-size:12.5px;font-weight:400}
 .linha-servico td,.linha-servico.linha-direta td{background:var(--superficie);border-left:0}
 .linha-servico:hover td{background:#fafafa}
