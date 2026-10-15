@@ -932,17 +932,14 @@ function moverSubEntreEtapa(eOrigem, eDestino, s){// Move sub-étapa de uma etap
 }
 
 /* ---------- memória de cálculo ---------- */
+// Multiplica só o que foi preenchido: sem medidas é contagem (portas), uma medida dá m,
+// duas dão m² (piso: compr. × larg.; parede: compr. × alt.) e três dão m³ (concreto)
 function calcularLinha(l){
-  const c=num(l.comprimento),a=num(l.altura),w=num(l.largura);
+  const medidas=[l.comprimento,l.largura,l.altura].map(num).filter(v=>v!=null);
   const q=num(l.quantidade),coef=num(l.coeficiente);
-  let base,tipo;
-  if(c==null&&a==null&&w==null&&q==null&&coef==null)return{valor:null,tipo:''};
-  if(c!=null||a!=null||w!=null){
-    if(c==null||a==null)return{valor:null,tipo:'',incompleto:true};
-    if(w!=null){base=c*a*w;tipo='m³';}
-    else{base=c*a;tipo='m²';}
-  }else{base=1;tipo='qtd';}
-  return{valor:base*(q??1)*(coef??1),tipo};
+  if(!medidas.length&&q==null&&coef==null)return{valor:null,tipo:''};
+  const base=medidas.reduce((acc,v)=>acc*v,1);
+  return{valor:base*(q??1)*(coef??1),tipo:['qtd','m','m²','m³'][medidas.length]};
 }
 function qtdServico(sv){if(sv.memo&&sv.memo.length){return num2(sv.memo.reduce((acc,l)=>{const r=calcularLinha(l);return acc+(r.valor||0);},0));}return num2(num(sv.qtdManual)||0);}
 function totalServico(sv){return qtdServico(sv)*(num(sv.valorUnitario)||0);}
@@ -1148,7 +1145,9 @@ function renderTabela(o){
    unidade na coluna UN. e resultado na coluna de quantidade, alinhado com o serviço */
 const CAMPOS_MEMO=[['quantidade','Qtd','1'],['coeficiente','Coef.','1'],['comprimento','Compr.','m'],['altura','Altura','m'],['largura','Largura','m']];
 function unidadeLinhaMemo(r,sv){return r.tipo==='qtd'?(sv.unidadeMedida||''):(r.tipo||'');}
-function textoResultadoMemo(r){return r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor);}
+function textoResultadoMemo(r){return r.valor==null?'—':fmtNum.format(r.valor);}
+// campo vazio sai vazio na planilha (não é zero: só não entra na conta)
+function celulaMemo(v){const n=num(v);return n==null?'':num2(n);}
 function renderMemo(sv){
   const so=modoEdicao?'':' readonly';
   const cab=`
@@ -1165,7 +1164,7 @@ function renderMemo(sv){
       ${CAMPOS_MEMO.map(([campo,rotulo,dica])=>`<input class="memo-num" data-lid="${l.id}" data-campo="${campo}" inputmode="decimal" value="${esc(l[campo])}" placeholder="${dica}" aria-label="${rotulo} da linha ${indice+1}"${so} />`).join('')}
     </div></td>
     <td class="col-un" id="un_${l.id}">${esc(unidadeLinhaMemo(r,sv))}</td>
-    <td class="col-num memo-res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${textoResultadoMemo(r)}</td>
+    <td class="col-num memo-res" id="res_${l.id}">${textoResultadoMemo(r)}</td>
     <td class="col-num"></td><td class="col-num"></td>
     <td class="col-acoes">${modoEdicao?`<button class="btn-icon memo-remover" data-acao="del-linha" data-lid="${l.id}" title="Remover linha" aria-label="Remover linha ${indice+1}">${icone('fechar')}</button>`:''}</td>
   </tr>`;}).join('');
@@ -1250,7 +1249,7 @@ function exportarExcel(){
           const cod=`${codigoEtapa}.${isv+1}`;
           sv.memo.forEach(l=>{
             const r=calcularLinha(l);
-            mrows.push([cod,sv.nome,l.descricao||'',num2(num(l.quantidade)),num2(num(l.coeficiente)),num2(num(l.comprimento)),num2(num(l.altura)),num2(num(l.largura)),r.valor==null?'':num2(r.valor)+' '+r.tipo]);
+            mrows.push([cod,sv.nome,l.descricao||'',celulaMemo(l.quantidade),celulaMemo(l.coeficiente),celulaMemo(l.comprimento),celulaMemo(l.altura),celulaMemo(l.largura),r.valor==null?'':num2(r.valor)+' '+unidadeLinhaMemo(r,sv)]);
           });
         }
       });
@@ -1261,7 +1260,7 @@ function exportarExcel(){
             const cod=`${codigoSub}.${isv+1}`;
             sv.memo.forEach(l=>{
               const r=calcularLinha(l);
-              mrows.push([cod,sv.nome,l.descricao||'',num2(num(l.quantidade)),num2(num(l.coeficiente)),num2(num(l.comprimento)),num2(num(l.altura)),num2(num(l.largura)),r.valor==null?'':num2(r.valor)+' '+r.tipo]);
+              mrows.push([cod,sv.nome,l.descricao||'',celulaMemo(l.quantidade),celulaMemo(l.coeficiente),celulaMemo(l.comprimento),celulaMemo(l.altura),celulaMemo(l.largura),r.valor==null?'':num2(r.valor)+' '+unidadeLinhaMemo(r,sv)]);
             });
           }
         });
@@ -1406,7 +1405,7 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
   salvar();
   const r=calcularLinha(l);
   const res=document.getElementById('res_'+lid);
-  if(res){res.textContent=textoResultadoMemo(r);res.classList.toggle('memo-incompleto',!!r.incompleto);res.title=r.incompleto?'Informe comprimento e altura para calcular dimensões.':'';}
+  if(res)res.textContent=textoResultadoMemo(r);
   const unEl=document.getElementById('un_'+lid);
   if(unEl)unEl.textContent=unidadeLinhaMemo(r,sv);
   const qCell=document.getElementById('qtdsv_'+sv.id);
