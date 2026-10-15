@@ -161,17 +161,17 @@ function atualizarStatusSalvamento(){
   $('#btnNovoOrcamento').classList.toggle('hidden', !usuarioPodeEditar);
   $('#btnNovoVazio').classList.toggle('hidden', !usuarioPodeEditar);
   if(carregandoDoServidor || !carregamentoConcluido){
-    definirStatusSalvamento('⏳ Carregando último orçamento...', 'save-status-pending');
+    definirStatusSalvamento('Carregando…', 'save-status-pending');
   }else if(salvandoNoServidor){
-    definirStatusSalvamento('💾 Salvando alterações no banco...', 'save-status-pending');
+    definirStatusSalvamento('Salvando…', 'save-status-pending');
   }else if(snapshotServidor === null){
-    definirStatusSalvamento('⚠️ Não foi possível carregar o orçamento do banco. Clique em Salvar para tentar novamente.', 'save-status-error');
+    definirStatusSalvamento('Não foi possível carregar do banco. Clique em Salvar para tentar de novo.', 'save-status-error');
   }else if(erroSalvamento){
-    definirStatusSalvamento('⚠️ Não foi possível salvar. '+(detalheErroSalvamento || 'Suas alterações continuam pendentes; tente novamente.'), 'save-status-error');
+    definirStatusSalvamento('Não foi possível salvar. '+(detalheErroSalvamento || 'Suas alterações continuam pendentes; tente novamente.'), 'save-status-error');
   }else if(pendente){
-    definirStatusSalvamento('📝 Foram feitas alterações que ainda não foram salvas.', 'save-status-unsaved');
+    definirStatusSalvamento('Alterações não salvas', 'save-status-unsaved');
   }else{
-    definirStatusSalvamento('✅ Orçamento salvo com sucesso. As últimas alterações estão no banco.', 'save-status-saved');
+    definirStatusSalvamento('Tudo salvo', 'save-status-saved');
   }
 }
 
@@ -192,7 +192,7 @@ async function salvarNoServidor(){
     return;
   }
   if(!usuarioPodeEditar || !orcamentoEditandoId){
-    definirStatusSalvamento('⚠️ Entre em modo de edição antes de salvar.', 'save-status-error');
+    definirStatusSalvamento('Entre em modo de edição antes de salvar.', 'save-status-error');
     return;
   }
   // Nada mudou desde a última gravação: não envia (e a revisão não sobe)
@@ -248,7 +248,7 @@ function uu(o){return versaoAtiva(o).unidades;}
 /* ---------- expansão/recolhimento ---------- */
 function estaAberto(key){return state.expandidos[key]!==false;}
 function alternar(key){state.expandidos[key]=!estaAberto(key);salvar();renderTudo();}
-function seta(aberto){return aberto?'▾':'▸';}
+function seta(aberto){return icone(aberto?'seta-baixo':'seta-dir');}
 
 /* ---------- níveis da EAP (botões 1 a 5) ---------- */
 // Cada ▸/▾ revela um nível: unidade → 2 (etapas), etapa → 3 (sub etapas e serviços direto na etapa),
@@ -560,7 +560,7 @@ function renderVersoes(o){
       <span class="v-num">V${v.numero} · Rev.${v.revisao||0}</span>
       <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}</small></span>
       ${ultima?'<span class="badge-ativa">Ativa</span>':''}
-      ${podeExcluir?`<button type="button" class="btn-icon btn-danger" data-excluir-versao="${esc(v.numero)}" title="Excluir V${esc(v.numero)}" aria-label="Excluir V${esc(v.numero)}">🗑</button>`:''}
+      ${podeExcluir?`<button type="button" class="btn-icon btn-danger" data-excluir-versao="${esc(v.numero)}" title="Excluir V${esc(v.numero)}" aria-label="Excluir V${esc(v.numero)}">${icone('excluir')}</button>`:''}
     </div>`;
   }).join('');
   el.querySelectorAll('.versao-item').forEach(item=>{
@@ -790,11 +790,11 @@ function renderLinhaRascunho(codigoEap){
     <td class="col-codigo codigo">${codigoEap}</td>
     <td class="col-cod-item"><div class="campo-codigo-servico">
       <input id="codigoNovoServico" class="codigo-novo-servico" value="${esc(r.codigo)}" placeholder="Código" aria-label="Código do novo serviço" autocomplete="off" spellcheck="false"${r.buscando?' disabled':''} />
-      <button type="button" class="btn-icon btn-lupa" data-acao="buscar-servico" title="Pesquisar serviço" aria-label="Pesquisar serviço">🔍</button>
+      <button type="button" class="btn-icon btn-lupa" data-acao="buscar-servico" title="Pesquisar serviço" aria-label="Pesquisar serviço">${icone('buscar')}</button>
     </div></td>
     <td class="col-base">—</td>
     <td colspan="5" class="rascunho-dica${r.erro?' rascunho-erro':''}" role="status">${esc(dica)}</td>
-    <td class="col-acoes"><button type="button" class="btn-icon btn-danger" data-acao="cancelar-servico" title="Cancelar nova linha" aria-label="Cancelar nova linha">×</button></td>
+    <td class="col-acoes"><button type="button" class="btn-icon btn-danger" data-acao="cancelar-servico" title="Cancelar nova linha" aria-label="Cancelar nova linha">${icone('fechar')}</button></td>
   </tr>`;
 }
 function dadosServicoSinapi(r){
@@ -975,10 +975,10 @@ function renderLista(){
   ul.innerHTML=state.orcamentos.map(o=>{
     const ativo=o.id===state.ativoId?' ativo':'';
     const bloqueio=bloqueiosPorOrcamento[o.id];
-    const estado=bloqueio?`<span class="oi-bloqueio">🔒 Em edição por ${esc(bloqueio.usuarioNome||bloqueio.usuarioEmail)}</span>`:'';
-    const acoes=`<button class="btn btn-ghost btn-xs" data-acao="ver-orcamento" data-id="${esc(o.id)}" title="Abrir para visualizar">👁 Visualizar</button>`+
-      (usuarioPodeEditar?`<button class="btn btn-ghost btn-xs" data-acao="editar-orcamento" data-id="${esc(o.id)}" title="Abrir para editar">✏️ Editar</button>`:'')+
-      (usuarioPodeEditar?`<button class="btn-icon" data-acao="dup-orcamento" data-id="${esc(o.id)}" title="Duplicar">⧉</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${esc(o.id)}" title="Excluir">🗑</button>`:'');
+    const estado=bloqueio?`<span class="oi-bloqueio">${icone('cadeado','ic-sm')}Em edição por ${esc(bloqueio.usuarioNome||bloqueio.nome||bloqueio.usuarioEmail||bloqueio.email||'')}</span>`:'';
+    const acoes=`<button class="btn btn-ghost btn-xs" data-acao="ver-orcamento" data-id="${esc(o.id)}" title="Abrir para visualizar">${icone('ver')}Visualizar</button>`+
+      (usuarioPodeEditar?`<button class="btn btn-ghost btn-xs" data-acao="editar-orcamento" data-id="${esc(o.id)}" title="Abrir para editar">${icone('editar')}Editar</button>`:'')+
+      (usuarioPodeEditar?`<button class="btn-icon" data-acao="dup-orcamento" data-id="${esc(o.id)}" title="Duplicar">${icone('copiar')}</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${esc(o.id)}" title="Excluir">${icone('excluir')}</button>`:'');
     return `<li class="orcamento-item${ativo}" data-orcamento-id="${esc(o.id)}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · Rev.${versaoAtiva(o).revisao||0} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div>${estado}<div class="oi-acoes">${acoes}</div></li>`;
   }).join('');
 }
@@ -991,6 +991,7 @@ $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
 $('#versaoAtivaLabel').textContent='V'+versaoAtiva(o).numero+' · Rev. '+(versaoAtiva(o).revisao||0);
 $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
+menuAberto=null;
 $('#corpoTabela').innerHTML=renderTabela(o);
 atualizarBotoesNivel(o);}
 
@@ -1011,6 +1012,59 @@ function celulasFonte(sv,composicoes){
   return `<td class="col-cod-item"${titulo}>${f.codigo?esc(f.codigo):'—'}</td><td class="col-base">${f.base?`<span class="tag-base tag-base-${f.classe}">${f.base}</span>`:'—'}</td>`;
 }
 
+/* ---------- menu de ações da linha (botão ⋯) ---------- */
+// itens: [rótulo, ação, ícone, perigo] ou null para separador; dados vira data-* em cada opção
+function menuAcoes(dados,itens){
+  const attrs=Object.entries(dados).map(([k,v])=>` data-${k}="${esc(v)}"`).join('');
+  const opcoes=itens.map(i=>i
+    ?`<button type="button" role="menuitem" class="menu-item${i[3]?' menu-perigo':''}" data-acao="${i[1]}"${attrs}>${icone(i[2])}${i[0]}</button>`
+    :'<div class="menu-sep" role="separator"></div>').join('');
+  return `<button type="button" class="btn-icon btn-menu" data-acao="abrir-menu" title="Ações" aria-label="Ações" aria-haspopup="menu" aria-expanded="false">${icone('opcoes')}</button><div class="menu-acoes" role="menu" hidden>${opcoes}</div>`;
+}
+function itensServico(temMemo){
+  return [[temMemo?'Adicionar linha na memória':'Criar memória de cálculo','memo-sv','calculadora'],['Editar','edit-sv','editar'],null,
+    ['Subir','up-sv','subir'],['Descer','down-sv','descer'],null,['Excluir serviço','del-sv','excluir',true]];
+}
+let menuAberto=null;
+function fecharMenuAcoes(){
+  if(!menuAberto)return;
+  menuAberto.menu.hidden=true;
+  menuAberto.botao.setAttribute('aria-expanded','false');
+  menuAberto=null;
+}
+function alternarMenuAcoes(botao){
+  const jaAberto=menuAberto&&menuAberto.botao===botao;
+  fecharMenuAcoes();
+  const menu=botao.nextElementSibling;
+  if(jaAberto||!menu)return;
+  menu.hidden=false;
+  botao.setAttribute('aria-expanded','true');
+  // posição fixa: não é cortado pela rolagem da tabela; abre para cima se faltar espaço embaixo
+  const r=botao.getBoundingClientRect();
+  const largura=menu.offsetWidth,altura=menu.offsetHeight;
+  const topo=r.bottom+4+altura>window.innerHeight-8?Math.max(8,r.top-altura-4):r.bottom+4;
+  menu.style.top=topo+'px';
+  menu.style.left=Math.max(8,Math.min(r.right-largura,window.innerWidth-largura-8))+'px';
+  menuAberto={botao,menu};
+  const primeiro=menu.querySelector('.menu-item');if(primeiro)primeiro.focus({preventScroll:true});
+}
+document.addEventListener('click',(ev)=>{
+  if(menuAberto&&!menuAberto.menu.contains(ev.target)&&!menuAberto.botao.contains(ev.target))fecharMenuAcoes();
+});
+document.addEventListener('keydown',(ev)=>{
+  if(!menuAberto)return;
+  if(ev.key==='Escape'){const b=menuAberto.botao;fecharMenuAcoes();b.focus();return;}
+  if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){
+    ev.preventDefault();
+    const itens=[...menuAberto.menu.querySelectorAll('.menu-item')];
+    const atual=itens.indexOf(document.activeElement);
+    const prox=ev.key==='ArrowDown'?(atual+1)%itens.length:(atual-1+itens.length)%itens.length;
+    if(itens[prox])itens[prox].focus();
+  }
+});
+window.addEventListener('scroll',fecharMenuAcoes,true);
+window.addEventListener('resize',fecharMenuAcoes);
+
 function renderTabela(o){
   const unidades=uu(o);
   const composicoes=mapaComposicoes();
@@ -1024,13 +1078,7 @@ function renderTabela(o){
       <td><button class="btn-icon" data-acao="toggle" data-key="u-${u.id}" title="Recolher/expandir">${seta(abertaU)}</button><strong>${esc(u.nome.toLocaleUpperCase('pt-BR'))}</strong></td>
       <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
       <td class="col-num total" id="subtotalUnidade_${u.id}">${fmtBRL.format(subtotalUnidade(o,u))}</td>
-<td class="col-acoes">
-  <button class="btn btn-primary btn-xs" data-acao="add-etapa" data-uid="${u.id}">+ Etapa</button>
-  <button class="btn-icon" data-acao="up-un" data-uid="${u.id}" title="Subir">↑</button>
-  <button class="btn-icon" data-acao="down-un" data-uid="${u.id}" title="Descer">↓</button>
-  <button class="btn-icon" data-acao="ren-un" data-uid="${u.id}" title="Renomear">✏️</button>
-  <button class="btn-icon btn-danger" data-acao="del-un" data-uid="${u.id}" title="Excluir unidade">🗑</button>
-</td>
+<td class="col-acoes">${menuAcoes({uid:u.id},[['Adicionar etapa','add-etapa','mais'],null,['Subir','up-un','subir'],['Descer','down-un','descer'],['Renomear','ren-un','editar'],null,['Excluir unidade','del-un','excluir',true]])}</td>
     </tr>`;
     if(!abertaU)return;
     u.etapas.forEach((e,ie)=>{
@@ -1041,14 +1089,7 @@ function renderTabela(o){
         <td><button class="btn-icon" data-acao="toggle" data-key="e-${e.id}" title="Recolher/expandir">${seta(abertaE)}</button><strong>${esc(primeiraMaiuscula(e.nome))}</strong></td>
         <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
         <td class="col-num total" id="subtotalEtapa_${e.id}">${fmtBRL.format(subtotalEtapa(e))}</td>
-        <td class="col-acoes">
-  <button class="btn btn-primary btn-xs" data-acao="add-sub" data-uid="${u.id}" data-eid="${e.id}">+ Sub Etapa</button>
-  <button class="btn btn-ghost btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}">+ Serviço</button>
-  <button class="btn-icon" data-acao="up-et" data-uid="${u.id}" data-eid="${e.id}" title="Subir">↑</button>
-  <button class="btn-icon" data-acao="down-et" data-uid="${u.id}" data-eid="${e.id}" title="Descer">↓</button>
-  <button class="btn-icon" data-acao="ren-et" data-uid="${u.id}" data-eid="${e.id}" title="Renomear">✏️</button>
-  <button class="btn-icon btn-danger" data-acao="del-et" data-uid="${u.id}" data-eid="${e.id}" title="Excluir etapa">🗑</button>
-</td>
+        <td class="col-acoes">${menuAcoes({uid:u.id,eid:e.id},[['Adicionar sub etapa','add-sub','sub-etapa'],['Adicionar serviço','add-servico','mais'],null,['Subir','up-et','subir'],['Descer','down-et','descer'],['Renomear','ren-et','editar'],null,['Excluir etapa','del-et','excluir',true]])}</td>
       </tr>`;
       if(!abertaE)return;
       (e.servicos||[]).forEach((sv,isv)=>{
@@ -1058,19 +1099,12 @@ function renderTabela(o){
         const memoAberta=estaAberto('sv-'+sv.id);
         html+=`<tr class="linha-servico linha-direta">
           <td class="col-codigo codigo">${cSv}</td>
-          ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
+          ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
           <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
           <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
-          <td class="col-acoes">
-            ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
-            <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
-            <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Subir">↑</button>
-            <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Descer">↓</button>
-            <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Editar">✏️</button>
-            <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
-          </td>
+          <td class="col-acoes">${menuAcoes({uid:u.id,eid:e.id,svid:sv.id},itensServico(temMemo))}</td>
         </tr>`;
         if(temMemo&&memoAberta)html+=renderMemo(sv);
       });
@@ -1084,13 +1118,7 @@ function renderTabela(o){
           <td><button class="btn-icon" data-acao="toggle" data-key="s-${s.id}" title="Recolher/expandir">${seta(abertaS)}</button><strong>${esc(primeiraMaiuscula(s.nome))}</strong></td>
           <td class="col-un"></td><td class="col-num"></td><td class="col-num"></td>
           <td class="col-num total" id="subtotalSub_${s.id}">${fmtBRL.format(subtotalSub(s))}</td>
-          <td class="col-acoes">
-  <button class="btn btn-primary btn-xs" data-acao="add-servico" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}">+ Serviço</button>
-  <button class="btn-icon" data-acao="up-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Subir">↑</button>
-  <button class="btn-icon" data-acao="down-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Descer">↓</button>
-  <button class="btn-icon" data-acao="ren-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Renomear">✏️</button>
-  <button class="btn-icon btn-danger" data-acao="del-sub" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" title="Excluir sub etapa">🗑</button>
-</td>
+          <td class="col-acoes">${menuAcoes({uid:u.id,eid:e.id,sid:s.id},[['Adicionar serviço','add-servico','mais'],null,['Subir','up-sub','subir'],['Descer','down-sub','descer'],['Renomear','ren-sub','editar'],null,['Excluir sub etapa','del-sub','excluir',true]])}</td>
         </tr>`;
         if(!abertaS)return;
         s.servicos.forEach((sv,isv)=>{
@@ -1100,19 +1128,12 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?'<span class="tag-memo">M.C.</span>':''}</td>
+            ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
             <td class="col-num total" id="totalsv_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
-            <td class="col-acoes">
-              ${temMemo?`<button class="btn-icon" data-acao="toggle" data-key="sv-${sv.id}" title="Recolher/expandir memória">${seta(memoAberta)}</button>`:''}
-              <button class="btn-icon" data-acao="memo-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Adicionar linha na memória">🧮</button>
-              <button class="btn-icon" data-acao="up-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Subir">↑</button>
-              <button class="btn-icon" data-acao="down-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Descer">↓</button>
-              <button class="btn-icon" data-acao="edit-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Editar">✏️</button>
-              <button class="btn-icon btn-danger" data-acao="del-sv" data-uid="${u.id}" data-eid="${e.id}" data-sid="${s.id}" data-svid="${sv.id}" title="Excluir">🗑</button>
-            </td>
+            <td class="col-acoes">${menuAcoes({uid:u.id,eid:e.id,sid:s.id,svid:sv.id},itensServico(temMemo))}</td>
           </tr>`;
           if(temMemo&&memoAberta)html+=renderMemo(sv);
         });
@@ -1134,14 +1155,14 @@ function renderMemo(sv){
     <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="m" aria-label="Altura da linha ${indice+1}" /></td>
     <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="m" aria-label="Largura da linha ${indice+1}" /></td>
     <td class="res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
-    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover" aria-label="Remover linha ${indice+1}">×</button></td>
+    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover" aria-label="Remover linha ${indice+1}">${icone('fechar')}</button></td>
   </tr>`;}).join('');
   const soma=qtdServico(sv);
   return `
   <tr class="linha-memo"><td colspan="9">
     <div class="memo-box">
       <div class="memo-head">
-        <div><h4>Memória de cálculo</h4><p>${esc(sv.nome)} · ${sv.memo.length} linha(s)</p></div>
+        <div><h4>Memória de cálculo</h4><p>${sv.memo.length} ${sv.memo.length===1?'linha':'linhas'}</p></div>
         <div class="memo-head-total"><span>Quantidade</span><strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></div>
       </div>
       <div class="memo-table-wrap"><table class="tabela-memo">
@@ -1149,7 +1170,7 @@ function renderMemo(sv){
         <tbody>${linhas}</tbody>
       </table></div>
       <div class="memo-add">
-        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">+ Linha</button>
+        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">${icone('mais','ic-sm')}Linha</button>
         <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Quantidade manual</button>
       </div>
     </div>
@@ -1280,7 +1301,9 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
   const b=ev.target.closest('[data-acao]');if(!b)return;
   const o=orcamentoAtivo();if(!o)return;
   const acao=b.dataset.acao;
+  if(ev.target.closest('.menu-acoes'))fecharMenuAcoes();
   if(!modoEdicao && acao!=='toggle')return;
+  if(acao==='abrir-menu'){alternarMenuAcoes(b);return;}
   const uid_=b.dataset.uid,eid=b.dataset.eid,sid=b.dataset.sid,svid=b.dataset.svid,lid=b.dataset.lid;
   const u=acharUnidade(o,uid_),e=acharEtapa(o,uid_,eid),s=acharSub(o,uid_,eid,sid),sv=(acharServicoDiretoEmEtapa(o,uid_,eid,svid) || acharServico(o,uid_,eid,sid,svid));
 

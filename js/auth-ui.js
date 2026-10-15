@@ -39,7 +39,7 @@
     var avatarSeta = document.createElement('span');
     avatarSeta.className = 'avatar-seta';
     avatarSeta.setAttribute('aria-hidden', 'true');
-    avatarSeta.textContent = '⌄';
+    avatarSeta.innerHTML = window.icone ? window.icone('seta-baixo', 'ic-sm') : '';
     botao.appendChild(avatarIniciais);
     botao.appendChild(avatarNome);
     botao.appendChild(avatarSeta);
@@ -92,7 +92,7 @@
           var nomeSidebar = document.querySelector('#appSidebarUser .nome');
           if (nomeSidebar) nomeSidebar.textContent = nome;
           var saud = document.getElementById('dashSaudacao');
-          if (saud) saud.textContent = 'Olá, ' + (primeiroNome(nome) || nome) + '! 👋';
+          if (saud) saud.textContent = 'Olá, ' + (primeiroNome(nome) || nome);
           setTimeout(function () { msg.textContent = ''; }, 2000);
         })
         .catch(function () { msg.textContent = 'Erro ao salvar.'; });
@@ -119,7 +119,7 @@
     var saudacao = document.getElementById('dashSaudacao');
     if (saudacao) {
       var primeiro = primeiroNome(usuario.nome) || usuario.email;
-      saudacao.textContent = 'Olá, ' + primeiro + '! 👋';
+      saudacao.textContent = 'Olá, ' + primeiro;
     }
 
     if (usuario.isAdmin) {

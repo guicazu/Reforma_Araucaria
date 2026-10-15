@@ -236,7 +236,7 @@
     if (!itens.length || !orcamentoId) { msg('suprMsgRequisicao', 'Selecione itens válidos.', false); if (btn) btn.disabled = false; return; }
     var dados = await api(API + '/requisicoes', { method: 'POST', body: JSON.stringify({ orcamentoId: orcamentoId, observacoes: observacoes, itens: itens }) });
     if (!dados || dados.erro) { msg('suprMsgRequisicao', dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Não foi possível salvar a requisição.', false); if (btn) btn.disabled = false; return; }
-    msg('suprMsgRequisicao', 'Requisição salva com sucesso ✔', true);
+    msg('suprMsgRequisicao', 'Requisição salva', true);
     setTimeout(function () {
       estado.carrinho = [];
       el('suprReqObservacoes').value = '';
@@ -313,7 +313,7 @@
       body: JSON.stringify({ orcamentoId: estado.orcamentoId, itens: itens, fornecedores: forn })
     });
     if (!dados || dados.erro) { msg('suprMsgNovaCotacao', dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Falha ao criar a cotação.', false); return; }
-    msg('suprMsgNovaCotacao', 'Cotação criada ✔ abrindo o mapa…', true);
+    msg('suprMsgNovaCotacao', 'Cotação criada. Abrindo o mapa…', true);
     setTimeout(function () { abrirMapa(dados.id); }, 700);
   }
 
@@ -414,7 +414,7 @@
       body: JSON.stringify({ precos: precos, rodada: Number(rodada), condicoes: condicoes })
     });
     if (!dados || dados.erro) { alert(dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Erro ao salvar valores.'); return; }
-    alert('Valores salvos ✔');
+    alert('Valores salvos');
   }
 
   async function finalizarCotacao() {
@@ -436,7 +436,7 @@
       body: JSON.stringify({ vencedores: vencedores })
     });
     if (!dados || dados.erro) { alert(dados && dados.erro === 'somente_visualizacao' ? 'Modo somente leitura.' : 'Erro ao finalizar a cotação.'); return; }
-    alert('Pedidos de compra gerados ✔');
+    alert('Pedidos de compra gerados');
     ativarAba('pedidos');
   }
 
@@ -461,10 +461,10 @@
         '<div class="supr-card-body"><b>' + escS(p.fornecedorNome || '') + '</b> · ' + fmtM.format(p.valorTotal || 0) +
         (p.condicaoPagamento ? ' · ' + escS(p.condicaoPagamento) : '') + '</div>' +
         '<div class="supr-card-acoes">' +
-        '<button class="btn btn-sm btn-ghost" data-acao="pdf-pedido" data-id="' + escS(p.id) + '" title="Salvar PDF">📄 PDF</button>' +
-        '<button class="btn btn-sm btn-ghost" data-acao="enviar-pedido" data-id="' + escS(p.id) + '" title="Enviar por e-mail">📧 Enviar</button>' +
-        '<button class="btn btn-sm btn-ghost" data-acao="receber-pedido" data-id="' + escS(p.id) + '">📥 Receber</button>' +
-        (link ? '<button class="btn btn-sm btn-ghost" data-acao="copiar-link" data-link="' + escS(link) + '">🔗 Link confirmação</button>' : '') +
+        '<button class="btn btn-sm btn-ghost" data-acao="pdf-pedido" data-id="' + escS(p.id) + '" title="Salvar PDF">' + icone('imprimir') + 'PDF</button>' +
+        '<button class="btn btn-sm btn-ghost" data-acao="enviar-pedido" data-id="' + escS(p.id) + '" title="Enviar por e-mail">' + icone('email') + 'Enviar</button>' +
+        '<button class="btn btn-sm btn-ghost" data-acao="receber-pedido" data-id="' + escS(p.id) + '">' + icone('baixar') + 'Receber</button>' +
+        (link ? '<button class="btn btn-sm btn-ghost" data-acao="copiar-link" data-link="' + escS(link) + '">' + icone('link') + 'Link de confirmação</button>' : '') +
         '</div></div>';
     }).join('');
   }
@@ -481,7 +481,7 @@
     estado.linksConfirmacao[id] = dados.linkConfirmacao || '';
     var link = dados.linkConfirmacao || '';
     if (link) { try { navigator.clipboard.writeText(link); } catch (e) {} }
-    alert('Pedido enviado ✔\nLink de confirmação: ' + link);
+    alert('Pedido enviado.\nLink de confirmação: ' + link);
     listaPedidos();
   }
 
@@ -528,7 +528,7 @@
     };
     var dados = await api(API + '/recebimentos', { method: 'POST', body: JSON.stringify(payload) });
     if (!dados || dados.erro) { msg('suprMsgRecebimento', 'Erro ao lançar recebimento.', false); return; }
-    msg('suprMsgRecebimento', 'Recebimento lançado ✔', true);
+    msg('suprMsgRecebimento', 'Recebimento lançado', true);
     setTimeout(function () { dlg.close(); ativarAba('pedidos'); }, 900);
   }
 
@@ -547,7 +547,7 @@
     wrap.innerHTML = '<div class="supr-table-wrap"><table class="tabela"><thead><tr><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>E-mail</th><th></th></tr></thead><tbody>' +
       estado.fornecedores.map(function (f) {
         return '<tr><td>' + escS(f.nome) + '</td><td>' + escS(f.cnpj || '—') + '</td><td>' + escS(f.telefone || '—') + '</td><td>' + escS(f.email || '—') + '</td>' +
-          '<td><button class="btn-icon btn-danger" data-acao="del-forn" data-id="' + escS(f.id) + '" title="Excluir">🗑</button></td></tr>';
+          '<td><button class="btn-icon btn-danger" data-acao="del-forn" data-id="' + escS(f.id) + '" title="Excluir">' + icone('excluir') + '</button></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
   async function salvarFornecedor() {
@@ -562,7 +562,7 @@
     var dados = await api(API + '/fornecedores', { method: 'POST', body: JSON.stringify(payload) });
     if (!dados || dados.erro) { msg('suprMsgFornecedor', 'Erro ao salvar.', false); return; }
     ['suprFNome', 'suprFCnpj', 'suprFTelefone', 'suprFEmail'].forEach(function (i) { if (el(i)) el(i).value = ''; });
-    msg('suprMsgFornecedor', 'Fornecedor salvo ✔', true);
+    msg('suprMsgFornecedor', 'Fornecedor salvo', true);
     listaFornecedores();
   }
 
@@ -681,7 +681,7 @@
       else if (acao === 'pdf-pedido') { window.open(API + '/pedidos/' + encodeURIComponent(b.dataset.id) + '/pdf', '_blank'); }
       else if (acao === 'enviar-pedido') enviarPedido(b.dataset.id);
       else if (acao === 'receber-pedido') abrirRecebimento(b.dataset.id);
-      else if (acao === 'copiar-link') { try { navigator.clipboard.writeText(b.dataset.link); alert('Link copiado ✔'); } catch (e) { alert(b.dataset.link); } }
+      else if (acao === 'copiar-link') { try { navigator.clipboard.writeText(b.dataset.link); alert('Link copiado'); } catch (e) { alert(b.dataset.link); } }
       else if (acao === 'del-forn') {
         if (confirm('Excluir este fornecedor?')) {
           var r = await api(API + '/fornecedores/' + encodeURIComponent(b.dataset.id), { method: 'DELETE' });
@@ -792,8 +792,8 @@ function mostrarOpcoesInsumo() {
   if (!wrap) return;
   wrap.innerHTML = 
     '<div style="margin-bottom:12px">' +
-    '<button class="btn btn-primary" onclick="selecionarInsumoOrcamento()">📋 Selecionar item do orçamento</button>' +
-    '<button class="btn btn-ghost" onclick="selecionarInsumoBase()">📦 Selecionar insumo da base</button>' +
+    '<button class="btn btn-primary" onclick="selecionarInsumoOrcamento()">' + icone('prancheta') + 'Selecionar item do orçamento</button>' +
+    '<button class="btn btn-ghost" onclick="selecionarInsumoBase()">' + icone('insumos') + 'Selecionar insumo da base</button>' +
     '</div>' +
     '<div id="suprSelecaoInsumo"></div>';
 }

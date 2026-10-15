@@ -148,9 +148,9 @@
           <small>${planejamento.meta || ''}</small>
         </span>
         <div class="planejamento-actions">
-          <button class="btn btn-ghost btn-sm" data-acao="ver" data-index="${index}">👁 Ver</button>
-          <button class="btn btn-ghost btn-sm" data-acao="editar" data-index="${index}">✏️ Editar</button>
-          <button class="btn btn-ghost btn-sm" data-acao="excluir" data-index="${index}">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-sm" data-acao="ver" data-index="${index}">${icone('ver')}Ver</button>
+          <button class="btn btn-ghost btn-sm" data-acao="editar" data-index="${index}">${icone('editar')}Editar</button>
+          <button class="btn btn-ghost btn-sm" data-acao="excluir" data-index="${index}">${icone('excluir')}Excluir</button>
         </div>
       `;
       lista.appendChild(li);
@@ -718,8 +718,8 @@
         <td class="col-num">${node.termino || ''}</td>
         <td class="col-num">${node.folga}d</td>
         <td class="col-acoes">
-          <button class="btn btn-ghost btn-sm" data-acao="editar-duracao" data-id="${node.id}">⏱ Editar</button>
-          <button class="btn btn-ghost btn-sm" data-acao="excluir" data-id="${node.id}">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-sm" data-acao="editar-duracao" data-id="${node.id}">${icone('relogio')}Duração</button>
+          <button class="btn btn-ghost btn-sm" data-acao="excluir" data-id="${node.id}">${icone('excluir')}Excluir</button>
         </td>
       `;
       tabelaBody.appendChild(tr);

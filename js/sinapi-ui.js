@@ -82,7 +82,7 @@
       fNome.value = tituloAmigavel(resultado.descricao);
       if (fUnidade) fUnidade.value = unidadeAmigavel(resultado.unidade);
       if (fValor && resultado.valor !== null) fValor.value = formatarValor(resultado.valor);
-      atualizarStatus(statusServico, '✓ Composição encontrada' +
+      atualizarStatus(statusServico, 'Composição encontrada' +
         (resultado.referencia ? ' · Referência ' + resultado.referencia : ''), 'ok');
       return true;
     }

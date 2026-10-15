@@ -29,23 +29,28 @@
     document.dispatchEvent(new CustomEvent('app:viewchange', { detail: { view: nome } }));
   }
 
+  // Em telas pequenas o menu cobre o conteúdo: começa recolhido e recolhe ao escolher uma opção
+  var telaPequena = !!(window.matchMedia && window.matchMedia('(max-width: 860px)').matches);
+
   itens.forEach(function (it) {
     it.addEventListener('click', function () {
       mostrarView(it.dataset.view);
+      if (telaPequena && sidebar) sidebar.classList.add('recolhido');
     });
   });
 
   if (toggle && sidebar) {
     toggle.addEventListener('click', function () {
       sidebar.classList.toggle('recolhido');
+      if (telaPequena) return; // no celular, abrir/fechar é momentâneo
       try {
         localStorage.setItem('erp_sidebar_recolhido', sidebar.classList.contains('recolhido') ? '1' : '0');
       } catch (e) {}
     });
+    var recolher = telaPequena;
     try {
-      if (localStorage.getItem('erp_sidebar_recolhido') === '1') {
-        sidebar.classList.add('recolhido');
-      }
+      if (!telaPequena) recolher = localStorage.getItem('erp_sidebar_recolhido') === '1';
     } catch (e) {}
+    if (recolher) sidebar.classList.add('recolhido');
   }
 })();

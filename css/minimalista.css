@@ -1,0 +1,371 @@
+/* ============================================================
+   Tema minimalista
+   Texto pequeno, cinzas neutros, bordas finas, sem sombras nem
+   gradientes; um único tom escuro para as ações principais.
+   Carregado por último: sobrescreve style.css e suprimentos.css.
+   ============================================================ */
+:root{
+  --tinta:#18181b;--texto:#27272a;--suave:#71717a;--fraco:#a1a1aa;
+  --borda:#e4e4e7;--linha:#f1f1f3;--hover:#f4f4f5;--fundo:#fafafa;--superficie:#fff;
+  /* cores antigas da marca passam a ser neutras */
+  --navy:#18181b;--navy-2:#52525b;--navy-escuro:#18181b;
+  --gold:#e4e4e7;--gold-2:#d4d4d8;--gold-claro:#f4f4f5;
+  --verde:#15803d;--vermelho:#b91c1c;--som:none;
+  --primaria:#d4d4d8;--borda-suave:#f1f1f3;--azul:#18181b;
+}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;line-height:1.5;color:var(--texto);background:var(--fundo)}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.01em;color:var(--tinta)}
+b,strong{font-weight:600}
+
+/* ---------- ícones (sprite em index.html) ---------- */
+.ic{width:16px;height:16px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.ic-sm{width:13px;height:13px;vertical-align:-2px}
+.ic-lg{width:28px;height:28px;stroke-width:1.3}
+
+/* ---------- topo ---------- */
+.topbar{background:var(--superficie);color:var(--texto);border-bottom:1px solid var(--borda);box-shadow:none;padding:8px 22px;min-height:52px}
+.brand{gap:10px}
+.logo-img{height:28px;padding:0;border-radius:4px;background:transparent;box-shadow:none}
+.brand h1{font-size:13px;font-weight:600;color:var(--tinta)}
+.brand p{font-size:11px;color:var(--suave);opacity:1}
+.topbar-version{background:transparent;color:var(--fraco);font-size:10.5px;padding:0}
+.topbar-version:hover{background:transparent;color:var(--suave)}
+.topbar-user .avatar{height:32px;padding:2px 10px 2px 3px;border-color:var(--borda);font-size:12px;font-weight:500;color:var(--texto)}
+.topbar-user .avatar:hover{background:var(--hover)}
+.avatar-iniciais{width:26px;height:26px;flex-basis:26px;background:var(--hover);color:var(--texto);font-size:10.5px;font-weight:600}
+.avatar-seta{display:inline-flex;color:var(--fraco)}
+.avatar-painel{border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.avatar-sair{color:var(--vermelho);font-weight:500;font-size:12px}
+
+/* ---------- menu lateral ---------- */
+.app-sidebar{width:204px;min-width:204px;background:var(--superficie);color:var(--texto);border-right:1px solid var(--borda)}
+.app-sidebar.recolhido{width:56px;min-width:56px}
+.app-sidebar-toggle{display:flex;align-items:center;color:var(--suave);padding:15px 20px;font-size:0}
+.app-sidebar-toggle:hover{background:transparent;color:var(--tinta)}
+.app-sidebar-group{margin:0 8px 4px}
+.app-sidebar-group-label{font-size:10.5px;font-weight:500;letter-spacing:.06em;color:var(--fraco);padding:12px 10px 4px}
+.app-sidebar-item{gap:10px;padding:7px 10px;margin:1px 0;border-radius:6px;font-size:13px;font-weight:400;color:var(--suave)}
+.app-sidebar-item:hover{background:var(--hover);color:var(--tinta)}
+.app-sidebar-item.ativo,.app-sidebar-item.ativa{background:var(--hover);color:var(--tinta);font-weight:500}
+.app-sidebar-item .icone{display:inline-flex;min-width:16px;font-size:0}
+.app-sidebar-user{border-top:1px solid var(--borda);padding:12px 16px}
+.app-sidebar-user .nome{font-size:12px;color:var(--suave)}
+.app-sidebar-user a.sair{background:transparent;border:1px solid var(--borda);color:var(--suave);font-size:12px;font-weight:500;padding:5px 8px}
+.app-sidebar-user a.sair:hover{background:var(--hover);color:var(--tinta)}
+.app-sidebar.recolhido .app-sidebar-user{display:none} /* sair continua no menu do avatar */
+@media (max-width:860px){.app-sidebar:not(.recolhido){width:204px}.app-main{margin-left:56px}}
+
+/* ---------- área de conteúdo ---------- */
+.content{padding:22px 28px 56px}
+#viewOrcamento .content{padding:20px 26px 48px}
+.dash-greeting h2{font-size:17px}
+.dash-greeting p{font-size:12px}
+.dash-grid{gap:12px}
+.dash-card{border:1px solid var(--borda);border-radius:8px;padding:14px 16px;box-shadow:none}
+.dash-card h3{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:13px;font-weight:500;color:var(--tinta)}
+.dash-card h3 .ic{color:var(--fraco)}
+.dash-card-vazio{font-size:12px}
+.empty-state{border:1px solid var(--borda);border-radius:10px;box-shadow:none;padding:30px 26px}
+.empty-state h2{font-size:15px}
+.empty-state p{font-size:12.5px}
+.empty-state .destaque{color:var(--fraco);font-size:0;margin-bottom:10px}
+
+/* ---------- botões ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--borda);border-radius:6px;background:var(--superficie);color:var(--texto);font-size:12.5px;font-weight:500;line-height:1;box-shadow:none;filter:none;white-space:nowrap}
+.btn:hover{background:var(--hover);filter:none}
+.btn-primary,.modal-import .btn-primary,#viewPlanejamento .btn-primary,#viewSuprimentos .btn-primary{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.btn-primary:hover,.modal-import .btn-primary:hover,#viewPlanejamento .btn-primary:hover,#viewSuprimentos .btn-primary:hover{background:#3f3f46;border-color:#3f3f46;color:#fff}
+.btn-ghost,.modal-import .btn-ghost,#viewPlanejamento .btn-ghost{background:transparent;border-color:var(--borda);color:var(--texto)}
+.btn-ghost:hover,.modal-import .btn-ghost:hover,#viewPlanejamento .btn-ghost:hover{background:var(--hover);color:var(--tinta)}
+.btn-danger{background:transparent;border-color:var(--borda);color:var(--vermelho)}
+.btn-sm,#viewPlanejamento .btn-sm{height:28px;padding:0 9px;font-size:12px}
+.btn-xs{height:22px;padding:0 7px;gap:4px;border-radius:5px;font-size:11px}
+#viewOrcamento .orcamento-head-actions .btn{height:28px;padding:0 9px;font-size:12px}
+.btn-icon{display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--fraco);font-size:0;cursor:pointer}
+.btn-icon:hover{background:var(--hover);color:var(--tinta);border-color:transparent}
+.btn-icon.btn-danger{color:var(--fraco)}
+.btn-icon.btn-danger:hover{background:#fef2f2;color:var(--vermelho)}
+button:disabled{opacity:.45}
+.btn.sem-alteracoes:disabled{opacity:.35;filter:none;cursor:not-allowed}
+.btn.sem-alteracoes:disabled:hover{filter:none}
+.btn-primary.sem-alteracoes:disabled:hover{background:var(--tinta);border-color:var(--tinta)}
+
+/* ---------- campos ---------- */
+input,select,textarea{height:30px;padding:0 9px;border:1px solid var(--borda);border-radius:6px;background:#fff;color:var(--texto);font:inherit;font-size:13px}
+textarea{height:auto;padding:7px 9px}
+input[type=checkbox],input[type=radio]{width:auto;height:auto;accent-color:var(--tinta)}
+input[type=file]{height:auto;padding:0;border:0}
+input:focus,select:focus,textarea:focus,
+#viewSuprimentos textarea:focus,#viewSuprimentos input:focus{outline:none;border-color:#a1a1aa;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+input::placeholder{color:var(--fraco)}
+
+/* ---------- lista de orçamentos ---------- */
+.sidebar{background:transparent;border-right-color:var(--borda);padding:20px 26px}
+.sidebar-head{margin-bottom:12px}
+.sidebar-head h2{font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--suave)}
+.orcamento-list{gap:0;background:var(--superficie);border:1px solid var(--borda);border-radius:8px;overflow:hidden}
+.orcamento-item{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"info acoes" "bloqueio acoes";align-items:center;column-gap:16px;padding:11px 14px;border:0;border-bottom:1px solid var(--linha);border-radius:0}
+.orcamento-item:last-child{border-bottom:0}
+.orcamento-item:hover,.orcamento-item.ativo{background:#fafafa;border-color:var(--linha)}
+.orcamento-item .oi-info{grid-area:info;flex:none}
+.oi-info strong{font-size:13px;font-weight:500;color:var(--tinta)}
+.oi-info span{font-size:11.5px;color:var(--suave)}
+.oi-bloqueio{grid-area:bloqueio;display:flex;align-items:center;gap:5px;margin-top:2px;font-size:11px;color:var(--suave)}
+.oi-acoes{grid-area:acoes;align-items:center;gap:2px;flex-wrap:nowrap}
+.lista-save-panel{border-color:var(--borda);border-radius:8px}
+.lista-vazia{font-size:12px;color:var(--suave)}
+
+/* ---------- cabeçalho do orçamento ---------- */
+.orcamento-head h2,#viewOrcamento .orcamento-head h2{font-size:16px}
+.orcamento-head p{font-size:12px}
+#btnVoltarLista{margin-bottom:12px!important;padding:0;height:auto;border:0;background:transparent;color:var(--suave);font-weight:400}
+#btnVoltarLista:hover{color:var(--tinta)}
+.save-status{display:flex;align-items:center;gap:6px;padding:2px 0;border-radius:0;background:transparent!important;font-size:12px;font-weight:400}
+.save-status::before{content:"";flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:currentColor}
+.save-status-pending{color:#a16207}
+.save-status-unsaved{color:#c2410c}
+.save-status-saved{color:var(--suave)}
+.save-status-saved::before{background:#16a34a}
+.save-status-error{color:var(--vermelho)}
+
+/* ---------- resumo ---------- */
+.resumo,#viewOrcamento .resumo{gap:32px;margin:6px 0 16px}
+.resumo-card,#viewOrcamento .resumo-card{padding:0;background:transparent;border:0;border-radius:0}
+.resumo-card span{font-size:11px;color:var(--suave);text-transform:none;letter-spacing:0}
+.resumo-card strong,#viewOrcamento .resumo-card strong,.resumo-card strong.total-grande,#viewOrcamento .resumo-card strong.total-grande{font-size:15px;font-weight:600;color:var(--tinta)}
+
+/* ---------- níveis da EAP ---------- */
+.niveis-rotulo{font-size:11px;font-weight:400;color:var(--suave);text-transform:none;letter-spacing:0}
+.nivel-btn{width:24px;height:24px;border-color:var(--borda);border-radius:5px;color:var(--suave);font-size:11.5px;font-weight:500}
+.nivel-btn:hover{border-color:#a1a1aa;background:#fff;color:var(--tinta)}
+.nivel-btn[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.niveis-legenda{font-size:11px;color:var(--fraco)}
+
+/* ---------- tabelas ---------- */
+.table-wrap{background:var(--superficie);border:1px solid var(--borda);border-radius:8px;box-shadow:none}
+.tabela,#tabelaOrcamento{font-size:12.5px}
+.tabela th,#tabelaOrcamento th{padding:9px 10px;background:var(--superficie);color:var(--suave);border:0;border-bottom:1px solid var(--borda);font-size:10.5px;font-weight:500;letter-spacing:.05em}
+.tabela td,#tabelaOrcamento td{padding:7px 10px;border:0;border-bottom:1px solid var(--linha)}
+.codigo{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:400;color:var(--suave)}
+.total{font-weight:500;color:var(--tinta)}
+.grupo td{border-top:0}
+.grupo.n1 td{background:#f6f6f7;color:var(--tinta)}
+.grupo.n2 td{background:#fbfbfb;color:var(--tinta)}
+.grupo.n3 td{background:var(--superficie);color:var(--tinta)}
+.grupo.n1 td strong,.grupo.n2 td strong,#tabelaOrcamento .grupo.n1 td strong,#tabelaOrcamento .grupo.n2 td strong{font-size:12.5px;font-weight:600}
+.grupo.n3 td strong,#tabelaOrcamento .grupo.n3 td strong{font-size:12.5px;font-weight:500}
+.linha-servico td strong,#tabelaOrcamento .linha-servico td strong{font-size:12.5px;font-weight:400}
+.linha-servico td,.linha-servico.linha-direta td{background:var(--superficie);border-left:0}
+.linha-servico:hover td{background:#fafafa}
+.linha-total td{background:var(--superficie);border-top:1px solid var(--tinta);color:var(--tinta);font-size:13px;font-weight:600}
+.sem-servicos{color:var(--suave)}
+/* hierarquia pelo recuo da descrição, não por blocos de cor */
+#tabelaOrcamento .grupo.n2 td:nth-child(4){padding-left:20px}
+#tabelaOrcamento .grupo.n3 td:nth-child(4){padding-left:32px}
+#tabelaOrcamento .linha-servico.linha-direta td:nth-child(4){padding-left:42px}
+#tabelaOrcamento .linha-servico:not(.linha-direta) td:nth-child(4){padding-left:54px}
+#tabelaOrcamento .btn-icon[data-acao="toggle"]{width:18px;height:18px;margin:0 4px 0 -2px;vertical-align:-4px}
+/* larguras fixas nas colunas de apoio: a descrição fica com o resto */
+#tabelaOrcamento{table-layout:fixed;min-width:980px}
+#tabelaOrcamento th{white-space:normal;line-height:1.3;vertical-align:bottom}
+#tabelaOrcamento .col-codigo{width:80px}
+#tabelaOrcamento .col-cod-item{width:112px}
+#tabelaOrcamento td.col-cod-item{color:var(--suave);font-size:11px;font-weight:400}
+#tabelaOrcamento .col-base{width:66px}
+#tabelaOrcamento .col-un{width:46px;color:var(--suave)}
+#tabelaOrcamento .col-num{width:96px}
+#tabelaOrcamento .col-acoes{width:46px;text-align:center}
+.qtd-servico{height:26px;padding:0 7px;border-color:var(--borda);border-radius:5px;font-size:12.5px}
+.qtd-servico:focus{outline:none;border-color:#a1a1aa}
+.qtd-servico[readonly]{background:transparent;border-color:transparent;color:var(--tinta);font-weight:500}
+.tag-base{padding:1px 6px;border:1px solid var(--borda);border-radius:4px;background:transparent;color:var(--suave);font-size:10px;font-weight:500;letter-spacing:.03em}
+.tag-base-propria{border-color:#d4d4d8;color:var(--tinta)}
+.tag-memo{padding:0 5px;border:1px solid var(--borda);border-radius:4px;background:transparent;color:var(--suave);font-size:10px}
+button.tag-memo{font:inherit;font-size:10px;line-height:1.5;cursor:pointer}
+button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa;color:var(--tinta)}
+/* menu de ações da linha (⋯) */
+.btn-menu{color:var(--fraco)}
+.btn-menu[aria-expanded="true"]{background:var(--hover);color:var(--tinta)}
+.menu-acoes{position:fixed;z-index:60;min-width:200px;padding:4px;background:var(--superficie);border:1px solid var(--borda);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:left;white-space:nowrap}
+.menu-acoes[hidden]{display:none}
+.menu-item{display:flex;align-items:center;gap:9px;width:100%;height:30px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--texto);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.menu-item .ic{color:var(--suave)}
+.menu-item:hover,.menu-item:focus-visible{background:var(--hover);outline:none}
+.menu-perigo,.menu-perigo .ic{color:var(--vermelho)}
+.menu-perigo:hover,.menu-perigo:focus-visible{background:#fef2f2}
+.menu-sep{height:1px;margin:4px 6px;background:var(--linha)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* nova linha de serviço */
+#tabelaOrcamento .linha-rascunho td{background:#fcfcfc}
+.codigo-novo-servico{width:62px;height:26px;border-color:#a1a1aa;font-size:12px}
+.codigo-novo-servico:focus{outline:none;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+#tabelaOrcamento .btn-lupa{width:26px;height:26px;background:transparent;color:var(--suave)}
+.rascunho-dica{font-style:normal;color:var(--fraco)}
+/* memória de cálculo */
+.linha-memo>td{background:#fafafa}
+.linha-memo .tabela-memo td{background:var(--superficie)}
+.memo-box{width:auto;margin:4px 10px 10px 54px;padding:10px 12px;background:var(--superficie);border:1px solid var(--borda);border-left:2px solid #d4d4d8;border-radius:0 6px 6px 0}
+.memo-head{align-items:flex-start}
+.memo-head-total{padding:0;border:0;background:transparent}
+.memo-head-total span{font-size:11px;text-transform:none;color:var(--suave)}
+.memo-head-total strong{font-size:13px}
+.memo-add .btn,.memo-add .btn-primary{height:24px;padding:0 8px;background:transparent;border-color:var(--borda);color:var(--texto);font-size:11.5px}
+.memo-add .btn:hover{background:var(--hover)}
+.memo-head h4{font-size:12px;font-weight:500}
+.memo-head-total{border-color:var(--borda)}
+.memo-head-total strong{font-weight:600}
+.memo-table-wrap{border-color:var(--borda)}
+.tabela-memo th{background:var(--superficie);color:var(--fraco);font-weight:500}
+.tabela-memo td{border-bottom-color:var(--linha)}
+.tabela-memo input{height:24px;border-color:var(--borda)}
+.tabela-memo input:focus{outline:none;border-color:#a1a1aa}
+
+/* ---------- janelas ---------- */
+.modal,.modal-import{border:1px solid var(--borda);border-radius:10px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.modal::backdrop,.modal-import::backdrop{background:rgba(24,24,27,.28)}
+.modal h3{font-size:15px;color:var(--tinta)}
+.modal-import h2{font-size:15px}
+.modal label{font-size:12px;font-weight:500;color:var(--suave)}
+.modal-actions{margin-top:16px}
+.dica{background:#fafafa;border-color:var(--borda);font-size:12px;color:var(--suave)}
+.memo-aviso{font-size:12px;color:var(--suave)}
+.fonte-servico{background:#fafafa;border-color:var(--borda);border-left:2px solid #d4d4d8}
+.fonte-servico-head strong{font-size:13px;font-weight:500}
+.servico-preco-fonte{background:#fafafa;border-color:var(--borda);color:var(--texto)}
+.servico-preco-fonte strong{font-size:15px;color:var(--tinta)}
+/* versões */
+.versao-item{border-color:var(--borda);border-radius:8px;padding:7px 10px}
+.versao-item.selecionada{border-color:#a1a1aa;background:#fafafa}
+.v-num{background:transparent;border:1px solid var(--borda);color:var(--texto);font-size:11px;font-weight:500}
+.v-info strong{font-size:13px;font-weight:500;color:var(--tinta)}
+.v-info small{font-size:11px}
+.badge-ativa{background:transparent;border:1px solid var(--tinta);color:var(--tinta);font-size:10px;font-weight:500;letter-spacing:.03em}
+.cmp-head{background:#fafafa;border-color:var(--borda);font-size:12px}
+.cmp-tabela th{background:var(--superficie);border:0;border-bottom:1px solid var(--borda);color:var(--suave);font-weight:500}
+.cmp-tabela td{border:0;border-bottom:1px solid var(--linha)}
+.sit-add,.sit-rem,.sit-alt{font-weight:500}
+.sit-alt{color:#a16207}
+/* pesquisa de serviços e busca SINAPI */
+.sinapi-modal-heading p{font-size:11.5px;color:var(--fraco)}
+.pesquisa-bases{border-color:var(--borda);border-radius:6px}
+.pesquisa-bases span{padding:5px 14px;color:var(--suave);font-size:12px;font-weight:500}
+.pesquisa-bases input:checked+span{background:var(--tinta);color:#fff}
+.sinapi-busca-principal{background:#fafafa;border-color:var(--borda)}
+.sinapi-busca-principal>label,.sinapi-label-principal{font-size:12px;font-weight:500;color:var(--tinta)}
+.sinapi-descricao-input{font-size:13px}
+.sinapi-resultado-item{padding:10px 12px;border-color:var(--borda);border-radius:8px;font-size:12px}
+.sinapi-resultado-descricao{font-weight:500;color:var(--tinta)}
+.sinapi-resultado-preco{color:var(--tinta)}
+.sinapi-resultado-preco strong{font-size:13px;font-weight:600}
+.sinapi-un{margin-left:0;text-transform:none;font-size:11px;color:var(--fraco)}
+.sinapi-codigo{padding:0;background:transparent;color:var(--suave);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pesquisa-item .sinapi-resultado-descricao mark{background:#e4e4e7;color:inherit}
+.sinapi-filtros{border-color:var(--borda)}
+.sinapi-filtros summary{color:var(--suave);font-weight:500}
+
+/* ---------- catálogos (composições, insumos, unidades) ---------- */
+.catalogo-page-head{margin-bottom:16px}
+.catalogo-page-head h2{font-size:17px;letter-spacing:-.01em}
+.catalogo-page-head p{font-size:12.5px;color:var(--suave)}
+.catalogo-toolbar{padding:12px 14px;background:var(--superficie);border-color:var(--borda);border-radius:8px;box-shadow:none}
+.catalogo-toolbar-label{font-size:10.5px;font-weight:500;letter-spacing:.06em;color:var(--fraco)}
+.base-selection{padding:3px;background:var(--hover);border-color:var(--borda);border-radius:7px}
+.catalogo-tab span{padding:5px 12px;border-radius:5px;color:var(--suave);font-size:12px;font-weight:500}
+.catalogo-tab input:checked+span{background:#fff;color:var(--tinta);box-shadow:0 0 0 1px var(--borda)}
+.catalogo-contagem{font-size:11.5px;font-weight:400}
+.catalogo-page .btn{min-height:0}
+.catalogo-lista .item-catalogo{padding:10px 14px;border-color:var(--borda);border-radius:8px}
+.catalogo-lista .item-catalogo:hover{background:var(--superficie);border-color:#d4d4d8}
+.catalogo-lista .item-codigo{color:var(--suave);font-weight:400}
+.catalogo-lista .item-base,.catalogo-lista .item-catalogo[data-base="sinapi"] .item-base{padding:1px 6px;border:1px solid var(--borda);border-radius:4px;background:transparent;color:var(--suave);font-size:10px;font-weight:500}
+.catalogo-lista .item-nome{font-size:13px;font-weight:500;color:var(--tinta)}
+.catalogo-lista .item-meta{font-size:11.5px}
+.catalogo-lista .item-footer>strong{font-size:13px;font-weight:600;color:var(--tinta)}
+.catalogo-lista .item-acoes .btn{min-height:0}
+.catalogo-page .catalogo-lista .item-detalhes span,.item-detalhes span{background:transparent;border-color:var(--borda);color:var(--suave)}
+.catalogo-empty{border-color:var(--borda);border-radius:10px}
+.catalogo-empty-icon{background:var(--hover);color:var(--suave);font-size:0;border-radius:10px}
+.catalogo-empty h3{font-size:14px}
+.catalogo-empty p{font-size:12px}
+.sinapi-catalogo{border-color:var(--borda);border-radius:8px}
+.sinapi-catalogo-busca>label{font-size:12px;font-weight:500}
+.sinapi-catalogo-busca>p{color:var(--fraco)}
+.sinapi-catalogo-item{border-color:var(--borda);border-radius:8px}
+.sinapi-catalogo-item-info h3{font-size:12.5px;font-weight:500}
+.sinapi-catalogo-preco{color:var(--tinta);font-size:13px;font-weight:600}
+.componentes-tabela th,.unidades-tabela th{background:var(--superficie);color:var(--suave);font-weight:500;font-size:10.5px}
+.componentes-tabela th,.componentes-tabela td,.unidades-tabela th,.unidades-tabela td{border-bottom-color:var(--linha)}
+.unidades-tabela td:first-child{font-weight:500}
+
+/* ---------- planejamento ---------- */
+#viewPlanejamento .sidebar{border-right-color:var(--borda)}
+#viewPlanejamento .sidebar-head{border-bottom-color:var(--linha)}
+#viewPlanejamento .sidebar-head h2{font-size:11px;font-weight:500;letter-spacing:.06em}
+#viewPlanejamento .empty-state{border-color:var(--borda);box-shadow:none}
+#viewPlanejamento .empty-state h2{font-size:15px}
+#viewPlanejamento .empty-state p{font-size:12.5px}
+#viewPlanejamento .empty-state .destaque{color:var(--fraco);font-size:0;opacity:1}
+#viewPlanejamento .planejamento-head{border-bottom-color:var(--borda)}
+#viewPlanejamento .planejamento-head h2{font-size:16px;font-weight:600}
+#viewPlanejamento .planejamento-resumo{background:var(--superficie);border-bottom-color:var(--borda)}
+#viewPlanejamento .resumo-card{background:var(--superficie);border-color:var(--borda)}
+#viewPlanejamento .resumo-card span{font-size:11px;font-weight:400;text-transform:none;letter-spacing:0}
+#viewPlanejamento .resumo-card strong{font-size:15px;font-weight:600}
+#viewPlanejamento .tabela thead th{background:var(--superficie);color:var(--suave);border-bottom:1px solid var(--borda);font-size:10.5px;font-weight:500}
+#viewPlanejamento .tabela tbody td{border-bottom-color:var(--linha);font-size:12.5px}
+#viewPlanejamento .tabela tbody tr:hover td{background:#fafafa}
+
+/* ---------- suprimentos (paleta própria vira neutra) ---------- */
+#viewSuprimentos{--cazu-petroleo:#18181b;--cazu-petroleo-2:#27272a;--cazu-verde:#3f3f46;--cazu-limao:#d4d4d8;--cazu-limao-2:#d4d4d8;--cazu-cinza:#a1a1aa;--cazu-cinza-2:#71717a;--cazu-bg:#fafafa;--cazu-branco:#fff;--cazu-borda:#e4e4e7;--cazu-suave:#71717a;font-family:inherit}
+.supr-header h2{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.supr-header p{font-size:12px}
+.supr-select-orcamento{font-size:12px}
+.supr-select-orcamento select{height:30px;padding:0 9px;border-radius:6px;font-weight:500}
+.supr-readonly-banner{background:#fafafa;border-color:var(--borda);color:var(--suave);border-radius:8px;font-size:12px}
+.supr-step{background:transparent;border-color:var(--borda);font-size:11.5px;font-weight:500;color:var(--suave)}
+.supr-step .n{background:var(--hover);color:var(--suave)}
+.supr-step.ativo{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.supr-step.ativo .n{background:#fff;color:var(--tinta)}
+.supr-step.concluido{background:transparent;border-color:var(--borda);color:var(--texto)}
+.supr-step.concluido .n{background:var(--texto);color:#fff}
+.supr-tabs{border-bottom:1px solid var(--borda)}
+.supr-tab{padding:8px 12px;font-size:12.5px;font-weight:500;color:var(--suave);border-bottom-width:2px;border-radius:0}
+.supr-tab:hover{background:transparent;color:var(--tinta)}
+.supr-tab.ativa{background:transparent;color:var(--tinta);border-bottom-color:var(--tinta)}
+.supr-card{border:1px solid var(--borda);border-left:1px solid var(--borda);border-radius:8px;box-shadow:none}
+.supr-card:hover{box-shadow:none;border-color:#d4d4d8}
+.supr-card-head strong{font-size:13px;font-weight:500}
+.supr-card-body{font-size:12px}
+.badge{padding:1px 7px;border:1px solid var(--borda);border-radius:4px;background:transparent!important;color:var(--suave)!important;font-size:10px;font-weight:500;letter-spacing:.03em}
+.badge-confirmado,.badge-recebido{color:var(--verde)!important}
+.badge-cancelado{color:var(--vermelho)!important}
+.supr-item-linha:hover{border-color:#d4d4d8}
+.supr-msg{padding:8px 12px;font-size:12px;font-weight:500}
+.supr-msg.ok{background:#f0fdf4;color:var(--verde)}
+.supr-msg.erro{background:#fef2f2;color:var(--vermelho)}
+.mapa-cotacao th,#viewSuprimentos table.tabela th{background:var(--superficie);color:var(--suave);border-bottom:1px solid var(--borda);font-size:10.5px;font-weight:500}
+.mapa-cotacao th .supr-forn-head small{color:var(--fraco)}
+.mapa-cotacao th .supr-cond-pag{border:1px solid var(--borda)}
+.supr-mapa-scroll,.supr-table-wrap{border-radius:8px;box-shadow:none}
+tr.supr-total-row td{background:#fafafa}
+.supr-resumo-cards .resumo-card{border-radius:8px;box-shadow:none}
+.supr-resumo-cards .resumo-card span{font-size:11px;font-weight:400}
+.supr-resumo-cards .resumo-card strong{font-size:15px;font-weight:600}
+
+/* ---------- usuários e liberação ---------- */
+.ua-table{border-radius:8px}
+.ua-table th{background:var(--superficie);color:var(--suave);font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.ua-table th,.ua-table td{border-bottom-color:var(--linha);font-size:12.5px}
+.ua-tag{padding:1px 7px;border:1px solid var(--borda);border-radius:4px;background:transparent;font-size:10px;font-weight:500}
+.ua-btn{height:24px;padding:0 9px;border:1px solid var(--borda);border-radius:5px;background:transparent;color:var(--texto);font-size:11px;font-weight:500}
+.ua-aprovar{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.ua-bloquear{color:var(--vermelho)}
+
+/* ---------- impressão: mantém o essencial ---------- */
+@media print{
+  .tabela th,.tabela td{border:0;border-bottom:1px solid #ccc}
+  .grupo td{background:#f2f2f2!important}
+  .linha-total td{background:#fff!important}
+  #tabelaOrcamento .col-acoes,.menu-acoes{display:none}
+}

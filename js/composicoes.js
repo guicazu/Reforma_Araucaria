@@ -378,7 +378,7 @@
 
     if (!itens.length) {
       container.className = 'catalogo-empty';
-      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + (base === 'sinapi' ? '⌕' : '+') + '</span>' +
+      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + window.icone(base === 'sinapi' ? 'buscar' : 'mais') + '</span>' +
         '<h3>' + (base === 'sinapi' ? 'Nenhuma composição SINAPI nesta lista' : 'Seu catálogo próprio começa aqui') + '</h3>' +
         '<p>' + (base === 'sinapi'
           ? 'Busque uma composição pelo código ou descrição para consultar e usar os dados da SINAPI.'
@@ -435,7 +435,7 @@
 
     if (!itens.length) {
       container.className = 'catalogo-empty';
-      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + (base === 'sinapi' ? '⌕' : '+') + '</span>' +
+      container.innerHTML = '<span class="catalogo-empty-icon" aria-hidden="true">' + window.icone(base === 'sinapi' ? 'buscar' : 'mais') + '</span>' +
         '<h3>' + (base === 'sinapi' ? 'Nenhum insumo SINAPI nesta lista' : 'Seu catálogo próprio começa aqui') + '</h3>' +
         '<p>' + (base === 'sinapi'
           ? 'Busque um insumo pelo código ou descrição para consultar e usar os dados da SINAPI.'
@@ -687,7 +687,7 @@
     const unidadeId = conversao && (conversao.unidadeId || conversao.simbolo || conversao.unidade) || '';
     linha.innerHTML = '<td><select class="conversao-unidade" required></select></td>' +
       '<td><div class="fator-conversao"><span>1 unidade =</span><input class="conversao-fator" type="number" min="0.000001" step="any" inputmode="decimal" placeholder="50" value="' + escaparHtml(conversao && conversao.fator != null ? conversao.fator : '') + '" required /><span class="conversao-base-simbolo"></span></div></td>' +
-      '<td><button type="button" class="btn-icon btn-danger" data-remover-conversao title="Remover conversão">×</button></td>';
+      '<td><button type="button" class="btn-icon btn-danger" data-remover-conversao title="Remover conversão" aria-label="Remover conversão">' + window.icone('fechar') + '</button></td>';
     tbody.appendChild(linha);
     atualizarSelectConversao(linha, unidadeId);
   }
@@ -715,7 +715,7 @@
     linha.className = 'insumo-detalhe-linha';
     linha.dataset.detalheId = detalhe && detalhe.id || '';
     linha.innerHTML = '<input class="insumo-detalhe-nome" placeholder="ex.: Vermelho" value="' + escaparHtml(detalhe && detalhe.nome || '') + '" aria-label="Nome do detalhe" />' +
-      '<button type="button" class="btn-icon btn-danger" data-remover-detalhe title="Remover detalhe">×</button>';
+      '<button type="button" class="btn-icon btn-danger" data-remover-detalhe title="Remover detalhe" aria-label="Remover detalhe">' + window.icone('fechar') + '</button>';
     container.appendChild(linha);
   }
 
@@ -785,7 +785,7 @@
       '<td class="componente-unidade">—</td>' +
       '<td><input class="componente-coeficiente" inputmode="decimal" placeholder="1,00" value="' + escaparHtml(componente && componente.coeficiente != null ? componente.coeficiente : '') + '"></td>' +
       '<td class="componente-preco">—</td><td class="componente-parcial">—</td>' +
-      '<td><button type="button" class="btn-icon btn-danger" data-remover-componente title="Remover componente">×</button></td>';
+      '<td><button type="button" class="btn-icon btn-danger" data-remover-componente title="Remover componente" aria-label="Remover componente">' + window.icone('fechar') + '</button></td>';
     tbody.appendChild(linha);
     linha.querySelector('.componente-insumo').value = selecionado;
     atualizarLinhaComponente(linha);

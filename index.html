@@ -7,60 +7,106 @@
 <meta name="version" content="84f465d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/suprimentos.css" />
+<link rel="stylesheet" href="css/minimalista.css" />
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <!-- Ícones monocromáticos de traço (cor = cor do texto). Uso: <svg class="ic"><use href="#i-nome"/></svg> ou icone('nome') no JS -->
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9.5h11V10"/></symbol>
+  <symbol id="i-orcamento" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4"/><path d="M10 12h5M10 15.5h5"/></symbol>
+  <symbol id="i-planejamento" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="i-composicoes" viewBox="0 0 24 24"><path d="M12 4.5 20 8.5l-8 4-8-4z"/><path d="M4 12.5l8 4 8-4"/><path d="M4 16.5l8 4 8-4"/></symbol>
+  <symbol id="i-insumos" viewBox="0 0 24 24"><path d="M12 3.5 19.5 7.75v8.5L12 20.5l-7.5-4.25v-8.5z"/><path d="M4.5 7.75 12 12l7.5-4.25M12 12v8.5"/></symbol>
+  <symbol id="i-unidades" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="8" rx="1.5"/><path d="M7.5 8v3M11 8v2M14.5 8v3M18 8v2"/></symbol>
+  <symbol id="i-suprimentos" viewBox="0 0 24 24"><path d="M3.5 4.5h2l2.2 10.5h10l1.8-7.5H6.6"/><circle cx="9.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/></symbol>
+  <symbol id="i-usuarios" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19.5c.4-3.1 2.7-5 5.5-5s5.1 1.9 5.5 5"/><path d="M15.5 5.8a3 3 0 0 1 0 5.4M17.5 14.8c1.6.6 2.7 2.2 3 4.7"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-destravar" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 7.6-1.7"/></symbol>
+  <symbol id="i-backup" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="4" rx="1"/><path d="M5.5 8.5v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-10M10 12.5h4"/></symbol>
+  <symbol id="i-financeiro" viewBox="0 0 24 24"><rect x="3.5" y="6.5" width="17" height="12" rx="2"/><path d="M3.5 10.5h17M15.5 14.5h2"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></symbol>
+  <symbol id="i-salvar" viewBox="0 0 24 24"><path d="M5 4.5h11l3 3v12H5z"/><path d="M8.5 4.5v4h6v-4M8 19.5V14h8v5.5"/></symbol>
+  <symbol id="i-editar" viewBox="0 0 24 24"><path d="M4.5 19.5h4l10-10-4-4-10 10z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-excluir" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5"/></symbol>
+  <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 18.5v-13M6.5 11 12 5.5 17.5 11"/></symbol>
+  <symbol id="i-descer" viewBox="0 0 24 24"><path d="M12 5.5v13M6.5 13 12 18.5 17.5 13"/></symbol>
+  <symbol id="i-seta-dir" viewBox="0 0 24 24"><path d="M9.5 6.5 15 12l-5.5 5.5"/></symbol>
+  <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
+  <symbol id="i-calculadora" viewBox="0 0 24 24"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M8.5 7.5h7M8.7 12h.6M11.7 12h.6M14.7 12h.6M8.7 15.5h.6M11.7 15.5h.6M14.7 15.5h.6"/></symbol>
+  <symbol id="i-planilha" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M4 14.5h16M9.5 9.5V20"/></symbol>
+  <symbol id="i-imprimir" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 13.5h10v6H7z"/></symbol>
+  <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-versoes" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5V8H8"/><path d="M12 8.5V12l2.5 1.5"/></symbol>
+  <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m19.5 19.5-4.3-4.3"/></symbol>
+  <symbol id="i-ver" viewBox="0 0 24 24"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M19 12H5.5M11 6.5 5.5 12l5.5 5.5"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-fechar" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-avisos" viewBox="0 0 24 24"><path d="M6.5 16v-5a5.5 5.5 0 0 1 11 0v5l1.5 2h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 1.5"/></symbol>
+  <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 15V4.5M7.5 9 12 4.5 16.5 9M5 19.5h14"/></symbol>
+  <symbol id="i-email" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 7.5 12 13l8.5-5.5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/></symbol>
+  <symbol id="i-prancheta" viewBox="0 0 24 24"><rect x="5.5" y="5" width="13" height="15.5" rx="2"/><path d="M9.5 3.5h5v3h-5zM9 11.5h6M9 15h4"/></symbol>
+  <symbol id="i-sub-etapa" viewBox="0 0 24 24"><path d="M6.5 4.5v7a3 3 0 0 0 3 3H18"/><path d="M14.5 11 18 14.5 14.5 18"/></symbol>
+  <symbol id="i-opcoes" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4 4 9-9"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4.5 20.5 19.5h-17z"/><path d="M12 10.5V14M12 17h.01"/></symbol>
+  <symbol id="i-sair" viewBox="0 0 24 24"><path d="M14.5 4.5h4v15h-4"/><path d="M10 8l-4 4 4 4M6 12h9.5"/></symbol>
+</svg>
 
 <nav class="app-sidebar" id="appSidebar">
-  <button class="app-sidebar-toggle" id="btnToggleSidebar" title="Recolher menu">☰</button>
+  <button class="app-sidebar-toggle" id="btnToggleSidebar" title="Recolher menu" aria-label="Recolher menu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
   <div class="app-sidebar-nav">
     <div class="app-sidebar-group">
       <button class="app-sidebar-item ativo" data-view="dashboard" title="Início">
-        <span class="icone">🏠</span><span class="rotulo">Início</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-inicio"/></svg></span><span class="rotulo">Início</span>
       </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Engenharia</span>
       <button class="app-sidebar-item" data-view="orcamento" title="Orçamento">
-        <span class="icone">🏗️</span><span class="rotulo">Orçamento</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-orcamento"/></svg></span><span class="rotulo">Orçamento</span>
       </button>
       <button class="app-sidebar-item" data-view="planejamento" title="Planejamento">
-        <span class="icone">📅</span><span class="rotulo">Planejamento</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-planejamento"/></svg></span><span class="rotulo">Planejamento</span>
       </button>
       <button class="app-sidebar-item" data-view="composicoes" title="Composições">
-        <span class="icone">🧱</span><span class="rotulo">Composições</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-composicoes"/></svg></span><span class="rotulo">Composições</span>
       </button>
       <button class="app-sidebar-item" data-view="insumos" title="Insumos">
-        <span class="icone">🔧</span><span class="rotulo">Insumos</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-insumos"/></svg></span><span class="rotulo">Insumos</span>
       </button>
       <button class="app-sidebar-item" data-view="unidades" title="Unidades">
-        <span class="icone">📏</span><span class="rotulo">Unidades</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-unidades"/></svg></span><span class="rotulo">Unidades</span>
       </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Suprimentos</span>
       <button class="app-sidebar-item" data-view="suprimentos" title="Suprimentos">
-        <span class="icone">📦</span><span class="rotulo">Suprimentos</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-suprimentos"/></svg></span><span class="rotulo">Suprimentos</span>
       </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Apoio</span>
       <button class="app-sidebar-item admin-only hidden" id="navUsuarios" data-view="usuarios" title="Usuários">
-        <span class="icone">👥</span><span class="rotulo">Usuários</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-usuarios"/></svg></span><span class="rotulo">Usuários</span>
       </button>
       <button class="app-sidebar-item admin-only hidden" id="navLiberacao" data-view="liberacao" title="Liberação de orçamento">
-  🔓Liberação de orçamento
-</button>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-destravar"/></svg></span><span class="rotulo">Liberação</span>
+      </button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
-        <span class="icone">💾</span><span class="rotulo">Backup</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-backup"/></svg></span><span class="rotulo">Backup</span>
       </button>
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Financeiro</span>
       <button class="app-sidebar-item" data-view="financeiro" title="Financeiro">
-        <span class="icone">💰</span><span class="rotulo">Financeiro</span>
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-financeiro"/></svg></span><span class="rotulo">Financeiro</span>
       </button>
     </div>
   </div>
@@ -85,20 +131,20 @@
 
 <section class="content" id="viewDashboard">
   <div class="dash-greeting">
-    <h2 id="dashSaudacao">Olá! 👋</h2>
+    <h2 id="dashSaudacao">Olá</h2>
     <p>Bem-vindo ao painel da Cazú Projetos e Construções.</p>
   </div>
   <div class="dash-grid">
     <div class="dash-card dash-card-wide">
-      <h3>🏗️ Orçamentos</h3>
+      <h3><svg class="ic" aria-hidden="true"><use href="#i-orcamento"/></svg>Orçamentos</h3>
       <p class="dash-card-vazio">Acesse <b>Engenharia → Orçamento</b> no menu lateral para começar.</p>
     </div>
     <div class="dash-card">
-      <h3>🔔 Avisos</h3>
+      <h3><svg class="ic" aria-hidden="true"><use href="#i-avisos"/></svg>Avisos</h3>
       <p class="dash-card-vazio">Tudo certo! Nenhum aviso pendente no momento.</p>
     </div>
     <div class="dash-card">
-      <h3>🕘 Acessados recentemente</h3>
+      <h3><svg class="ic" aria-hidden="true"><use href="#i-relogio"/></svg>Acessados recentemente</h3>
       <p class="dash-card-vazio">Em breve.</p>
     </div>
   </div>
@@ -113,14 +159,14 @@
     <ul class="orcamento-list" id="listaOrcamentos"></ul>
     <div id="listaStatusSalvamento" class="lista-save-panel hidden">
       <span id="statusListaSalvamento" class="save-status" role="status" aria-live="polite"></span>
-      <button id="btnSalvarLista" class="btn btn-primary btn-sm">💾 Salvar alterações</button>
-      <button id="btnLiberarBloqueioLista" class="btn btn-ghost btn-sm hidden">🔓 Liberar bloqueio</button>
+      <button id="btnSalvarLista" class="btn btn-primary btn-sm"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar alterações</button>
+      <button id="btnLiberarBloqueioLista" class="btn btn-ghost btn-sm hidden"><svg class="ic" aria-hidden="true"><use href="#i-destravar"/></svg>Liberar bloqueio</button>
     </div>
   </aside>
 
   <section class="content" id="contentVazio">
     <div class="empty-state">
-      <div class="destaque">🏗️</div>
+      <div class="destaque"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-orcamento"/></svg></div>
       <h2>Bem-vindo ao iBuild Obras</h2>
       <p>Crie um orçamento e monte a EAP: Unidade Construtiva → Etapa → Sub Etapa → Serviço.</p>
       <button id="btnNovoVazio" class="btn btn-primary">+ Criar orçamento</button>
@@ -130,21 +176,21 @@
   <section class="content hidden" id="contentOrcamento">
     <div class="orcamento-head">
       <div>
-        <button id="btnVoltarLista" class="btn btn-ghost btn-sm" style="margin-bottom:10px">← Voltar para a lista</button>
+        <button id="btnVoltarLista" class="btn btn-ghost btn-sm" style="margin-bottom:10px"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar para a lista</button>
         <h2 id="orcamentoNome"></h2>
         <p id="orcamentoMeta"></p>
       </div>
       <div class="orcamento-head-actions">
-        <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual">⧉ Duplicar</button>
-        <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação">🕘 Versões</button>
-        <button id="btnExportarExcel" class="btn btn-ghost" title="Exportar planilha .xlsx">📊 Excel</button>
-        <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF">📄 PDF</button>
-        <button id="btnRenomear" class="btn btn-ghost">✏️ Renomear</button>
-        <button id="btnAddUnidade" class="btn btn-primary">+ Unidade construtiva</button>
-        <button id="btnSalvarOrcamento" class="btn btn-primary" title="Salvar alterações no banco">💾 Salvar</button>
-        <button id="btnEntrarEdicao" class="btn btn-primary hidden">✏️ Editar</button>
-        <button id="btnLiberarBloqueio" class="btn btn-ghost hidden">🔓 Liberar orçamento</button>
-        <span id="statusSalvamento" class="save-status save-status-pending" role="status" aria-live="polite">⏳ Carregando último orçamento...</span>
+        <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual"><svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg>Duplicar</button>
+        <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação"><svg class="ic" aria-hidden="true"><use href="#i-versoes"/></svg>Versões</button>
+        <button id="btnExportarExcel" class="btn btn-ghost" title="Exportar planilha .xlsx"><svg class="ic" aria-hidden="true"><use href="#i-planilha"/></svg>Excel</button>
+        <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF"><svg class="ic" aria-hidden="true"><use href="#i-imprimir"/></svg>PDF</button>
+        <button id="btnRenomear" class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg>Renomear</button>
+        <button id="btnAddUnidade" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-mais"/></svg>Unidade construtiva</button>
+        <button id="btnSalvarOrcamento" class="btn btn-primary" title="Salvar alterações no banco"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
+        <button id="btnEntrarEdicao" class="btn btn-primary hidden"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
+        <button id="btnLiberarBloqueio" class="btn btn-ghost hidden"><svg class="ic" aria-hidden="true"><use href="#i-destravar"/></svg>Liberar</button>
+        <span id="statusSalvamento" class="save-status save-status-pending" role="status" aria-live="polite">Carregando…</span>
       </div>
     </div>
 
@@ -185,7 +231,7 @@
             <th class="col-num">Quantidade orçada</th>
             <th class="col-num">Preço unitário</th>
             <th class="col-num">Preço total</th>
-            <th class="col-acoes">Ações</th>
+            <th class="col-acoes"><span class="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody id="corpoTabela"></tbody>
@@ -214,7 +260,7 @@
 <section class="content hidden" id="viewSuprimentos">
   <div class="supr-header">
     <div>
-      <h2>🏗️ Suprimentos</h2>
+      <h2>Suprimentos</h2>
       <p>Requisição → Cotação → Mapa → Pedidos → Recebimento</p>
     </div>
     <div class="supr-select-orcamento">
@@ -223,7 +269,7 @@
     </div>
   </div>
 
-  <div class="supr-readonly-banner hidden" id="suprReadonlyBanner">🔒 Você está em modo somente leitura. Para criar requisições, cotações e pedidos, peça liberação de edição ao administrador.</div>
+  <div class="supr-readonly-banner hidden" id="suprReadonlyBanner"><svg class="ic" aria-hidden="true"><use href="#i-cadeado"/></svg> Você está em modo somente leitura. Para criar requisições, cotações e pedidos, peça liberação de edição ao administrador.</div>
 
   <div class="supr-stepper" id="suprStepper">
     <span class="supr-step" data-step="1"><span class="n">1</span> Requisição</span>
@@ -255,7 +301,7 @@
     <div id="suprReqNova" class="hidden">
       <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Nova requisição</h3>
       <p class="supr-msg" style="margin:0 0 12px">Obra: <b id="suprReqOrcamentoInfo">—</b> — selecione os itens do orçamento (via EAP ou busca).</p>
-      <input type="text" id="suprFiltroItens" placeholder="🔍 Buscar item, serviço ou caminho…" style="width:100%;max-width:420px;margin-bottom:12px">
+      <input type="text" id="suprFiltroItens" placeholder="Buscar item, serviço ou caminho…" style="width:100%;max-width:420px;margin-bottom:12px">
       <div id="suprArvoreItens"></div>
       <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
         <button class="btn btn-ghost" id="suprBtnCancelarNova">Cancelar</button>
@@ -270,7 +316,7 @@
       <label style="display:block;font-size:12px;font-weight:700;color:var(--cazu-suave,#4a5d60);margin:12px 0 4px">Observações</label>
       <textarea id="suprReqObservacoes" rows="2" style="width:100%;max-width:560px" placeholder="Ex.: prioridade, data desejada, observações da obra…"></textarea>
       <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
-        <button class="btn btn-ghost" id="suprBtnVoltarSelecao">← Voltar à seleção</button>
+        <button class="btn btn-ghost" id="suprBtnVoltarSelecao"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar à seleção</button>
         <button class="btn btn-primary" id="suprBtnSalvarRequisicao">Salvar requisição</button>
       </div>
       <div id="suprMsgRequisicao"></div>
@@ -294,7 +340,7 @@
       <h4 style="color:var(--cazu-petroleo,#052d33);margin:18px 0 8px">Fornecedores que vão responder</h4>
       <div id="suprFornecedoresParaCotar"></div>
       <div class="supr-toolbar" style="justify-content:space-between;margin-top:14px">
-        <button class="btn btn-ghost" id="suprBtnVoltarListaCot">← Voltar</button>
+        <button class="btn btn-ghost" id="suprBtnVoltarListaCot"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar</button>
         <button class="btn btn-primary" id="suprBtnCriarMapa">Criar mapa de comparação</button>
       </div>
       <div id="suprMsgNovaCotacao"></div>
@@ -379,30 +425,30 @@
     </div>
   </div>
   <div class="backup-actions">
-    <button id="btnExportar" class="btn btn-primary">⬇ Exportar backup</button>
-    <label class="btn btn-ghost">⬆ Importar backup
+    <button id="btnExportar" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-baixar"/></svg>Exportar backup</button>
+    <label class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-enviar"/></svg>Importar backup
       <input type="file" id="inputImportar" accept=".json,application/json" hidden />
     </label>
   </div>
-  <p class="memo-aviso" style="margin-top:14px">⚠️ Importar um backup <b>substitui</b> todos os orçamentos atuais pelos do arquivo.</p>
+  <p class="memo-aviso" style="margin-top:14px">Importar um backup <b>substitui</b> todos os orçamentos atuais pelos do arquivo.</p>
 </section>
 
 <main class="layout hidden" id="viewPlanejamento" data-modo="lista">
   <aside class="sidebar">
     <div class="sidebar-head">
       <h2>Planejamento</h2>
-      <button id="btnNovoPlanejamento" class="btn btn-primary btn-sm">+ Novo Cronograma</button>
+      <button id="btnNovoPlanejamento" class="btn btn-primary btn-sm" title="Novo cronograma">+ Novo</button>
     </div>
     <ul class="planejamento-list" id="listaPlanejamentos"></ul>
     <div id="listaStatusPlanejamento" class="lista-save-panel hidden">
       <span id="statusListaPlanejamento" class="save-status" role="status" aria-live="polite"></span>
-      <button id="btnSalvarListaPlanejamento" class="btn btn-primary btn-sm">💾 Salvar</button>
+      <button id="btnSalvarListaPlanejamento" class="btn btn-primary btn-sm"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
     </div>
   </aside>
 
   <section class="content" id="contentVazioPlanejamento">
     <div class="empty-state">
-      <div class="destaque">📅</div>
+      <div class="destaque"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-planejamento"/></svg></div>
       <h2>Planejamento e Controle de Produção</h2>
       <p>Crie cronogramas baseados no orçamento. A EAP define as atividades, os serviços ditam as durações.</p>
       <button id="btnCriarCronogramaVazio" class="btn btn-primary">+ Criar cronograma</button>
@@ -412,20 +458,20 @@
   <section class="content hidden" id="contentPlanejamento">
     <div class="planejamento-head">
       <div>
-        <button id="btnVoltarListaPlanejamento" class="btn btn-ghost btn-sm" style="margin-bottom:10px">← Voltar para a lista</button>
+        <button id="btnVoltarListaPlanejamento" class="btn btn-ghost btn-sm" style="margin-bottom:10px"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar para a lista</button>
         <h2 id="planejamentoNome">Novo Cronograma</h2>
         <p id="planejamentoMeta">Baseado no orçamento vinculado</p>
       </div>
       <div class="planejamento-head-actions">
-        <button id="btnDuplicarPlanejamento" class="btn btn-ghost btn-sm" title="Duplicar">⧉</button>
-        <button id="btnVersoesPlanejamento" class="btn btn-ghost btn-sm" title="Versões">🕘</button>
-        <button id="btnExportarExcelPlanejamento" class="btn btn-ghost btn-sm" title="Excel">📊</button>
-        <button id="btnExportarPdfPlanejamento" class="btn btn-ghost btn-sm" title="PDF">📄</button>
-        <button id="btnRenomearPlanejamento" class="btn btn-ghost btn-sm" title="Renomear">✏️</button>
+        <button id="btnDuplicarPlanejamento" class="btn btn-ghost btn-sm" title="Duplicar" aria-label="Duplicar"><svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg></button>
+        <button id="btnVersoesPlanejamento" class="btn btn-ghost btn-sm" title="Versões" aria-label="Versões"><svg class="ic" aria-hidden="true"><use href="#i-versoes"/></svg></button>
+        <button id="btnExportarExcelPlanejamento" class="btn btn-ghost btn-sm" title="Excel" aria-label="Excel"><svg class="ic" aria-hidden="true"><use href="#i-planilha"/></svg></button>
+        <button id="btnExportarPdfPlanejamento" class="btn btn-ghost btn-sm" title="PDF" aria-label="PDF"><svg class="ic" aria-hidden="true"><use href="#i-imprimir"/></svg></button>
+        <button id="btnRenomearPlanejamento" class="btn btn-ghost btn-sm" title="Renomear" aria-label="Renomear"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg></button>
         <button id="btnAddFase" class="btn btn-primary btn-sm">+ Fase</button>
-        <button id="btnImportarDoOrcamento" class="btn btn-primary btn-sm" title="Importar EAP">📥 Importar</button>
-        <button id="btnSalvarPlanejamento" class="btn btn-primary btn-sm" title="Salvar">💾 Salvar</button>
-        <button id="btnEntrarEdicaoPlanejamento" class="btn btn-ghost btn-sm hidden">✏️ Editar</button>
+        <button id="btnImportarDoOrcamento" class="btn btn-primary btn-sm" title="Importar EAP"><svg class="ic" aria-hidden="true"><use href="#i-baixar"/></svg>Importar</button>
+        <button id="btnSalvarPlanejamento" class="btn btn-primary btn-sm" title="Salvar"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
+        <button id="btnEntrarEdicaoPlanejamento" class="btn btn-ghost btn-sm hidden"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
         <span id="statusSalvamentoPlanejamento" class="save-status save-status-pending hidden" role="status" aria-live="polite"></span>
       </div>
     </div>
@@ -685,7 +731,7 @@
     <div class="fonte-servico">
       <div class="fonte-servico-head">
         <div><strong>Composição do serviço</strong><span>Selecione uma composição própria ou busque uma composição SINAPI.</span></div>
-        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost"><span aria-hidden="true">⌕</span> Buscar SINAPI</button>
+        <button type="button" id="btnAbrirBuscaSinapi" class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-buscar"/></svg>Buscar SINAPI</button>
       </div>
       <label>Composição própria
         <select id="fCatalogoItem"><option value="">Selecione uma composição</option></select>
@@ -768,7 +814,7 @@
 
 <dialog id="modalVersoes" class="modal modal-lg">
   <h3 id="versoesTitulo">Versões do orçamento</h3>
-  <p class="memo-aviso">A versão <b>ATIVA</b> é sempre a que você está editando agora. Use <b>+ Gerar nova versão</b> para congelar uma cópia do estado atual e continuar editando a partir dela. Depois, marque <b>2 versões</b> e clique em <b>Comparar</b>. Em modo de edição, <b>🗑</b> exclui uma versão (o orçamento sempre mantém pelo menos uma).</p>
+  <p class="memo-aviso">A versão <b>ATIVA</b> é sempre a que você está editando agora. Use <b>+ Gerar nova versão</b> para congelar uma cópia do estado atual e continuar editando a partir dela. Depois, marque <b>2 versões</b> e clique em <b>Comparar</b>. Em modo de edição, <svg class="ic ic-sm" aria-hidden="true"><use href="#i-excluir"/></svg> exclui uma versão (o orçamento sempre mantém pelo menos uma).</p>
   <div id="listaVersoes" class="versoes-list"></div>
   <div id="comparacaoVersoes"></div>
   <div class="modal-actions">
@@ -779,6 +825,7 @@
 </dialog>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="/js/icones.js"></script>
   <script src="js/app.js"></script>
 <script src="/js/auth-ui.js"></script>
 <script src="/js/erp-nav.js"></script>
@@ -793,7 +840,7 @@
 
 <section id="viewFinanceiro" class="hidden">
   <div class="content">
-    <h2>💰 Financeiro</h2>
+    <h2>Financeiro</h2>
     <div class="dash-grid">
       <div class="dash-card">
         <h3>Contas a Pagar</h3>
