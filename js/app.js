@@ -67,7 +67,7 @@ function serializarParaComparar(o){
   return JSON.stringify({
     codigo:o.codigo||'',
     nome:o.nome||'',
-    versoes:(o.versoes||[]).map(v=>({numero:Number(v.numero)||0,rotulo:v.rotulo||'',unidades:v.unidades||[]}))
+    versoes:(o.versoes||[]).map(v=>({numero:Number(v.numero)||0,rotulo:v.rotulo||'',referencia:v.referencia||null,unidades:v.unidades||[]}))
   });
 }
 function definirSnapshotServidor(orcamentos){
@@ -325,7 +325,9 @@ async function criarOrcamento(){
   const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
   if(nome===null)return;
   const agora=new Date().toISOString();
-  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',criadoEm:agora,unidades:[]}]};
+  // referência SINAPI: o mês mais recente da base; pode ser trocada livremente enquanto não houver serviços
+  const referencia=window.ReferenciasSinapi?(await window.ReferenciasSinapi.carregar(),window.ReferenciasSinapi.maisRecente()):null;
+  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',referencia,criadoEm:agora,unidades:[]}]};
   try{
     await window.bloquearOrcamento(novo.id);
     orcamentoEditandoId=novo.id;
@@ -496,19 +498,21 @@ async function liberarEdicaoAtual(){
 }
 
 /* ---------- versões ---------- */
-async function gerarVersao(){
-  const o=orcamentoAtivo();if(!o)return;
+// opcoes.rotulo: cria sem perguntar (usado ao trocar a referência). Devolve true se criou.
+async function gerarVersao(opcoes){
+  opcoes=opcoes||{};
+  const o=orcamentoAtivo();if(!o)return false;
   // A versão atual precisa estar gravada antes de ser congelada
   if(o.id===orcamentoEditandoId && temAlteracoesPendentes()){
-    if(!confirm(`Existem alterações não salvas na V${versaoAtiva(o).numero}. Salvar agora e gerar a nova versão?`))return;
+    if(!confirm(`Existem alterações não salvas na V${versaoAtiva(o).numero}. Salvar agora e gerar a nova versão?`))return false;
     await salvarNoServidor();
-    if(temAlteracoesPendentes())return; // a gravação não concluiu: o status mostra o motivo
+    if(temAlteracoesPendentes())return false; // a gravação não concluiu: o status mostra o motivo
   }
   const ativa=versaoAtiva(o);
   const novoNum=Math.max(...o.versoes.map(v=>v.numero))+1;
-  const rotulo=prompt(`Rótulo da versão ${novoNum} (ex.: Após revisão da cobertura):`, `Versão ${novoNum}`);
-  if(rotulo===null)return;
-  o.versoes.push({id:uid(),numero:novoNum,revisao:0,rotulo:rotulo.trim()||('Versão '+novoNum),criadoEm:new Date().toISOString(),unidades:clone(ativa.unidades)});
+  const rotulo=opcoes.rotulo||prompt(`Rótulo da versão ${novoNum} (ex.: Após revisão da cobertura):`, `Versão ${novoNum}`);
+  if(rotulo===null)return false;
+  o.versoes.push({id:uid(),numero:novoNum,revisao:0,rotulo:rotulo.trim()||('Versão '+novoNum),referencia:ativa.referencia||null,criadoEm:new Date().toISOString(),unidades:clone(ativa.unidades)});
   state.expandidos={};
   salvar();renderTudo();
   if($('#modalVersoes').open)renderVersoes(o);
@@ -538,6 +542,7 @@ async function gerarVersao(){
   } catch(e) {
     console.error('Erro ao salvar versão no D1:', e);
   }
+  return true;
 }
 // Serviços da versão com os códigos da tabela: os direto na etapa primeiro, depois os das sub etapas
 function flatServicos(unidades){
@@ -569,7 +574,7 @@ function renderVersoes(o){
     return `<div class="versao-item" data-idx="${idx}">
       <input type="checkbox" class="chk-versao" value="${idx}" />
       <span class="v-num">V${v.numero} · Rev.${v.revisao||0}</span>
-      <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}</small></span>
+      <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}${v.referencia?' · SINAPI '+esc(nomeReferencia(v.referencia)):''}</small></span>
       ${ultima?'<span class="badge-ativa">Ativa</span>':''}
       ${podeExcluir?`<button type="button" class="btn-icon btn-danger" data-excluir-versao="${esc(v.numero)}" title="Excluir V${esc(v.numero)}" aria-label="Excluir V${esc(v.numero)}">${icone('excluir')}</button>`:''}
     </div>`;
@@ -739,7 +744,7 @@ function dadosServicoPropria(c){
 }
 // Procura primeiro nas composições próprias (código COMP-…) e depois no SINAPI (códigos numéricos).
 // Devolve os dados do serviço, null se o código não existe, ou lança erro com a mensagem para a linha.
-async function buscarServicoPorCodigo(codigo){
+async function buscarServicoPorCodigo(codigo,mes){
   const propria=(window.Composicoes?window.Composicoes.carregar():[])
     .find(c=>(c.base==='propria'||!c.base)&&String(c.codigo||'').toLowerCase()===codigo.toLowerCase());
   if(propria){
@@ -749,12 +754,13 @@ async function buscarServicoPorCodigo(codigo){
   if(!/^\d+$/.test(codigo))return null;
   let resposta,resultado;
   try{
-    resposta=await fetchComTimeout('/api/sinapi/composicao?codigo='+encodeURIComponent(codigo));
+    resposta=await fetchComTimeout(comMes('/api/sinapi/composicao?codigo='+encodeURIComponent(codigo),mes));
     resultado=await resposta.json();
   }catch(e){resposta=null;}
+  if(resposta&&resposta.status===409)throw new Error(`A referência do orçamento (${nomeReferencia(mes)}) não está na base SINAPI. Importe o mês ou altere a referência.`);
   if(!resposta||!resposta.ok)throw new Error('Não foi possível consultar o SINAPI agora. Tente de novo ou use a lupa.');
   if(!resultado||!resultado.encontrado)return null;
-  if(resultado.valor==null)throw new Error(`A composição SINAPI ${codigo} está sem preço na referência de São Paulo.`);
+  if(resultado.valor==null)throw new Error(`A composição SINAPI ${codigo} está sem preço em São Paulo${mes?' em '+nomeReferencia(mes):''}.`);
   return dadosServicoSinapi(resultado);
 }
 // Inclui o serviço no fim da sub etapa (ou direto na etapa) e devolve o serviço criado
@@ -776,10 +782,14 @@ async function buscarCodigoRascunho(){
   const codigo=(campo?campo.value:r.codigo).trim();
   r.codigo=codigo;r.pesquisando=false;
   if(!codigo){r.mensagem='';r.erro=false;renderTudo();focarCodigoRascunho();return;}
+  // código SINAPI usa a referência do orçamento; sem ela definida, pede antes de buscar
+  if(/^\d+$/.test(codigo)&&!exigirReferencia(orcamentoAtivo(),()=>buscarCodigoRascunho())){
+    r.erro=true;r.mensagem='Defina a referência SINAPI do orçamento para incluir serviços SINAPI.';renderTudo();return;
+  }
   r.buscando=true;r.mensagem='';r.erro=false;
   renderTudo();
   let dados=null,falha='';
-  try{dados=await buscarServicoPorCodigo(codigo);}catch(erro){falha=erro.message;}
+  try{dados=await buscarServicoPorCodigo(codigo,referenciaOrcamento(orcamentoAtivo()));}catch(erro){falha=erro.message;}
   r.buscando=false;
   if(r.cancelado)return;
   // Se outra linha nova foi aberta durante a busca, o código digitado ainda entra no lugar desta
@@ -807,12 +817,13 @@ async function buscarCodigoRascunho(){
 // Lupa: abre a pesquisa de serviços para a linha, já com o que foi digitado
 function pesquisarServicoRascunho(){
   const r=rascunhoServico;if(!r||!window.PesquisaServico)return;
+  if(!exigirReferencia(orcamentoAtivo(),()=>pesquisarServicoRascunho()))return;
   const campo=document.getElementById('codigoNovoServico');
   const texto=(campo?campo.value:r.codigo).trim();
   r.codigo=texto;
   // a janela tira o foco do campo: essa saída não deve buscar o código pela metade
   r.pesquisando=true;
-  window.PesquisaServico.abrir({texto,aoEscolher:(escolha)=>incluirServicoEscolhido(r,escolha)});
+  window.PesquisaServico.abrir({texto,mes:referenciaOrcamento(orcamentoAtivo()),aoEscolher:(escolha)=>incluirServicoEscolhido(r,escolha)});
 }
 // Serviço escolhido na pesquisa entra no lugar da linha em rascunho
 function incluirServicoEscolhido(r,escolha){
@@ -841,6 +852,7 @@ function textoBuscaDoServico(sv){
 function mesmaUnidade(a,b){const n=x=>String(x||'').trim().toUpperCase().replace('²','2').replace('³','3');return n(a)===n(b);}
 function editarServico(sv){
   const o=orcamentoAtivo();if(!sv||!o||!window.PesquisaServico)return;
+  if(!exigirReferencia(o,()=>editarServico(sv)))return;
   const orcamentoId=o.id,svid=sv.id;
   const f=fonteServico(sv,mapaComposicoes());
   const chave=sv.catalogoTipo==='sinapi'?'sinapi:'+(sv.codigo||sv.catalogoId):sv.catalogoTipo==='composicao'?'propria:'+sv.catalogoId:'';
@@ -848,6 +860,7 @@ function editarServico(sv){
   window.PesquisaServico.abrir({
     titulo:'Trocar serviço',
     rotuloUsar:'Trocar',
+    mes:referenciaOrcamento(o),
     texto:textoBuscaDoServico(sv),
     atual:{chave,texto:'Atual: '+[f.codigo,f.base,sv.nome,preco].filter(Boolean).join(' · ')},
     aoEscolher:(escolha)=>{
@@ -955,6 +968,7 @@ function renderLista(){
 function renderConteudo(){const o=orcamentoAtivo();const vazio=$('#contentVazio');const orc=$('#contentOrcamento');if(!o){vazio.classList.remove('hidden');orc.classList.add('hidden');return;}vazio.classList.add('hidden');orc.classList.remove('hidden');
 orc.dataset.somenteLeitura=String(!modoEdicao);
 $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
+renderReferenciaOrcamento(o);
 $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s) · '+o.versoes.length+' versão(ões)';
 $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
@@ -963,6 +977,28 @@ $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 menuAberto=null;
 $('#corpoTabela').innerHTML=renderTabela(o);
 atualizarBotoesNivel(o);}
+
+/* ---------- referência SINAPI da versão (mês da base própria) ---------- */
+// Escolhida pelo usuário e gravada com a versão; só muda em "Alterar referência" (js/referencia-orcamento.js)
+function referenciaOrcamento(o){return o?versaoAtiva(o).referencia||null:null;}
+function nomeReferencia(mes){return window.ReferenciasSinapi?window.ReferenciasSinapi.nome(mes):mes;}
+function renderReferenciaOrcamento(o){
+  const el=$('#orcamentoReferencia');if(!el)return;
+  const ref=referenciaOrcamento(o);
+  const baseVazia=!(window.ReferenciasSinapi&&window.ReferenciasSinapi.lista().length);
+  el.innerHTML=(ref
+    ?`Referência SINAPI: <strong>${esc(nomeReferencia(ref))}</strong> · SP · desonerado`
+    :(baseVazia?'Referência SINAPI: a mais recente da API pública (base própria ainda não importada)':'Referência SINAPI: <strong>não definida</strong>'))+
+    (modoEdicao&&!baseVazia?` <button type="button" class="btn-link" data-acao-referencia>${ref?'Alterar':'Definir'}</button>`:'');
+}
+// Serviço SINAPI precisa da referência definida (com base própria importada). true: pode seguir;
+// false: abriu a escolha da referência e, definida, aoDefinir retoma o que a pessoa estava fazendo.
+function exigirReferencia(o,aoDefinir){
+  if(referenciaOrcamento(o)||!(window.ReferenciasSinapi&&window.ReferenciasSinapi.lista().length))return true;
+  if(window.ReferenciaOrcamento)window.ReferenciaOrcamento.abrir({motivo:'Defina a referência SINAPI do orçamento antes de incluir serviços.',aoDefinir});
+  return false;
+}
+function comMes(url,mes){return mes?url+(url.includes('?')?'&':'?')+'mes='+encodeURIComponent(mes):url;}
 
 /* ---------- código e base do serviço ---------- */
 function mapaComposicoes(){return new Map((window.Composicoes?window.Composicoes.carregar():[]).map(c=>[c.id,c]));}
@@ -975,10 +1011,13 @@ function fonteServico(sv,composicoes){
   }
   return{codigo:sv.codigo||'',base:'',classe:'',referencia:''};
 }
-function celulasFonte(sv,composicoes){
+function celulasFonte(sv,composicoes,refVersao){
   const f=fonteServico(sv,composicoes);
+  // preço SINAPI de outro mês (ou sem mês registrado) que a referência da versão
+  const outraRef=refVersao&&sv.catalogoTipo==='sinapi'&&sv.referencia!==refVersao;
+  const marcaRef=outraRef?`<span class="tag-ref" title="${sv.referencia?'Preço de '+esc(nomeReferencia(sv.referencia)):'Preço sem referência registrada'}, diferente da referência do orçamento (${esc(nomeReferencia(refVersao))}). Use Alterar referência para atualizar.">${sv.referencia?esc(window.ReferenciasSinapi?window.ReferenciasSinapi.abreviado(sv.referencia):sv.referencia):'s/ ref.'}</span>`:'';
   const titulo=f.referencia?` title="Composição própria baseada no SINAPI ${esc(f.referencia)}"`:'';
-  return `<td class="col-cod-item"${titulo}>${f.codigo?esc(f.codigo):'—'}</td><td class="col-base">${f.base?`<span class="tag-base tag-base-${f.classe}">${f.base}</span>`:'—'}</td>`;
+  return `<td class="col-cod-item"${titulo}>${f.codigo?esc(f.codigo):'—'}</td><td class="col-base">${f.base?`<span class="tag-base tag-base-${f.classe}">${f.base}</span>`:'—'}${marcaRef}</td>`;
 }
 
 /* ---------- menu de ações da linha (botão ⋯) ---------- */
@@ -1068,7 +1107,7 @@ function renderTabela(o){
         const memoAberta=estaAberto('sv-'+sv.id);
         html+=`<tr class="linha-servico linha-direta">
           <td class="col-codigo codigo">${cSv}</td>
-          ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
+          ${celulasFonte(sv,composicoes,referenciaOrcamento(o))}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
           <td class="col-un">${esc(sv.unidadeMedida)}</td>
           <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
           <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -1097,7 +1136,7 @@ function renderTabela(o){
           const memoAberta=estaAberto('sv-'+sv.id);
           html+=`<tr class="linha-servico">
             <td class="col-codigo codigo">${cSv}</td>
-            ${celulasFonte(sv,composicoes)}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
+            ${celulasFonte(sv,composicoes,referenciaOrcamento(o))}<td><strong>${esc(primeiraMaiuscula(sv.nome))}</strong>${temMemo?`<button type="button" class="tag-memo" data-acao="toggle" data-key="sv-${sv.id}" aria-expanded="${memoAberta}" title="${memoAberta?'Ocultar':'Mostrar'} memória de cálculo">M.C.</button>`:''}</td>
             <td class="col-un">${esc(sv.unidadeMedida)}</td>
             <td class="col-num"><input class="qtd-servico" id="qtdsv_${sv.id}" data-svid="${sv.id}" aria-label="Quantidade de ${esc(sv.nome)}" inputmode="decimal" value="${esc(fmtNum.format(temMemo?qtd:(sv.qtdManual??0)))}" ${temMemo||!modoEdicao?'readonly':''} ${temMemo?'title="Quantidade calculada pela memória"':'title="Quantidade manual"'} /></td>
             <td class="col-num">${sv.valorUnitario==null?'—':fmtBRL.format(num(sv.valorUnitario))}</td>
@@ -1314,7 +1353,7 @@ $('#btnRenomear').addEventListener('click',renomearOrcamento);
 $('#btnAddUnidade').addEventListener('click',addUnidade);
 $('#btnDuplicar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o)duplicarOrcamento(o.id);});
 $('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)return;renderVersoes(o);$('#comparacaoVersoes').innerHTML='';$('#modalVersoes').showModal();});
-$('#btnGerarVersao').addEventListener('click',gerarVersao);
+$('#btnGerarVersao').addEventListener('click',()=>gerarVersao());
 $('#btnCompararVersoes').addEventListener('click',compararVersoes);
 $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
 $('#btnExportarRelatorios').addEventListener('click',()=>{const o=orcamentoAtivo();if(o&&window.Relatorios)window.Relatorios.abrir(o.id);});
@@ -1412,13 +1451,16 @@ async function carregarDoServidor(){
     atualizarStatusSalvamento();
   }
 }
+// meses da base SINAPI: a linha de referência do orçamento e as conferências dependem deles
+function carregarReferenciasSinapi(){if(window.ReferenciasSinapi)window.ReferenciasSinapi.carregar().then(()=>renderTudo());}
 document.addEventListener('app:viewchange', function (ev) {
-  if (ev.detail && ev.detail.view === 'orcamento') carregarDoServidor();
+  if (ev.detail && ev.detail.view === 'orcamento') { carregarDoServidor(); carregarReferenciasSinapi(); }
 });
 document.addEventListener('catalogos:loaded', function () {
   renderTudo();
 });
 carregarDoServidor();
+carregarReferenciasSinapi();
 window.state = state;
 
 // Display last update timestamp from Cloudflare source

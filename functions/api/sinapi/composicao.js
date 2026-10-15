@@ -2,7 +2,7 @@
 // ou, enquanto não houver mês importado, da API pública SINPRES.
 
 import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
-import { referenciaAtual, composicaoDaBase } from '../../_lib/sinapi-base.js';
+import { escolherReferencia, respostaReferenciaIndisponivel, composicaoDaBase } from '../../_lib/sinapi-base.js';
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -11,7 +11,9 @@ export async function onRequestGet({ request, env }) {
   if (!codigo) {
     return Response.json({ encontrado: false });
   }
-  const ref = await referenciaAtual(env);
+  const mes = url.searchParams.get('mes') || '';
+  const { ref, erro } = await escolherReferencia(env, mes);
+  if (erro) return respostaReferenciaIndisponivel(mes, erro);
   if (ref) return Response.json(/^\d+$/.test(codigo) ? await composicaoDaBase(env, ref, codigo) : { encontrado: false });
 
   const params = new URLSearchParams({

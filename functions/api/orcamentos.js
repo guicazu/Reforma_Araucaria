@@ -25,6 +25,12 @@ function versaoMaisRecente(o) {
   return o.versoes.reduce((a, b) => ((Number(b.numero) || 0) >= (Number(a.numero) || 0) ? b : a));
 }
 
+// Mês da base SINAPI escolhido para a versão (AAAA-MM); vazio quando ainda não foi definido
+function referenciaDe(versao) {
+  const mes = versao && versao.referencia;
+  return typeof mes === 'string' && /^\d{4}-\d{2}$/.test(mes) ? mes : null;
+}
+
 function unidadesDe(versao, o) {
   if (versao && Array.isArray(versao.unidades)) return versao.unidades;
   if (o && Array.isArray(o.unidades)) return o.unidades;
@@ -70,6 +76,7 @@ export async function onRequestGet({ env }) {
       numero: v.versaoNumero,
       revisao: v.revisao || 0,
       rotulo: v.rotulo,
+      referencia: v.referencia || null,
       criadoEm: v.criadoEm,
       atualizadoEm: v.atualizadoEm,
       unidades: unidades
@@ -128,12 +135,13 @@ export async function onRequestPost({ request, env }) {
     const conteudo = JSON.stringify(unidadesDe(versao, o));
 
     await env.DB.prepare(
-      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm, referencia)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          rotulo = excluded.rotulo,
          conteudo = excluded.conteudo,
-         atualizadoEm = excluded.atualizadoEm`
+         atualizadoEm = excluded.atualizadoEm,
+         referencia = excluded.referencia`
     ).bind(
       versaoId,
       o.id,
@@ -144,7 +152,8 @@ export async function onRequestPost({ request, env }) {
       o.nome || '',
       o.criadoEm || agora,
       conteudo,
-      agora
+      agora,
+      referenciaDe(versao)
     ).run();
 
     return Response.json({ ok: true, versaoId, versaoNumero, revisao: 0, atualizadoEm: agora });
@@ -164,8 +173,8 @@ export async function onRequestPost({ request, env }) {
       : [{ numero: 1, rotulo: 'Versão 1', unidades: unidadesDe(null, o) }];
 
     const stmt = env.DB.prepare(
-      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm, referencia)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO NOTHING`
     );
     await env.DB.batch(versoes.map((v, idx) => {
@@ -180,7 +189,8 @@ export async function onRequestPost({ request, env }) {
         o.nome || '',
         v.criadoEm || o.criadoEm || agora,
         JSON.stringify(unidadesDe(v, null)),
-        agora
+        agora,
+        referenciaDe(v)
       );
     }));
 
@@ -210,11 +220,12 @@ export async function onRequestPost({ request, env }) {
   const o = orcamentos.find(x => x.id === editandoId);
   const versao = versaoMaisRecente(o);
   const conteudo = JSON.stringify(unidadesDe(versao, o));
+  const referencia = referenciaDe(versao);
 
   // Salvar NÃO cria uma versão nova — atualiza a linha da versão ativa e soma 1 na revisão.
   // Busca pela versão que o cliente está editando; sem número, usa a maior gravada.
   const numeroCliente = versao ? Number(versao.numero) : NaN;
-  const colunas = 'id, versaoNumero, revisao, conteudo, nome, codigo, atualizadoEm';
+  const colunas = 'id, versaoNumero, revisao, conteudo, nome, codigo, atualizadoEm, referencia';
   const linhaAtual = Number.isInteger(numeroCliente) && numeroCliente > 0
     ? await env.DB.prepare(
         `SELECT ${colunas} FROM orcamentos_versoes WHERE orcamentoId = ? AND versaoNumero = ?`
@@ -230,8 +241,8 @@ export async function onRequestPost({ request, env }) {
     // A versão existe só no navegador (ex.: falhou a gravação ao gerá-la): cria a linha agora
     const versaoId = editandoId + '-v' + numeroCliente;
     await env.DB.prepare(
-      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO orcamentos_versoes (id, orcamentoId, revisao, versaoNumero, rotulo, codigo, nome, criadoEm, conteudo, atualizadoEm, referencia)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       versaoId,
       editandoId,
@@ -242,13 +253,15 @@ export async function onRequestPost({ request, env }) {
       o.nome || '',
       versao.criadoEm || o.criadoEm || agora,
       conteudo,
-      agora
+      agora,
+      referencia
     ).run();
     return Response.json({ ok: true, versaoId, versaoNumero: numeroCliente, revisao: 1, atualizadoEm: agora });
   }
 
   // Nada mudou desde a última gravação: não gera nova revisão
   if (linhaAtual.conteudo === conteudo &&
+      (linhaAtual.referencia || null) === referencia &&
       (linhaAtual.nome || '') === (o.nome || '') &&
       (linhaAtual.codigo || '') === (o.codigo || '')) {
     return Response.json({
@@ -267,9 +280,9 @@ export async function onRequestPost({ request, env }) {
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE orcamentos_versoes
-         SET revisao = ?, conteudo = ?, atualizadoEm = ?
+         SET revisao = ?, conteudo = ?, atualizadoEm = ?, referencia = ?
        WHERE id = ?`
-    ).bind(novaRevisao, conteudo, agora, linhaAtual.id),
+    ).bind(novaRevisao, conteudo, agora, referencia, linhaAtual.id),
     env.DB.prepare(
       'UPDATE orcamentos_versoes SET nome = ?, codigo = ? WHERE orcamentoId = ?'
     ).bind(o.nome || '', o.codigo || '', editandoId)

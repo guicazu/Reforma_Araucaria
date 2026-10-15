@@ -471,7 +471,26 @@
     const campo = document.getElementById(composicao ? 'buscaCatalogoComposicao' : 'buscaCatalogoInsumo');
     const status = document.getElementById(composicao ? 'statusBuscaCatalogoComposicao' : 'statusBuscaCatalogoInsumo');
     const resultados = document.getElementById(composicao ? 'resultadosCatalogoComposicao' : 'resultadosCatalogoInsumo');
+    const seletorRef = document.getElementById(composicao ? 'refCatalogoComposicao' : 'refCatalogoInsumo');
     if (!form || !campo || !status || !resultados) return;
+
+    // Mês da base SINAPI escolhido para buscar, ver e copiar (vazio: base não importada, usa a API)
+    const referencias = window.ReferenciasSinapi;
+    function mesEscolhido() { return seletorRef && !seletorRef.hidden ? seletorRef.value : ''; }
+    function comMes(url) { const mes = mesEscolhido(); return mes ? url + (url.includes('?') ? '&' : '?') + 'mes=' + encodeURIComponent(mes) : url; }
+    function atualizarReferencias() {
+      if (referencias) referencias.carregar().then(function () { referencias.preencherSelect(seletorRef); });
+    }
+    atualizarReferencias();
+    document.addEventListener('app:viewchange', function (ev) {
+      if (ev.detail && ev.detail.view === (composicao ? 'composicoes' : 'insumos')) atualizarReferencias();
+    });
+    if (seletorRef) seletorRef.addEventListener('change', function () {
+      // troca de mês: os resultados na tela eram do mês anterior
+      resultados.replaceChildren();
+      itensPorCodigo.clear();
+      mensagemStatus(campo.value.trim() ? 'Referência alterada. Clique em Buscar para ver os preços de ' + referencias.nome(seletorRef.value) + '.' : '');
+    });
 
     let requisicao = 0;
     const itensPorCodigo = new Map();
@@ -491,6 +510,7 @@
       if (error.message === 'sinapi_composicao_invalida') return 'A SINAPI retornou componentes incompletos; nada foi copiado. Tente novamente mais tarde.';
       if (error.message === 'somente_visualizacao') return 'Sua conta tem acesso somente para visualizar; não pode copiar itens para a base própria.';
       if (error.message === 'nao_autenticado') return 'Entre novamente para copiar itens para a base própria.';
+      if (error.message === 'referencia_indisponivel') return 'Este mês não está mais na base SINAPI. Escolha outra referência.';
       return error.message || 'Não foi possível consultar a SINAPI.';
     }
     async function pedirJson(url, opcoes) {
@@ -530,8 +550,8 @@
           : '';
         return '<article class="sinapi-catalogo-item" data-codigo="' + escaparHtml(codigo) + '">' +
           '<div class="sinapi-catalogo-item-info"><strong>' + escaparHtml(codigo) + '</strong>' +
-          '<h3>' + escaparHtml(item.descricao) + '</h3><span>' + escaparHtml(unidadeSinapi(item.unidade)) +
-          (item.referencia ? ' · Referência ' + escaparHtml(item.referencia) : '') + '</span></div>' +
+          '<h3>' + escaparHtml(window.primeiraMaiuscula(item.descricao)) + '</h3><span>' + escaparHtml(unidadeSinapi(item.unidade)) +
+          (item.referencia ? ' · Referência ' + escaparHtml(referencias ? referencias.nome(item.referencia) : item.referencia) : '') + '</span></div>' +
           '<strong class="sinapi-catalogo-preco">R$ ' + formatarValor(item.valor) + '</strong>' +
           '<div class="sinapi-catalogo-item-acoes">' +
           '<button type="button" class="btn btn-ghost btn-sm" data-sinapi-detalhes="' + escaparHtml(codigo) + '">' +
@@ -552,9 +572,9 @@
       }
       mensagemStatus('Buscando na SINAPI…');
       resultados.innerHTML = '<p class="dica">Consultando a base SINAPI de São Paulo…</p>';
-      const url = composicao
+      const url = comMes(composicao
         ? (/^\d+$/.test(termo) ? '/api/sinapi/composicao?codigo=' + encodeURIComponent(termo) : '/api/sinapi/buscar?q=' + encodeURIComponent(termo))
-        : '/api/sinapi/insumos?q=' + encodeURIComponent(termo);
+        : '/api/sinapi/insumos?q=' + encodeURIComponent(termo));
       try {
         const dados = await pedirJson(url);
         if (atual !== requisicao) return;
@@ -595,15 +615,16 @@
         botaoDetalhes.textContent = 'Ocultar detalhes';
         area.textContent = 'Carregando detalhes…';
         try {
-          const dados = await pedirJson(composicao
+          const dados = await pedirJson(comMes(composicao
             ? '/api/sinapi/composicao?codigo=' + encodeURIComponent(codigo)
-            : '/api/sinapi/insumo?codigo=' + encodeURIComponent(codigo));
+            : '/api/sinapi/insumo?codigo=' + encodeURIComponent(codigo)));
           if (!dados.encontrado) throw new Error('sinapi_nao_encontrado');
           if (composicao) {
             area.innerHTML = renderizarDetalhesComposicao(dados.itens);
           } else {
             area.innerHTML = '<dl class="sinapi-item-detalhes">' +
-              (dados.referencia ? '<div><dt>Referência</dt><dd>' + escaparHtml(dados.referencia) + '</dd></div>' : '') +
+              (dados.referencia ? '<div><dt>Referência</dt><dd>' + escaparHtml(referencias ? referencias.nome(dados.referencia) : dados.referencia) + '</dd></div>' : '') +
+              (dados.classificacao ? '<div><dt>Classificação</dt><dd>' + escaparHtml(dados.classificacao) + '</dd></div>' : '') +
               (dados.normas ? '<div><dt>Normas técnicas</dt><dd>' + escaparHtml(dados.normas) + '</dd></div>' : '') +
               (dados.detalhes ? '<div><dt>Informações técnicas</dt><dd>' + escaparHtml(dados.detalhes) + '</dd></div>' : '') +
               '</dl>';
@@ -623,7 +644,7 @@
         const dados = await pedirJson('/api/catalogos', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({importarSinapi: {tipo: composicao ? 'composicao' : 'insumo', codigo}})
+          body: JSON.stringify({importarSinapi: {tipo: composicao ? 'composicao' : 'insumo', codigo, mes: mesEscolhido()}})
         });
         await carregarCatalogos();
         renderComposicoes();

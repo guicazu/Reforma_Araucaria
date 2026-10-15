@@ -322,6 +322,30 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 #sinapiImportStatus{min-height:18px;margin:10px 0 0}
 .sinapi-tabela-referencias td small{display:block;font-size:11px;color:var(--fraco)}
 .sinapi-tabela-referencias th.col-num,.sinapi-tabela-referencias td.col-num{text-align:right}
+/* referência SINAPI do orçamento */
+.orcamento-referencia{margin:2px 0 0;font-size:12px;color:var(--suave)}
+.orcamento-referencia strong{font-weight:500;color:var(--tinta)}
+.btn-link{padding:0;border:0;background:none;color:var(--tinta);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.btn-link:hover{color:var(--texto)}
+.tag-ref{display:inline-block;margin-left:4px;padding:0 4px;border:1px solid #f0c38e;border-radius:4px;background:#fff8ef;color:#9a5b13;font-size:10px;line-height:1.5;vertical-align:1px;cursor:help}
+.modal-referencia{width:min(680px,94vw)}
+.referencia-ajuda{margin:-4px 0 14px;font-size:12px;line-height:1.5;color:var(--suave)}
+.referencia-previa:not(:empty){margin-top:14px}
+.referencia-resumo{margin:0 0 6px;font-size:12.5px;color:var(--texto)}
+.referencia-resumo strong{font-weight:600;color:var(--tinta)}
+.referencia-aviso{margin:0 0 8px;font-size:12px;color:#9a5b13}
+.referencia-tabela-wrap{max-height:300px;overflow:auto;border:1px solid var(--borda);border-radius:6px}
+.referencia-tabela{min-width:0;font-size:12px;table-layout:auto}
+.referencia-tabela td:nth-child(2){min-width:260px}
+.referencia-tabela th{position:sticky;top:0;background:var(--superficie)}
+.referencia-tabela td small{display:block;font-size:11px;color:#9a5b13}
+.referencia-tabela tr.mantido td{color:var(--suave)}
+.referencia-tabela th.col-num,.referencia-tabela td.col-num{text-align:right;white-space:nowrap}
+.modal .referencia-previa + .exportar-check{margin-top:12px}
+.sinapi-catalogo-ref{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.sinapi-catalogo-ref label{margin:0;font-size:12px;color:var(--suave)}
+.sinapi-ref-select{width:auto;height:28px;padding:0 6px;font-size:12px}
+.sinapi-catalogo-ref select[hidden]{display:none}
 .sinapi-filtros{border-color:var(--borda)}
 .sinapi-filtros summary{color:var(--suave);font-weight:500}
 

@@ -183,6 +183,7 @@
         <button id="btnVoltarLista" class="btn btn-ghost btn-sm" style="margin-bottom:10px"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar para a lista</button>
         <h2 id="orcamentoNome"></h2>
         <p id="orcamentoMeta"></p>
+        <p id="orcamentoReferencia" class="orcamento-referencia"></p>
       </div>
       <div class="orcamento-head-actions">
         <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual"><svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg>Duplicar</button>
@@ -586,7 +587,7 @@
           <input id="buscaCatalogoComposicao" type="search" autocomplete="off" placeholder="Ex.: 87280 ou alvenaria de blocos" />
           <button type="submit" class="btn btn-primary">Buscar</button>
         </div>
-        <p>São Paulo · Desonerado</p>
+        <p class="sinapi-catalogo-ref"><label for="refCatalogoComposicao">Referência</label><select id="refCatalogoComposicao" class="sinapi-ref-select" hidden></select><span>São Paulo · desonerado</span></p>
       </form>
       <p id="statusBuscaCatalogoComposicao" class="sinapi-status" role="status" aria-live="polite"></p>
       <div id="resultadosCatalogoComposicao" class="sinapi-catalogo-resultados"></div>
@@ -654,7 +655,7 @@
           <input id="buscaCatalogoInsumo" type="search" autocomplete="off" placeholder="Ex.: 1379 ou cimento Portland" />
           <button type="submit" class="btn btn-primary">Buscar</button>
         </div>
-        <p>São Paulo · Desonerado</p>
+        <p class="sinapi-catalogo-ref"><label for="refCatalogoInsumo">Referência</label><select id="refCatalogoInsumo" class="sinapi-ref-select" hidden></select><span>São Paulo · desonerado</span></p>
       </form>
       <p id="statusBuscaCatalogoInsumo" class="sinapi-status" role="status" aria-live="polite"></p>
       <div id="resultadosCatalogoInsumo" class="sinapi-catalogo-resultados"></div>
@@ -769,11 +770,24 @@
   </div>
 </dialog>
 
+<dialog id="modalReferencia" class="modal modal-referencia" aria-labelledby="referenciaTitulo">
+  <h3 id="referenciaTitulo">Referência SINAPI do orçamento</h3>
+  <p class="referencia-ajuda" id="referenciaAjuda"></p>
+  <label class="exportar-campo"><span class="exportar-rotulo">Mês de referência</span><select id="referenciaMes"></select></label>
+  <div id="referenciaPrevia" class="referencia-previa"></div>
+  <label class="exportar-check" id="referenciaVersaoLinha" hidden><input type="checkbox" id="referenciaNovaVersao" checked /> Guardar a versão atual (com os preços de hoje) e aplicar numa versão nova</label>
+  <p id="referenciaStatus" class="sinapi-status" role="status" aria-live="polite"></p>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-ghost" id="btnCancelarReferencia">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="btnAplicarReferencia">Aplicar</button>
+  </div>
+</dialog>
+
 <dialog id="modalPesquisaServico" class="modal modal-lg" aria-labelledby="pesquisaServicoTitulo">
   <div class="sinapi-modal-heading">
     <div>
       <h3 id="pesquisaServicoTitulo">Pesquisar serviço</h3>
-      <p>SINAPI: preços de São Paulo · Desonerado</p>
+      <p id="pesquisaFonte">SINAPI · São Paulo · desonerado</p>
     </div>
   </div>
   <p id="pesquisaAtual" class="pesquisa-atual" hidden></p>
@@ -809,6 +823,7 @@
 </dialog>
 
 <script src="/js/texto.js"></script>
+<script src="/js/referencias-sinapi.js"></script>
 <script src="/js/icones.js"></script>
   <script src="js/app.js"></script>
 <script src="/js/auth-ui.js"></script>
@@ -819,6 +834,7 @@
 <script src="/js/sinapi-ui.js"></script>
 <script src="/js/pesquisa-servico.js"></script>
 <script src="/js/relatorios.js"></script>
+<script src="/js/referencia-orcamento.js"></script>
 <script src="/js/sinapi-base.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>

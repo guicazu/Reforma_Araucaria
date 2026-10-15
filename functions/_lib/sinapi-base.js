@@ -22,6 +22,25 @@ export async function referenciaAtual(env) {
   }
 }
 
+// Mês pedido pela tela (o da referência do orçamento ou o escolhido na busca). Mês pedido que não
+// está na base é erro: nunca troca por outro mês sem o usuário saber. Sem mês, usa o mais recente.
+export async function escolherReferencia(env, mes) {
+  if (!mes) return { ref: await referenciaAtual(env) };
+  if (!/^\d{4}-\d{2}$/.test(mes)) return { erro: 'referencia_invalida' };
+  try {
+    const linha = await env.DB.prepare(
+      "SELECT mes FROM sinapi_referencias WHERE mes = ?1 AND uf = ?2 AND regime = ?3 AND status = 'ok'"
+    ).bind(mes, SINAPI_UF, SINAPI_REGIME).first();
+    if (linha) return { ref: { mes, uf: SINAPI_UF, regime: SINAPI_REGIME } };
+  } catch (erro) { /* tabelas ainda não criadas */ }
+  // base vazia: o mês veio da API pública e a rota segue por ela
+  return (await referenciaAtual(env)) ? { erro: 'referencia_indisponivel' } : { ref: null };
+}
+
+export function respostaReferenciaIndisponivel(mes, erro) {
+  return Response.json({ erro: erro || 'referencia_indisponivel', mes }, { status: 409 });
+}
+
 function lista(codigos) { return JSON.stringify(Array.from(new Set(codigos)).map(Number)); }
 
 async function infoComposicoes(env, ref, codigos) {
@@ -61,6 +80,48 @@ async function estruturas(env, ref, codigos) {
   ).bind(ref.mes, ref.uf, ref.regime, lista(codigos)).all();
   for (const r of results) mapa.set(r.codigo, JSON.parse(r.itens));
   return mapa;
+}
+
+/* ---------- preços de várias composições num mês (atualizar a referência do orçamento) ---------- */
+export async function precosComposicoes(env, ref, codigos) {
+  const info = await infoComposicoes(env, ref, codigos.map(Number).filter((c) => c > 0));
+  return Array.from(info.values(), (c) => ({ codigo: c.codigo, descricao: c.descricao, unidade: c.unidade, custo: c.custo }));
+}
+
+/* ---------- insumos: busca por palavras e detalhe ---------- */
+export async function buscarInsumos(env, ref, palavras, limite) {
+  const termos = palavras.map((p) => p.replace(/["*]/g, '').trim()).filter(Boolean).map((p) => `"${p}"*`);
+  const codigos = palavras.filter((p) => /^\d+$/.test(p)).map(Number);
+  const consulta = (where, valor) => env.DB.prepare(
+    `SELECT s.codigo, s.descricao, s.unidade, s.classificacao, p.preco
+       FROM sinapi_insumos s
+       LEFT JOIN sinapi_insumos_precos p ON p.codigo = s.codigo AND p.mes = ?2 AND p.uf = ?3 AND p.regime = ?4
+      WHERE ${where} LIMIT ?5`
+  ).bind(valor, ref.mes, ref.uf, ref.regime, limite).all();
+  const porCodigo = codigos.length ? (await consulta('s.codigo IN (SELECT value FROM json_each(?1))', JSON.stringify(codigos))).results : [];
+  const porPalavra = termos.length
+    ? (await consulta('s.codigo IN (SELECT rowid FROM sinapi_insumos_busca WHERE sinapi_insumos_busca MATCH ?1 ORDER BY rank LIMIT 400)', termos.join(' AND '))).results
+    : [];
+  const vistos = new Set();
+  return porCodigo.concat(porPalavra).filter((r) => !vistos.has(r.codigo) && vistos.add(r.codigo));
+}
+
+export async function insumoDaBase(env, ref, codigo) {
+  const x = (await infoInsumos(env, ref, [Number(codigo)])).get(Number(codigo));
+  if (!x) return { encontrado: false };
+  return { encontrado: true, codigo: String(x.codigo), descricao: x.descricao, unidade: x.unidade, valor: x.preco, classificacao: x.classificacao, referencia: ref.mes };
+}
+
+// Composição no formato da SINPRES, para a cópia ao catálogo próprio (functions/api/catalogos.js)
+export async function composicaoFormatoSinpres(env, ref, codigo) {
+  const c = await composicaoDaBase(env, ref, codigo);
+  if (!c.encontrado) return null;
+  const centavos = (v) => (v == null ? null : Math.round(v * 100));
+  return {
+    code: c.codigo, description: c.descricao, unit: c.unidade, baseUnitCost: centavos(c.valor), referenceMonth: ref.mes,
+    items: c.itens.map((i) => ({ itemType: i.tipo, code: i.codigo, description: i.descricao, unit: i.unidade,
+      coefficient: String(i.coeficiente), unitPrice: centavos(i.valorUnitario) }))
+  };
 }
 
 /* ---------- busca por palavras (FTS5, sem acento, prefixo) ---------- */

@@ -21,6 +21,8 @@
   var sinapi = new Map(); // código SINAPI -> composição aberta até os recursos, ou { erro }
   var referenciaSinapi = '';
   var fonteSinapi = '';     // 'base' (arquivo oficial importado) ou 'sinpres' (API pública)
+  var mesRelatorio = '';    // referência SINAPI da versão exportada; vazio = a mais recente
+  function chaveSinapi(codigo) { return (mesRelatorio || 'recente') + '|' + codigo; }
   var modal, el = {};
   var orcamentoId = null;
   var exportando = false;
@@ -86,7 +88,7 @@
 
   async function carregarSinapi(servicos, avisar) {
     var faltam = Array.from(new Set(servicos.filter(function (sv) { return sv.catalogoTipo === 'sinapi'; })
-      .map(codigoSinapi).filter(function (c) { return /^\d+$/.test(c) && (!sinapi.has(c) || sinapi.get(c).erro); })));
+      .map(codigoSinapi).filter(function (c) { return /^\d+$/.test(c) && (!sinapi.has(chaveSinapi(c)) || sinapi.get(chaveSinapi(c)).erro); })));
     var total = faltam.length;
     // a SINPRES aceita 100 consultas por minuto: no limite, espera o tempo que ela pede e tenta de novo
     for (var tentativa = 0; tentativa < 3 && faltam.length; tentativa++) {
@@ -95,8 +97,15 @@
         var lote = faltam.slice(i, i + LOTE_SINAPI);
         avisar('Abrindo as composições SINAPI… ' + (total - faltam.length + i) + ' de ' + total);
         try {
-          var resposta = await fetch('/api/sinapi/decomposicao?codigos=' + lote.join(',') + (referenciaSinapi ? '&mes=' + referenciaSinapi : ''));
+          var mesPedido = mesRelatorio || referenciaSinapi;
+          var resposta = await fetch('/api/sinapi/decomposicao?codigos=' + lote.join(',') + (mesPedido ? '&mes=' + mesPedido : ''));
           var dados = await resposta.json();
+          if (resposta.status === 409) {
+            var semMes = new Error('A referência desta versão (' + (window.ReferenciasSinapi ? window.ReferenciasSinapi.nome(mesPedido) : mesPedido) +
+              ') não está na base SINAPI. Importe o mês em Base SINAPI ou altere a referência do orçamento.');
+            semMes.abortar = true;
+            throw semMes;
+          }
           if (resposta.status === 429) {
             noLimite = noLimite.concat(lote);
             espera = Math.max(espera, dados.espera || 60);
@@ -106,11 +115,12 @@
           if (dados.referencia) referenciaSinapi = dados.referencia;
           fonteSinapi = dados.fonte || 'sinpres';
           dados.composicoes.forEach(function (c) {
-            sinapi.set(String(c.codigo), c);
+            sinapi.set(chaveSinapi(String(c.codigo)), c);
             if (c.erro === 'limite') { noLimite.push(String(c.codigo)); espera = Math.max(espera, c.espera || 60); }
           });
         } catch (e) {
-          lote.forEach(function (c) { sinapi.set(c, { codigo: c, erro: 'falha' }); });
+          if (e.abortar) throw e;
+          lote.forEach(function (c) { sinapi.set(chaveSinapi(c), { codigo: c, erro: 'falha' }); });
         }
       }
       faltam = noLimite;
@@ -163,7 +173,7 @@
   function recursosBase(sv, catalogo) {
     var mapa = new Map();
     if (sv.catalogoTipo === 'sinapi') {
-      var c = sinapi.get(codigoSinapi(sv));
+      var c = sinapi.get(chaveSinapi(codigoSinapi(sv)));
       if (!c || c.erro) return null;
       c.recursos.forEach(function (r) {
         acumular(mapa, { chave: r.chave, codigo: r.codigo, base: 'SINAPI', descricao: r.descricao,
@@ -228,7 +238,8 @@
       meta: [
         ['Orçamento', (o.codigo ? o.codigo + ' — ' : '') + o.nome],
         ['Versão', 'V' + versao.numero + ' · Rev. ' + (versao.revisao || 0)],
-        ['Base de preços', 'SINAPI São Paulo · desonerado' + (referenciaSinapi && relatorio !== 'abcServicos' ? ' · ref. ' + referenciaSinapi : '')],
+        ['Base de preços', 'SINAPI São Paulo · desonerado' + (versao.referencia ? ' · ref. ' + versao.referencia
+          : referenciaSinapi && relatorio !== 'abcServicos' ? ' · ref. ' + referenciaSinapi : '')],
         ['Valores', 'Em reais (R$)']
       ],
       rodape: (o.codigo || o.nome) + ' · ' + NOME_RELATORIO[relatorio] + ' · V' + versao.numero + ' Rev. ' + (versao.revisao || 0),
@@ -728,6 +739,7 @@
     var janela = opcoes.formato === 'pdf' ? abrirJanela() : null;
     try {
       var servicos = todosServicos(versao.unidades || []);
+      mesRelatorio = versao.referencia || '';
       var precisaAbrir = opcoes.relatorio === 'abcInsumos' || (opcoes.relatorio === 'orcamento' && opcoes.separar);
       var decompor = null;
       if (precisaAbrir) {

@@ -127,6 +127,7 @@ async function concluir(env, corpo) {
   await env.DB.batch([
     // a busca por palavras usa as descrições mais recentes
     env.DB.prepare("INSERT INTO sinapi_composicoes_busca(sinapi_composicoes_busca) VALUES ('rebuild')"),
+    env.DB.prepare("INSERT INTO sinapi_insumos_busca(sinapi_insumos_busca) VALUES ('rebuild')"),
     env.DB.prepare("UPDATE sinapi_referencias SET status = 'ok', insumos = ?4, composicoes = ?5, importadoEm = ?6 WHERE mes = ?1 AND uf = ?2 AND regime = ?3")
       .bind(mes, SINAPI_UF, SINAPI_REGIME, c.insumos, c.composicoes, new Date().toISOString())
   ]);

@@ -1,9 +1,16 @@
+// Um insumo SINAPI pelo código: da base própria no mês pedido (ou o mais recente) ou, sem mês
+// importado, da API pública SINPRES (que traz também normas e informações técnicas).
 import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
+import { escolherReferencia, respostaReferenciaIndisponivel, insumoDaBase } from '../../_lib/sinapi-base.js';
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const codigo = (url.searchParams.get('codigo') || '').trim();
   if (!/^\d+$/.test(codigo)) return Response.json({ encontrado: false });
+  const mes = url.searchParams.get('mes') || '';
+  const { ref, erro } = await escolherReferencia(env, mes);
+  if (erro) return respostaReferenciaIndisponivel(mes, erro);
+  if (ref) return Response.json(await insumoDaBase(env, ref, codigo));
 
   const params = new URLSearchParams({
     state: ESTADO_PADRAO,

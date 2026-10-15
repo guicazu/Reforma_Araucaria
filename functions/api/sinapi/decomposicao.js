@@ -12,7 +12,7 @@
 // - demais composições auxiliares (argamassa, concreto...) são abertas até esses recursos.
 
 import { SINAPI_ESTADO, SINAPI_DESONERADO } from '../../_lib/sinapi.js';
-import { referenciaAtual, decomporDaBase } from '../../_lib/sinapi-base.js';
+import { escolherReferencia, respostaReferenciaIndisponivel, decomporDaBase } from '../../_lib/sinapi-base.js';
 
 const BASE = 'https://api.sinpres.com.br/api/v1/sectors/civil-construction/compositions/';
 const MAX_CODIGOS = 15;            // cada código é uma consulta (+ até 4 do mês); o Pages limita subrequisições
@@ -104,8 +104,10 @@ export async function onRequestGet({ request, env }) {
   if (codigos.length > MAX_CODIGOS) {
     return Response.json({ erro: 'codigos_demais', maximo: MAX_CODIGOS }, { status: 400 });
   }
-  const ref = await referenciaAtual(env);
-  if (ref) return Response.json(await decomporDaBase(env, ref, codigos));
+  const mesPedido = url.searchParams.get('mes') || '';
+  const escolha = await escolherReferencia(env, mesPedido);
+  if (escolha.erro) return respostaReferenciaIndisponivel(mesPedido, escolha.erro);
+  if (escolha.ref) return Response.json(await decomporDaBase(env, escolha.ref, codigos));
 
   const params = new URLSearchParams({ state: SINAPI_ESTADO, is_desonerated: SINAPI_DESONERADO });
   let referencia = /^\d{4}-\d{2}$/.test(url.searchParams.get('mes') || '') ? url.searchParams.get('mes') : '';

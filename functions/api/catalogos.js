@@ -1,5 +1,6 @@
 import { lerCookie, validarSessao } from '../_lib/session.js';
 import { SINAPI_PARAMS } from '../_lib/sinapi.js';
+import { escolherReferencia, composicaoFormatoSinpres, insumoDaBase, SINAPI_UF, SINAPI_REGIME } from '../_lib/sinapi-base.js';
 
 const TIPOS = {
   unidades: { tabela: 'unidades_medida', colunas: ['id', 'simbolo', 'nome', 'grupo', 'criadoEm', 'atualizadoEm'] },
@@ -217,6 +218,25 @@ async function importarSinapi(env, corpo) {
     return respostaErro('parametros_invalidos', 400);
   }
 
+  // Mês escolhido na tela (base própria); sem base importada, a SINPRES no mês vigente
+  const { ref, erro: erroReferencia } = await escolherReferencia(env, typeof pedido.mes === 'string' ? pedido.mes : '');
+  if (erroReferencia) return respostaErro(erroReferencia, 409);
+  const origemTexto = (mes) => 'Origem: SINAPI ' + SINAPI_UF + ' ' + (SINAPI_REGIME === 'desonerado' ? 'desonerado' : 'não desonerado') + ' · Referência ' + (mes || 'vigente');
+  const obterComposicao = ref
+    ? async (codigo) => {
+      const c = await composicaoFormatoSinpres(env, ref, codigo);
+      if (!c) throw new Error('sinapi_nao_encontrado');
+      return c;
+    }
+    : (codigo) => buscarSinapi(`compositions/${encodeURIComponent(codigo)}?${new URLSearchParams(SINAPI_PARAMS)}`);
+  const obterInsumo = ref
+    ? async (codigo) => {
+      const i = await insumoDaBase(env, ref, codigo);
+      if (!i.encontrado) throw new Error('sinapi_nao_encontrado');
+      return { code: Number(i.codigo), description: i.descricao, unit: i.unidade, unitPrice: i.valor == null ? null : Math.round(i.valor * 100), referenceMonth: ref.mes };
+    }
+    : (codigo) => buscarSinapi(`items/${encodeURIComponent(codigo)}?${new URLSearchParams(SINAPI_PARAMS)}`);
+
   const tabela = pedido.tipo === 'composicao' ? 'composicoes' : 'insumos';
   const existente = await env.DB.prepare(
     `SELECT id, codigo, codigoReferencia, nome FROM ${tabela} WHERE base = 'propria' AND codigoReferencia = ? COLLATE NOCASE`
@@ -227,9 +247,7 @@ async function importarSinapi(env, corpo) {
 
   try {
     if (pedido.tipo === 'insumo') {
-      const origem = await buscarSinapi(
-        `items/${encodeURIComponent(pedido.codigo)}?${new URLSearchParams(SINAPI_PARAMS)}`
-      );
+      const origem = await obterInsumo(pedido.codigo);
       const agora = new Date().toISOString();
       const { results: existentes } = await env.DB.prepare(
         "SELECT codigo FROM insumos WHERE base = 'propria' AND codigo LIKE ?"
@@ -241,7 +259,7 @@ async function importarSinapi(env, corpo) {
         id: `sinapi-ins-${crypto.randomUUID()}`,
         codigo: codigoCatalogo('INS', existentes),
         nome: origem.description,
-        descricao: [origem.generalInfo, origem.technicalStandards ? `Normas: ${origem.technicalStandards}` : '']
+        descricao: [origemTexto(origem.referenceMonth), origem.generalInfo, origem.technicalStandards ? `Normas: ${origem.technicalStandards}` : '']
           .filter(Boolean).join('\n\n').slice(0, 2000),
         unidade: origem.unit || 'un',
         valorUnitario: typeof origem.unitPrice === 'number' ? origem.unitPrice / 100 : 0,
@@ -263,9 +281,7 @@ async function importarSinapi(env, corpo) {
       const chave = String(codigo);
       if (composicoesSinapi.has(chave)) return;
       if (profundidade > 12 || composicoesSinapi.size >= 500) throw new Error('sinapi_composicao_extensa');
-      const origem = await buscarSinapi(
-        `compositions/${encodeURIComponent(chave)}?${new URLSearchParams(SINAPI_PARAMS)}`
-      );
+      const origem = await obterComposicao(chave);
       const node = { origem, itens: Array.isArray(origem.items) ? origem.items : [] };
       composicoesSinapi.set(chave, node);
       for (const componente of node.itens) {
@@ -305,7 +321,7 @@ async function importarSinapi(env, corpo) {
         id: `sinapi-ins-${crypto.randomUUID()}`,
         codigo: codigoCatalogo('INS', codigosInsumos),
         nome: origem.description,
-        descricao: 'Origem: SINAPI PR · Referência ' + (composicoesSinapi.get(String(pedido.codigo)).origem.referenceMonth || 'vigente'),
+        descricao: origemTexto(composicoesSinapi.get(String(pedido.codigo)).origem.referenceMonth),
         unidade: origem.unit || 'un',
         valorUnitario: typeof origem.unitPrice === 'number' ? origem.unitPrice / 100 : 0,
         base: 'propria',
@@ -329,7 +345,7 @@ async function importarSinapi(env, corpo) {
         id: `sinapi-comp-${crypto.randomUUID()}`,
         codigo: codigoCatalogo('COMP', codigosComposicoes),
         nome: origem.description,
-        descricao: 'Origem: SINAPI PR · Referência ' + (origem.referenceMonth || 'vigente'),
+        descricao: origemTexto(origem.referenceMonth),
         unidade: origem.unit || 'un',
         valorUnitario: typeof origem.baseUnitCost === 'number' ? origem.baseUnitCost / 100 : 0,
         base: 'propria',

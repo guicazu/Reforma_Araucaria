@@ -4,7 +4,7 @@
 // por vírgula) remove as que contêm qualquer um deles. UF e regime: os de functions/_lib/sinapi.js.
 
 import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
-import { referenciaAtual, buscarComposicoes } from '../../_lib/sinapi-base.js';
+import { escolherReferencia, respostaReferenciaIndisponivel, buscarComposicoes } from '../../_lib/sinapi-base.js';
 const LIMITE_SINPRES = 100;       // máximo aceito pela SINPRES por consulta
 const MAX_PALAVRAS_CONSULTA = 6;  // limita quantas consultas uma busca dispara
 const MAX_RESULTADOS = 60;
@@ -59,7 +59,10 @@ export async function onRequestGet({ request, env }) {
     return Response.json({ resultados: [], palavras });
   }
 
-  const ref = await referenciaAtual(env);
+  // mês da referência do orçamento (ou o escolhido na tela); sem mês, o mais recente da base
+  const mes = url.searchParams.get('mes') || '';
+  const { ref, erro } = await escolherReferencia(env, mes);
+  if (erro) return respostaReferenciaIndisponivel(mes, erro);
   let candidatos;
   if (ref) {
     const linhas = await buscarComposicoes(env, ref, palavras, MAX_CANDIDATOS_BASE);

@@ -14,6 +14,8 @@
   var modal, campoPalavras, campoExcluir, statusEl, resultadosEl, tituloEl, atualEl;
   var aoEscolher = null;
   var chaveAtual = '';     // resultado que já está no orçamento (ao editar um serviço)
+  var mesRef = '';         // referência SINAPI do orçamento (AAAA-MM); vazio = a mais recente / API
+  var fonteEl;
   var rotuloUsar = 'Usar';
   var buscaId = 0;
   var timer = null;
@@ -193,12 +195,14 @@
     var sinapi = [];
     try {
       var resposta = await fetch('/api/sinapi/buscar?q=' + encodeURIComponent(campoPalavras.value) +
-        '&excluir=' + encodeURIComponent(campoExcluir.value));
+        '&excluir=' + encodeURIComponent(campoExcluir.value) + (mesRef ? '&mes=' + encodeURIComponent(mesRef) : ''));
       var dados = await resposta.json();
-      if (!resposta.ok) throw new Error('sinapi');
+      if (!resposta.ok) throw new Error(dados.erro || 'sinapi');
       sinapi = (dados.resultados || []).map(function (r) { return itemSinapi(r, palavras); });
     } catch (e) {
-      aviso = 'Não foi possível consultar o SINAPI agora.';
+      aviso = e.message === 'referencia_indisponivel'
+        ? 'A referência do orçamento (' + (window.ReferenciasSinapi ? window.ReferenciasSinapi.nome(mesRef) : mesRef) + ') não está na base SINAPI.'
+        : 'Não foi possível consultar o SINAPI agora.';
     }
     if (id !== buscaId) return; // a pessoa continuou digitando
     concluir(lista.concat(sinapi), palavras, aviso);
@@ -216,16 +220,17 @@
     var mostrar = function (itens) {
       area.innerHTML = window.SinapiUI ? window.SinapiUI.renderizarItens(itens) : '';
     };
-    if (detalhes.has(codigo)) { mostrar(detalhes.get(codigo)); return; }
+    var chave = mesRef + '|' + codigo;
+    if (detalhes.has(chave)) { mostrar(detalhes.get(chave)); return; }
     area.textContent = 'Carregando itens da composição…';
-    fetch('/api/sinapi/composicao?codigo=' + encodeURIComponent(codigo))
+    fetch('/api/sinapi/composicao?codigo=' + encodeURIComponent(codigo) + (mesRef ? '&mes=' + encodeURIComponent(mesRef) : ''))
       .then(function (resposta) {
         return resposta.json().then(function (dados) {
           if (!resposta.ok || !dados.encontrado) throw new Error('sinapi');
           return dados;
         });
       })
-      .then(function (dados) { detalhes.set(codigo, dados.itens || []); mostrar(dados.itens || []); })
+      .then(function (dados) { detalhes.set(chave, dados.itens || []); mostrar(dados.itens || []); })
       .catch(function () { area.textContent = 'Não foi possível carregar os itens desta composição.'; });
   }
   function aoClicarResultado(ev) {
@@ -255,6 +260,7 @@
     resultadosEl = document.getElementById('pesquisaResultados');
     tituloEl = document.getElementById('pesquisaServicoTitulo');
     atualEl = document.getElementById('pesquisaAtual');
+    fonteEl = document.getElementById('pesquisaFonte');
     [campoPalavras, campoExcluir].forEach(function (campo) {
       campo.addEventListener('input', agendar);
       campo.addEventListener('keydown', function (ev) {
@@ -271,13 +277,16 @@
 
   window.PesquisaServico = {
     // opcoesAbertura: { texto: busca inicial, aoEscolher(escolha) -> false se não conseguiu usar ou
-    //   'manter' para continuar na janela, titulo, rotuloUsar, atual: { chave, texto } ao editar }
+    //   'manter' para continuar na janela, titulo, rotuloUsar, atual: { chave, texto } ao editar,
+    //   mes: referência SINAPI do orçamento }
     abrir: function (opcoesAbertura) {
       if (!modal) return false;
       var op = opcoesAbertura || {};
       aoEscolher = op.aoEscolher || null;
       chaveAtual = (op.atual && op.atual.chave) || '';
       rotuloUsar = op.rotuloUsar || 'Usar';
+      mesRef = op.mes || '';
+      fonteEl.textContent = 'SINAPI ' + (mesRef && window.ReferenciasSinapi ? window.ReferenciasSinapi.nome(mesRef) + ' · ' : '') + 'São Paulo · desonerado';
       tituloEl.textContent = op.titulo || 'Pesquisar serviço';
       atualEl.textContent = (op.atual && op.atual.texto) || '';
       atualEl.hidden = !atualEl.textContent;
