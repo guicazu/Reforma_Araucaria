@@ -13,21 +13,27 @@
     'PU', 'PVC', 'QDC', 'QGBT', 'RRT', 'SINAPI', 'SPDA', 'TCPO', 'TV', 'UV', 'XPS'
   ]);
   // grafias técnicas que não são nem tudo maiúsculo nem tudo minúsculo
-  var GRAFIAS = { MPA: 'MPa', KPA: 'kPa', KN: 'kN', KW: 'kW', KWH: 'kWh', KVA: 'kVA', MM: 'mm', CM: 'cm', KG: 'kg' };
-  var NUMERO_E_UNIDADE = /^(\d+(?:[.,]\d+)?)(\p{L}+)$/u;
+  var GRAFIAS = { MPA: 'MPa', KPA: 'kPa', KN: 'kN', KW: 'kW', KWH: 'kWh', KVA: 'kVA', MM: 'mm', CM: 'cm', KG: 'kg',
+    M2: 'm²', M3: 'm³', 'M²': 'm²', 'M³': 'm³' };
+  // unidade colada no número: 25MPA, 10MM, 5M², 80X210CM
+  var UNIDADE_APOS_NUMERO = /(\d)(\p{L}+[²³23]?)$/u;
   var ROMANO = /^(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
   // palavra com os conectores internos de códigos: CA-50, AF_09/2023, semi-cabinada
-  var PALAVRA = /[\p{L}\p{N}_]+(?:[-/.][\p{L}\p{N}_]+)*/gu;
+  var PALAVRA = /[\p{L}\p{N}_²³]+(?:[-/.][\p{L}\p{N}_²³]+)*/gu;
 
   function limpar(texto) {
     return String(texto == null ? '' : texto).replace(/\s+/g, ' ').trim();
   }
 
   function formatarPalavra(palavra, textoTodoMaiusculo) {
-    var medida = palavra.match(NUMERO_E_UNIDADE);
-    if (medida && GRAFIAS[medida[2].toUpperCase()]) return medida[1] + GRAFIAS[medida[2].toUpperCase()];
-    // medidas como 9X19X19 viram 9x19x19; o resto do código fica como está
-    if (/\d/.test(palavra)) return palavra.replace(/(\d)X(?=\d)/g, '$1x');
+    if (GRAFIAS[palavra.toUpperCase()]) return GRAFIAS[palavra.toUpperCase()];
+    if (/\d/.test(palavra)) {
+      // medidas como 9X19X19 viram 9x19x19; o resto do código fica como está
+      return palavra.replace(/(\d)X(?=\d)/g, '$1x').replace(UNIDADE_APOS_NUMERO, function (trecho, digito, unidade) {
+        var grafia = GRAFIAS[unidade.toUpperCase()];
+        return grafia ? digito + grafia : trecho;
+      });
+    }
     var maiuscula = palavra.toLocaleUpperCase('pt-BR');
     if (SIGLAS.has(maiuscula)) return maiuscula;
     if (GRAFIAS[maiuscula]) return GRAFIAS[maiuscula];
