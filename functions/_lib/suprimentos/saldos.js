@@ -5,39 +5,59 @@
 //   aguardando autorização). Frete, desconto e impostos do pedido/nota são rateados pelos itens.
 import { lerJson } from './base.js';
 
-export async function movimentosDaObra(env, orcamentoId) {
+// Os mesmos movimentos de uma obra (orcamentoId) ou de todas (null), com a obra em cada linha
+async function consultarMovimentos(env, orcamentoId) {
+  const obra = orcamentoId || null;
   const [sc, ped, nf, ctr, med] = await env.DB.batch([
     env.DB.prepare(
-      `SELECT id, solicitacaoId, insumoChave, insumoCodigo, descricao, unidade, tipo, quantidade, precoOrcado,
+      `SELECT orcamentoId, id, solicitacaoId, insumoChave, insumoCodigo, descricao, unidade, tipo, quantidade, precoOrcado,
               apropriacoes, status, encerrado
-         FROM supr_solicitacao_itens WHERE orcamentoId = ? AND status IN ('pendente', 'autorizado')`
-    ).bind(orcamentoId),
+         FROM supr_solicitacao_itens WHERE (?1 IS NULL OR orcamentoId = ?1) AND status IN ('pendente', 'autorizado')`
+    ).bind(obra),
     env.DB.prepare(
-      `SELECT pi.id, pi.pedidoId, pi.solicitacaoItemId, pi.insumoChave, pi.insumoCodigo, pi.descricao, pi.unidade, pi.tipo,
+      `SELECT p.orcamentoId, pi.id, pi.pedidoId, pi.solicitacaoItemId, pi.insumoChave, pi.insumoCodigo, pi.descricao, pi.unidade, pi.tipo,
               pi.quantidade, pi.quantidadeEncerrada,
               pi.precoUnitario, pi.valorTotal, pi.apropriacoes, p.status AS pedidoStatus, p.valorItens, p.valorTotal AS pedidoTotal
          FROM supr_pedido_itens pi JOIN supr_pedidos p ON p.id = pi.pedidoId
-        WHERE p.orcamentoId = ? AND p.status NOT IN ('cancelado', 'reprovado')`
-    ).bind(orcamentoId),
+        WHERE (?1 IS NULL OR p.orcamentoId = ?1) AND p.status NOT IN ('cancelado', 'reprovado')`
+    ).bind(obra),
     env.DB.prepare(
-      `SELECT ni.id, ni.pedidoItemId, ni.insumoChave, ni.insumoCodigo, ni.descricao, ni.unidade, ni.tipo,
+      `SELECT n.orcamentoId, ni.id, ni.pedidoItemId, ni.insumoChave, ni.insumoCodigo, ni.descricao, ni.unidade, ni.tipo,
               ni.quantidade, ni.valorTotal, ni.apropriacoes,
               n.valorProdutos, n.valorTotal AS notaTotal
          FROM supr_nota_itens ni JOIN supr_notas n ON n.id = ni.notaId
-        WHERE n.orcamentoId = ? AND n.status = 'lancada'`
-    ).bind(orcamentoId),
+        WHERE (?1 IS NULL OR n.orcamentoId = ?1) AND n.status = 'lancada'`
+    ).bind(obra),
     env.DB.prepare(
-      `SELECT ci.id, ci.contratoId, ci.servicoId, ci.quantidade, ci.valorTotal, c.status AS contratoStatus
+      `SELECT c.orcamentoId, ci.id, ci.contratoId, ci.servicoId, ci.quantidade, ci.valorTotal, c.status AS contratoStatus
          FROM supr_contrato_itens ci JOIN supr_contratos c ON c.id = ci.contratoId
-        WHERE c.orcamentoId = ? AND c.status IN ('pendente', 'autorizado', 'encerrado')`
-    ).bind(orcamentoId),
+        WHERE (?1 IS NULL OR c.orcamentoId = ?1) AND c.status IN ('pendente', 'autorizado', 'encerrado')`
+    ).bind(obra),
     env.DB.prepare(
-      `SELECT mi.contratoItemId, mi.quantidade, mi.valor, m.status
+      `SELECT m.orcamentoId, mi.contratoItemId, mi.quantidade, mi.valor, m.status
          FROM supr_medicao_itens mi JOIN supr_medicoes m ON m.id = mi.medicaoId
-        WHERE m.orcamentoId = ? AND m.status IN ('pendente', 'autorizada')`
-    ).bind(orcamentoId)
+        WHERE (?1 IS NULL OR m.orcamentoId = ?1) AND m.status IN ('pendente', 'autorizada')`
+    ).bind(obra)
   ]);
   return { scItens: sc.results, pedidoItens: ped.results, notaItens: nf.results, contratoItens: ctr.results, medicaoItens: med.results };
+}
+
+export async function movimentosDaObra(env, orcamentoId) {
+  return consultarMovimentos(env, orcamentoId);
+}
+
+// Todas as obras de uma vez (painel de Início): Map orcamentoId -> movimentos
+export async function movimentosPorObra(env) {
+  const todos = await consultarMovimentos(env, null);
+  const porObra = new Map();
+  for (const [lista, linhas] of Object.entries(todos)) {
+    for (const linha of linhas) {
+      let m = porObra.get(linha.orcamentoId);
+      if (!m) { m = { scItens: [], pedidoItens: [], notaItens: [], contratoItens: [], medicaoItens: [] }; porObra.set(linha.orcamentoId, m); }
+      m[lista].push(linha);
+    }
+  }
+  return porObra;
 }
 
 function fracoes(apropriacoes) {

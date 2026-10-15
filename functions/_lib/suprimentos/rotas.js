@@ -13,6 +13,7 @@ import * as ctr from './contratos.js';
 import * as est from './estoque.js';
 import * as fin from './financeiro.js';
 import * as ges from './gestao.js';
+import * as ini from './inicio.js';
 
 // Permissão de cada rota: 'livre' (qualquer usuário aprovado), 'admin', '*' (vê algum módulo de
 // Suprimentos/Financeiro) ou 'modulo:ver' / 'modulo:editar' (Usuários › Editar permissões).
@@ -111,7 +112,9 @@ const ROTAS = [
   ['POST', 'titulos/:id/estornar', fin.estornarPagamento, 'financeiro:editar'],
 
   ['GET', 'autorizacoes', ges.listarAutorizacoes, '*'],
-  ['GET', 'painel', ges.painel, '*']
+  ['GET', 'painel', ges.painel, '*'],
+  // Início: cada parte do painel confere a própria permissão
+  ['GET', 'inicio', ini.inicio, 'livre']
 ].map(([metodo, caminho, funcao, permissao]) => ({ metodo, partes: caminho.split('/'), funcao, permissao }));
 
 const NOMES_MODULOS = Object.fromEntries(MODULOS.map((m) => [m.chave, m.nome]));

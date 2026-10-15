@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/suprimentos.css" />
 <link rel="stylesheet" href="css/minimalista.css" />
+<link rel="stylesheet" href="css/inicio.css" />
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
@@ -174,20 +175,8 @@
     <h2 id="dashSaudacao">Olá</h2>
     <p>Bem-vindo ao painel da Cazú Projetos e Construções.</p>
   </div>
-  <div class="dash-grid">
-    <div class="dash-card dash-card-wide">
-      <h3><svg class="ic" aria-hidden="true"><use href="#i-orcamento"/></svg>Orçamentos</h3>
-      <p class="dash-card-vazio">Acesse <b>Engenharia → Orçamento</b> no menu lateral para começar.</p>
-    </div>
-    <div class="dash-card">
-      <h3><svg class="ic" aria-hidden="true"><use href="#i-avisos"/></svg>Avisos</h3>
-      <p class="dash-card-vazio">Tudo certo! Nenhum aviso pendente no momento.</p>
-    </div>
-    <div class="dash-card">
-      <h3><svg class="ic" aria-hidden="true"><use href="#i-relogio"/></svg>Acessados recentemente</h3>
-      <p class="dash-card-vazio">Em breve.</p>
-    </div>
-  </div>
+  <!-- indicadores e gráficos das obras e dos setores (js/inicio.js) -->
+  <div class="ini" id="inicioPainel"></div>
 </section>
 
 <main class="layout hidden" id="viewOrcamento" data-modo="lista">
@@ -753,6 +742,7 @@
 <script src="/js/suprimentos/acompanhamento.js"></script>
 <script src="/js/suprimentos/cadastros.js"></script>
 <script src="/js/financeiro.js"></script>
+<script src="/js/inicio.js"></script>
 
 
 </body>

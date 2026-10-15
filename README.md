@@ -26,6 +26,25 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
   - Adicionar serviço diretamente sob uma etapa (sub-etapa opcional)
   - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais
 
+### Início (painel de acompanhamento)
+
+A tela de entrada reúne indicadores e gráficos das obras e dos setores, com filtro de período
+(3, 6 ou 12 meses) e de obra numa linha só. Cada seção aparece só para quem pode ver o módulo:
+
+- **Custos das obras** (Acompanhamento): orçado, realizado, comprometido e saldo; medidores por obra
+  (ou por etapa da EAP, com uma obra escolhida) com aviso de estouro; realizado por mês (notas e
+  medições). Clicar numa obra abre o Acompanhamento dela.
+- **Suprimentos**: autorizações pendentes, itens aguardando compra, cotações abertas, entregas
+  atrasadas, comprado no período, economia sobre o preço orçado, entregas no prazo, prazo médio da
+  solicitação ao pedido, compras por mês e maiores fornecedores.
+- **Financeiro** (Contas a pagar): em aberto, vencido, a vencer em 7 dias, pago no mês, a pagar nas
+  próximas 8 semanas e pago por mês.
+- **Engenharia** (Orçamento): orçamentos e valor orçado das versões atuais, base SINAPI, catálogo
+  próprio, maiores serviços (curva ABC), orçado por etapa e lista de orçamentos.
+
+Os números vêm de `GET /api/suprimentos/inicio` (`functions/_lib/suprimentos/inicio.js`) e usam a
+mesma conta do Acompanhamento; cada gráfico tem a tabela equivalente.
+
 ### Suprimentos (no padrão do SIENGE)
 
 Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da versão ativa.
@@ -62,8 +81,9 @@ Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da vers
 ## Estrutura
 
 ```
-css/                      estilos (suprimentos.css: telas de Suprimentos e Contas a pagar)
+css/                      estilos (suprimentos.css: telas de Suprimentos e Contas a pagar; inicio.css: painel de Início)
 js/                       app.js (lógica dos orçamentos e sincronização manual com o servidor)
+js/inicio.js              painel de Início (indicadores e gráficos das obras e dos setores)
 js/suprimentos/           telas de Suprimentos (nucleo.js: API, janelas, navegação, escolha de insumo)
 js/financeiro.js          Contas a pagar
 portal-fornecedor.html    página pública do fornecedor (responder cotação, confirmar pedido)

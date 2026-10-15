@@ -596,6 +596,14 @@
     estado.pendente = { tela, params };
     if (window.ErpNav) window.ErpNav.abrir('suprimentos', null);
   };
+  // Abre uma tela de Suprimentos já com a obra escolhida ('' = todas), como nos atalhos do Início
+  S.abrirNaObra = (tela, obraId) => {
+    estado.obra = obraId || '';
+    gravarObra(estado.obra);
+    const sel = document.getElementById('suprObra');
+    if (sel && estado.carregado) sel.value = estado.obra;
+    S.abrirDocumento(tela, {});
+  };
 
   S.iniciar = async () => {
     if (estado.carregado) return;
