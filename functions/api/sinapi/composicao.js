@@ -1,7 +1,6 @@
 // Busca uma composição SINAPI específica pelo código, via API pública SINPRES.
 
-const ESTADO_PADRAO = 'PR';
-const DESONERADO_PADRAO = 'false';
+import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
 
 export async function onRequestGet({ request }) {
   const url = new URL(request.url);

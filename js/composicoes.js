@@ -485,7 +485,7 @@
     }
     function mensagemErro(error) {
       if (error.message === 'sinapi_indisponivel') return 'O serviço SINAPI está indisponível. Tente novamente em instantes.';
-      if (error.message === 'sinapi_nao_encontrado') return 'O código informado não foi encontrado na base SINAPI do Paraná.';
+      if (error.message === 'sinapi_nao_encontrado') return 'O código informado não foi encontrado na base SINAPI de São Paulo.';
       if (error.message === 'item_duplicado') return 'Este item foi copiado por outro usuário. Atualize sua base para evitar duplicatas.';
       if (error.message === 'sinapi_composicao_extensa') return 'A composição possui níveis ou quantidade de itens além do limite de cópia.';
       if (error.message === 'sinapi_composicao_invalida') return 'A SINAPI retornou componentes incompletos; nada foi copiado. Tente novamente mais tarde.';
@@ -551,7 +551,7 @@
         return;
       }
       mensagemStatus('Buscando na SINAPI…');
-      resultados.innerHTML = '<p class="dica">Consultando a base SINAPI do Paraná…</p>';
+      resultados.innerHTML = '<p class="dica">Consultando a base SINAPI de São Paulo…</p>';
       const url = composicao
         ? (/^\d+$/.test(termo) ? '/api/sinapi/composicao?codigo=' + encodeURIComponent(termo) : '/api/sinapi/buscar?q=' + encodeURIComponent(termo))
         : '/api/sinapi/insumos?q=' + encodeURIComponent(termo);

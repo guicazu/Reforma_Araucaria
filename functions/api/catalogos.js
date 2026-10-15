@@ -1,4 +1,5 @@
 import { lerCookie, validarSessao } from '../_lib/session.js';
+import { SINAPI_PARAMS } from '../_lib/sinapi.js';
 
 const TIPOS = {
   unidades: { tabela: 'unidades_medida', colunas: ['id', 'simbolo', 'nome', 'grupo', 'criadoEm', 'atualizadoEm'] },
@@ -227,7 +228,7 @@ async function importarSinapi(env, corpo) {
   try {
     if (pedido.tipo === 'insumo') {
       const origem = await buscarSinapi(
-        `items/${encodeURIComponent(pedido.codigo)}?state=PR&is_desonerated=false`
+        `items/${encodeURIComponent(pedido.codigo)}?${new URLSearchParams(SINAPI_PARAMS)}`
       );
       const agora = new Date().toISOString();
       const { results: existentes } = await env.DB.prepare(
@@ -263,7 +264,7 @@ async function importarSinapi(env, corpo) {
       if (composicoesSinapi.has(chave)) return;
       if (profundidade > 12 || composicoesSinapi.size >= 500) throw new Error('sinapi_composicao_extensa');
       const origem = await buscarSinapi(
-        `compositions/${encodeURIComponent(chave)}?state=PR&is_desonerated=false`
+        `compositions/${encodeURIComponent(chave)}?${new URLSearchParams(SINAPI_PARAMS)}`
       );
       const node = { origem, itens: Array.isArray(origem.items) ? origem.items : [] };
       composicoesSinapi.set(chave, node);

@@ -1,9 +1,8 @@
 // Busca composições SINAPI (via API pública SINPRES) por palavras, em qualquer ordem.
 // Vêm primeiro as composições com mais palavras encontradas; "excluir" (termos separados
-// por vírgula) remove as que contêm qualquer um deles. UF e regime fixos: PR, não desonerado.
+// por vírgula) remove as que contêm qualquer um deles. UF e regime: os de functions/_lib/sinapi.js.
 
-const ESTADO_PADRAO = 'PR';
-const DESONERADO_PADRAO = 'false';
+import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
 const LIMITE_SINPRES = 100;       // máximo aceito pela SINPRES por consulta
 const MAX_PALAVRAS_CONSULTA = 6;  // limita quantas consultas uma busca dispara
 const MAX_RESULTADOS = 60;

@@ -763,7 +763,7 @@ async function buscarServicoPorCodigo(codigo){
   }catch(e){resposta=null;}
   if(!resposta||!resposta.ok)throw new Error('Não foi possível consultar o SINAPI agora. Tente de novo ou use a lupa.');
   if(!resultado||!resultado.encontrado)return null;
-  if(resultado.valor==null)throw new Error(`A composição SINAPI ${codigo} está sem preço na referência do Paraná.`);
+  if(resultado.valor==null)throw new Error(`A composição SINAPI ${codigo} está sem preço na referência de São Paulo.`);
   return dadosServicoSinapi(resultado);
 }
 // Inclui o serviço no fim da sub etapa (ou direto na etapa) e devolve o serviço criado

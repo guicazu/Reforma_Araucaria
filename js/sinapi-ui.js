@@ -203,7 +203,7 @@
         .then(function (data) {
           if (buscaAtual !== buscaId) return;
           if (!data.encontrado) {
-            atualizarStatus(buscaStatus, 'Código ' + codigo + ' não encontrado na tabela do Paraná, não desonerada.', 'erro');
+            atualizarStatus(buscaStatus, 'Código ' + codigo + ' não encontrado na tabela de São Paulo, desonerada.', 'erro');
             renderizarResultados([], 'Confira o código ou tente a busca por descrição.');
             return;
           }

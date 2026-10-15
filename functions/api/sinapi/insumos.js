@@ -1,5 +1,4 @@
-const ESTADO_PADRAO = 'PR';
-const DESONERADO_PADRAO = 'false';
+import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
 
 function normalizarTexto(texto) {
   return String(texto || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
