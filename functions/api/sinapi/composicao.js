@@ -25,6 +25,10 @@ export async function onRequestGet({ request }) {
     return Response.json({ encontrado: false, erro: 'sinapi_indisponivel' }, { status: 502 });
   }
 
+  // Código inexistente: a SINPRES responde 404, o que não é falha do serviço
+  if (resp.status === 404) {
+    return Response.json({ encontrado: false });
+  }
   if (!resp.ok) {
     return Response.json({ encontrado: false, erro: 'sinapi_erro' }, { status: 502 });
   }

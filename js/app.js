@@ -423,6 +423,7 @@ function abrirParaVisualizar(id){
   if(!orcamento)return;
   state.ativoId=id;
   modoEdicao=false;
+  rascunhoServico=null;
   $('#viewOrcamento').dataset.modo='editor';
   renderTudo();
 }
@@ -473,6 +474,7 @@ async function liberarEdicaoAtual(){
     delete bloqueiosPorOrcamento[id];
     orcamentoEditandoId=null;
     modoEdicao=false;
+    rascunhoServico=null;
     $('#viewOrcamento').dataset.modo='editor';
     renderTudo();
     // Volta ao que está gravado no banco
@@ -702,6 +704,127 @@ function abrirModalServico(sv, sub, etapa, unidade){
   $('#modalServico').showModal();
   if(!sv||!sv.catalogoTipo)$('#fCatalogoItem').focus();
 }
+/* ---------- nova linha de serviço: código digitado na própria tabela ---------- */
+// A linha é um rascunho: só vira serviço quando o código é encontrado (ou pela janela da lupa)
+let rascunhoServico=null; // {orcamentoId,uid,eid,sid,codigo,mensagem,erro,buscando,pesquisando,cancelado}
+function novaLinhaServico(u,e,s){
+  const o=orcamentoAtivo();if(!o||!u||!e)return;
+  rascunhoServico={orcamentoId:o.id,uid:u.id,eid:e.id,sid:s?s.id:null,codigo:'',mensagem:'',erro:false,buscando:false,pesquisando:false,cancelado:false};
+  // deixa visível o grupo onde a linha entra
+  state.expandidos['u-'+u.id]=true;state.expandidos['e-'+e.id]=true;if(s)state.expandidos['s-'+s.id]=true;
+  renderTudo();
+  focarCodigoRascunho();
+}
+function cancelarLinhaServico(){if(rascunhoServico)rascunhoServico.cancelado=true;rascunhoServico=null;renderTudo();}
+// selecionar=false mantém o cursor no fim (a tabela foi redesenhada enquanto a pessoa digitava)
+function focarCodigoRascunho(selecionar=true){
+  const campo=document.getElementById('codigoNovoServico');if(!campo)return;
+  campo.focus();
+  if(selecionar)campo.select();else if(campo.setSelectionRange)campo.setSelectionRange(campo.value.length,campo.value.length);
+}
+function rascunhoEm(o,e,s){
+  const r=rascunhoServico;
+  return Boolean(r&&modoEdicao&&r.orcamentoId===o.id&&r.eid===e.id&&(s?r.sid===s.id:!r.sid));
+}
+function renderLinhaRascunho(codigoEap){
+  const r=rascunhoServico;
+  const dica=r.buscando?'Buscando…':(r.mensagem||'Digite o código do serviço (SINAPI ou COMP-…) e tecle Enter, ou clique na lupa para pesquisar.');
+  return `<tr class="linha-servico linha-rascunho">
+    <td class="col-codigo codigo">${codigoEap}</td>
+    <td class="col-cod-item"><div class="campo-codigo-servico">
+      <input id="codigoNovoServico" class="codigo-novo-servico" value="${esc(r.codigo)}" placeholder="Código" aria-label="Código do novo serviço" autocomplete="off" spellcheck="false"${r.buscando?' disabled':''} />
+      <button type="button" class="btn-icon btn-lupa" data-acao="buscar-servico" title="Pesquisar serviço" aria-label="Pesquisar serviço">🔍</button>
+    </div></td>
+    <td class="col-base">—</td>
+    <td colspan="5" class="rascunho-dica${r.erro?' rascunho-erro':''}" role="status">${esc(dica)}</td>
+    <td class="col-acoes"><button type="button" class="btn-icon btn-danger" data-acao="cancelar-servico" title="Cancelar nova linha" aria-label="Cancelar nova linha">×</button></td>
+  </tr>`;
+}
+function dadosServicoSinapi(r){
+  return{nome:String(r.descricao||'').trim(),unidadeMedida:String(r.unidade||'').trim(),valorUnitario:num(r.valor),codigo:String(r.codigo),catalogoTipo:'sinapi',catalogoId:String(r.codigo),catalogoDetalheId:null};
+}
+function dadosServicoPropria(c){
+  return{nome:c.nome,unidadeMedida:c.unidade||'un',valorUnitario:num(c.valorUnitario),codigo:c.codigo||'',catalogoTipo:'composicao',catalogoId:c.id,catalogoDetalheId:null};
+}
+// Procura primeiro nas composições próprias (código COMP-…) e depois no SINAPI (códigos numéricos).
+// Devolve os dados do serviço, null se o código não existe, ou lança erro com a mensagem para a linha.
+async function buscarServicoPorCodigo(codigo){
+  const propria=(window.Composicoes?window.Composicoes.carregar():[])
+    .find(c=>(c.base==='propria'||!c.base)&&String(c.codigo||'').toLowerCase()===codigo.toLowerCase());
+  if(propria){
+    if(num(propria.valorUnitario)==null)throw new Error(`A composição ${propria.codigo} está sem preço unitário.`);
+    return dadosServicoPropria(propria);
+  }
+  if(!/^\d+$/.test(codigo))return null;
+  let resposta,resultado;
+  try{
+    resposta=await fetchComTimeout('/api/sinapi/composicao?codigo='+encodeURIComponent(codigo));
+    resultado=await resposta.json();
+  }catch(e){resposta=null;}
+  if(!resposta||!resposta.ok)throw new Error('Não foi possível consultar o SINAPI agora. Tente de novo ou use a lupa.');
+  if(!resultado||!resultado.encontrado)return null;
+  if(resultado.valor==null)throw new Error(`A composição SINAPI ${codigo} está sem preço na referência do Paraná.`);
+  return dadosServicoSinapi(resultado);
+}
+// Inclui o serviço no fim da sub etapa (ou direto na etapa) e devolve o serviço criado
+function adicionarServico(o,unidadeId,etapaId,subId,dados){
+  const novo={id:uid(),...dados,qtdManual:null,memo:[]};
+  if(subId){
+    const sub=acharSubPorId(o,subId);if(!sub)return null;
+    sub.servicos.push(novo);
+    return novo;
+  }
+  const etapa=acharEtapa(o,unidadeId,etapaId);if(!etapa)return null;
+  etapa.servicos=etapa.servicos||[];
+  etapa.servicos.push(novo);
+  return novo;
+}
+async function buscarCodigoRascunho(){
+  const r=rascunhoServico;if(!r||r.buscando)return;
+  const campo=document.getElementById('codigoNovoServico');
+  const codigo=(campo?campo.value:r.codigo).trim();
+  r.codigo=codigo;r.pesquisando=false;
+  if(!codigo){r.mensagem='';r.erro=false;renderTudo();focarCodigoRascunho();return;}
+  r.buscando=true;r.mensagem='';r.erro=false;
+  renderTudo();
+  let dados=null,falha='';
+  try{dados=await buscarServicoPorCodigo(codigo);}catch(erro){falha=erro.message;}
+  r.buscando=false;
+  if(r.cancelado)return;
+  // Se outra linha nova foi aberta durante a busca, o código digitado ainda entra no lugar desta
+  const atual=rascunhoServico===r;
+  const o=orcamentoAtivo();
+  if(dados&&o&&o.id===r.orcamentoId&&modoEdicao&&orcamentoEditandoId===o.id){
+    const sv=adicionarServico(o,r.uid,r.eid,r.sid,dados);
+    if(sv){
+      if(atual)rascunhoServico=null;
+      salvar();renderTudo();
+      if(atual){
+        // próximo passo natural: informar a quantidade
+        const qtd=document.getElementById('qtdsv_'+sv.id);if(qtd){qtd.focus();qtd.select();}
+      }else focarCodigoRascunho(false);
+      return;
+    }
+    falha='Não foi possível localizar a etapa desta linha.';
+  }
+  if(!atual)return; // a linha já foi substituída: não há onde mostrar o aviso
+  r.erro=true;
+  r.mensagem=falha||`Código ${codigo} não encontrado. Confira o código ou clique na lupa para pesquisar.`;
+  renderTudo();
+  focarCodigoRascunho();
+}
+// Lupa: abre a janela de busca para a linha; o que já foi digitado vai para a busca SINAPI
+function pesquisarServicoRascunho(o){
+  const r=rascunhoServico;if(!r)return;
+  const campo=document.getElementById('codigoNovoServico');
+  const texto=(campo?campo.value:r.codigo).trim();
+  r.codigo=texto;
+  // a janela tira o foco do campo: essa saída não deve buscar o código pela metade
+  r.pesquisando=true;
+  abrirModalServico(null,r.sid?acharSubPorId(o,r.sid):null,acharEtapa(o,r.uid,r.eid),acharUnidade(o,r.uid));
+  if(texto&&!/^comp-/i.test(texto)&&typeof window.abrirBuscaSinapi==='function')window.abrirBuscaSinapi(texto);
+}
+
 function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
 function colecaoDeServicos(etapa,sub){return sub?sub.servicos:(etapa&&Array.isArray(etapa.servicos)?etapa.servicos:null);}
 function excluirServico(etapa,sub,sv){
@@ -881,8 +1004,10 @@ function renderTabela(o){
         </tr>`;
         if(temMemo&&memoAberta)html+=renderMemo(sv);
       });
+      const rascunhoDireto=rascunhoEm(o,e,null);
+      if(rascunhoDireto)html+=renderLinhaRascunho(cE+'.'+((e.servicos||[]).length+1));
       e.subEtapas.forEach((s,is)=>{
-        const cS=cE+'.'+((e.servicos||[]).length+is+1);
+        const cS=cE+'.'+((e.servicos||[]).length+(rascunhoDireto?1:0)+is+1);
         const abertaS=estaAberto('s-'+s.id);
         html+=`<tr class="grupo n3">
           <td class="col-codigo codigo">${cS}</td><td class="col-cod-item"></td><td class="col-base"></td>
@@ -921,6 +1046,7 @@ function renderTabela(o){
           </tr>`;
           if(temMemo&&memoAberta)html+=renderMemo(sv);
         });
+        if(rascunhoEm(o,e,s))html+=renderLinhaRascunho(cS+'.'+(s.servicos.length+1));
       });
     });
   });
@@ -973,22 +1099,18 @@ $('#formServico').addEventListener('submit',(ev)=>{
     const composicao=window.Composicoes&&window.Composicoes.carregar().find(item=>item.id===dados.catalogoId&&(item.base==='propria'||!item.base));
     if(!composicao){alert('A composição própria selecionada não está mais disponível. Escolha outra composição.');return;}
     dados.nome=composicao.nome;dados.unidadeMedida=composicao.unidade||'un';dados.valorUnitario=num(composicao.valorUnitario);
+    dados.codigo=composicao.codigo||'';
   }
   if(svid){
     const sv=acharServicoPorId(o,svid);
     if(sv){sv.nome=dados.nome;sv.unidadeMedida=dados.unidadeMedida;sv.valorUnitario=dados.valorUnitario;sv.codigo=dados.codigo;sv.catalogoTipo=dados.catalogoTipo;sv.catalogoId=dados.catalogoId;sv.catalogoDetalheId=dados.catalogoDetalheId;}
   }else{
-    const etapa = etapaId ? acharEtapa(o, $('#fUnidadeId').value, etapaId) : null;
-    const sub = subId ? acharSubPorId(o, subId) : null;
-    if(sub){
-      sub.servicos.push({id:uid(),...dados,qtdManual:null,memo:[]});
-    } else if(etapa){
-      etapa.servicos = etapa.servicos || [];
-      etapa.servicos.push({id:uid(),...dados,qtdManual:null,memo:[]});
-    } else {
+    if(!adicionarServico(o,$('#fUnidadeId').value,etapaId,subId,dados)){
       alert('Não foi possível localizar a etapa para salvar o serviço.');
       return;
     }
+    // serviço novo pela lupa: a linha em rascunho deu lugar ao serviço
+    rascunhoServico=null;
   }
   salvar();renderTudo();$('#modalServico').close();
 });
@@ -1111,14 +1233,9 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
     case 'down-sub':moverSub(e,s,1);break;
     case 'ren-sub':renomearSub(s);break;
     case 'del-sub':excluirSub(e,s);break;
-    case 'add-servico':{
-      if(s){
-        abrirModalServico(null,s,e,u);
-      }else{
-        abrirModalServico(null,null,e,u);
-      }
-      break;
-    }
+    case 'add-servico':novaLinhaServico(u,e,s);break;
+    case 'buscar-servico':pesquisarServicoRascunho(o);break;
+    case 'cancelar-servico':cancelarLinhaServico();break;
 
     case 'up-sv':moverServico(e,s,sv,-1);break;
     case 'down-sv':moverServico(e,s,sv,1);break;
@@ -1171,6 +1288,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
 
 $('#corpoTabela').addEventListener('input',(ev)=>{
   if(!modoEdicao)return;
+  if(ev.target.id==='codigoNovoServico'){if(rascunhoServico){rascunhoServico.codigo=ev.target.value;rascunhoServico.pesquisando=false;}return;}
   const qtdInput=ev.target.closest('input.qtd-servico');
   if(qtdInput){
     const o=orcamentoAtivo();if(!o)return;
@@ -1203,10 +1321,21 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
 
 $('#corpoTabela').addEventListener('change',(ev)=>{
   if(!modoEdicao)return;
+  // código digitado na nova linha: ao sair do campo, já busca
+  if(ev.target.id==='codigoNovoServico'){if(rascunhoServico&&!rascunhoServico.pesquisando)buscarCodigoRascunho();return;}
   const qtdInput=ev.target.closest('input.qtd-servico');if(!qtdInput||qtdInput.readOnly)return;
   const o=orcamentoAtivo();if(!o)return;
   const sv=acharServicoPorId(o,qtdInput.dataset.svid);if(!sv||sv.memo&&sv.memo.length)return;
   qtdInput.value=fmtNum.format(qtdServico(sv));
+});
+$('#corpoTabela').addEventListener('keydown',(ev)=>{
+  if(ev.target.id!=='codigoNovoServico')return;
+  if(ev.key==='Enter'){ev.preventDefault();buscarCodigoRascunho();}
+  else if(ev.key==='Escape'){ev.preventDefault();cancelarLinhaServico();}
+});
+// Lupa e cancelar não tiram o foco do código, para não buscar o que estava pela metade
+$('#corpoTabela').addEventListener('mousedown',(ev)=>{
+  if(ev.target.closest('[data-acao="buscar-servico"],[data-acao="cancelar-servico"]'))ev.preventDefault();
 });
 
 $('#btnNovoOrcamento').addEventListener('click',criarOrcamento);
@@ -1236,6 +1365,7 @@ $('#niveisEap').addEventListener('click',(ev)=>{
 });
 $('#btnVoltarLista').addEventListener('click',()=>{
   modoEdicao=false;
+  rascunhoServico=null;
   atualizarStatusSalvamento();
   renderLista();
 });

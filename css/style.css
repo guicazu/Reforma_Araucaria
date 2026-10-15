@@ -193,6 +193,15 @@ button:disabled{cursor:wait;opacity:.65}
 .tag-base{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
 .tag-base-propria{background:#f2efdf;color:#74601c}
 .tag-base-sinapi{background:#eaf1f7;color:#315676}
+/* Nova linha de serviço: código digitado na própria tabela, com a lupa ao lado */
+#tabelaOrcamento .linha-rascunho td{background:#fffcf2}
+.campo-codigo-servico{display:flex;align-items:center;gap:4px}
+.codigo-novo-servico{width:78px;min-width:0;padding:4px 6px;border:1px solid var(--gold-2);border-radius:5px;background:#fff;color:var(--texto);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.codigo-novo-servico:focus{outline:2px solid var(--gold);outline-offset:0}
+.codigo-novo-servico:disabled{opacity:.6}
+#tabelaOrcamento .btn-lupa{flex:0 0 auto;width:26px;height:26px;font-size:12px;background:#fff}
+.rascunho-dica{color:var(--suave);font-size:12px;font-style:italic}
+.rascunho-dica.rascunho-erro{color:var(--vermelho);font-style:normal;font-weight:600}
 #tabelaOrcamento .col-un{width:54px}
 #tabelaOrcamento .col-num{width:112px}
 #tabelaOrcamento .col-acoes{width:260px}
@@ -464,7 +473,7 @@ input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}
   .tabela{min-width:0;font-size:11px}
   .tabela th,.tabela td{border:1px solid #999;padding:4px 6px}
   .tabela .col-acoes{display:none}
-  .linha-memo{display:none}
+  .linha-memo,.linha-rascunho{display:none}
   .grupo td{background:#e8e8e8!important}
   .linha-total td{background:#dde7f0!important}
 }
