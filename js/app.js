@@ -1316,7 +1316,7 @@ $('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)re
 $('#btnGerarVersao').addEventListener('click',gerarVersao);
 $('#btnCompararVersoes').addEventListener('click',compararVersoes);
 $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
-$('#btnExportar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o&&window.Relatorios)window.Relatorios.abrir(o.id);});
+$('#btnExportarRelatorios').addEventListener('click',()=>{const o=orcamentoAtivo();if(o&&window.Relatorios)window.Relatorios.abrir(o.id);});
 $('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
 $('#btnSalvarLista').addEventListener('click',salvarNoServidor);
 $('#btnEntrarEdicao').addEventListener('click',()=>{
