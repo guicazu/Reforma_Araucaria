@@ -214,12 +214,13 @@ export async function onRequestPost({ request, env }) {
   // Salvar NÃO cria uma versão nova — atualiza a linha da versão ativa e soma 1 na revisão.
   // Busca pela versão que o cliente está editando; sem número, usa a maior gravada.
   const numeroCliente = versao ? Number(versao.numero) : NaN;
+  const colunas = 'id, versaoNumero, revisao, conteudo, nome, codigo, atualizadoEm';
   const linhaAtual = Number.isInteger(numeroCliente) && numeroCliente > 0
     ? await env.DB.prepare(
-        'SELECT id, versaoNumero, revisao FROM orcamentos_versoes WHERE orcamentoId = ? AND versaoNumero = ?'
+        `SELECT ${colunas} FROM orcamentos_versoes WHERE orcamentoId = ? AND versaoNumero = ?`
       ).bind(editandoId, numeroCliente).first()
     : await env.DB.prepare(
-        'SELECT id, versaoNumero, revisao FROM orcamentos_versoes WHERE orcamentoId = ? ORDER BY versaoNumero DESC LIMIT 1'
+        `SELECT ${colunas} FROM orcamentos_versoes WHERE orcamentoId = ? ORDER BY versaoNumero DESC LIMIT 1`
       ).bind(editandoId).first();
 
   if (!linhaAtual) {
@@ -244,6 +245,20 @@ export async function onRequestPost({ request, env }) {
       agora
     ).run();
     return Response.json({ ok: true, versaoId, versaoNumero: numeroCliente, revisao: 1, atualizadoEm: agora });
+  }
+
+  // Nada mudou desde a última gravação: não gera nova revisão
+  if (linhaAtual.conteudo === conteudo &&
+      (linhaAtual.nome || '') === (o.nome || '') &&
+      (linhaAtual.codigo || '') === (o.codigo || '')) {
+    return Response.json({
+      ok: true,
+      semAlteracoes: true,
+      versaoId: linhaAtual.id,
+      versaoNumero: linhaAtual.versaoNumero,
+      revisao: linhaAtual.revisao || 0,
+      atualizadoEm: linhaAtual.atualizadoEm
+    });
   }
 
   const novaRevisao = (linhaAtual.revisao || 0) + 1;

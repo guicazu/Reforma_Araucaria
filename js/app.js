@@ -39,6 +39,7 @@ function proximoCodigo(){
   return 'ORC-'+ano+'-'+String(max+1).padStart(3,'0');
 }
 state.orcamentos.forEach(o=>{if(!o.codigo)o.codigo=proximoCodigo();});
+// Conteúdo gravado no banco de cada orçamento ({id: texto de comparação}); null enquanto não carregou
 let snapshotServidor = null;
 let carregamentoConcluido = false;
 let carregandoDoServidor = false;
@@ -49,6 +50,26 @@ let usuarioPodeEditar = false;
 let bloqueiosPorOrcamento = {};
 let orcamentoEditandoId = null;
 let modoEdicao = false;
+
+// Só o conteúdo editável entra na comparação: revisão, datas e ids de versão são controlados pelo servidor
+function serializarParaComparar(o){
+  return JSON.stringify({
+    codigo:o.codigo||'',
+    nome:o.nome||'',
+    versoes:(o.versoes||[]).map(v=>({numero:Number(v.numero)||0,rotulo:v.rotulo||'',unidades:v.unidades||[]}))
+  });
+}
+function definirSnapshotServidor(orcamentos){
+  snapshotServidor = {};
+  orcamentos.forEach(o=>{snapshotServidor[o.id]=serializarParaComparar(o);});
+}
+function orcamentoTemAlteracoes(id){
+  if(snapshotServidor === null || !id)return false;
+  const o = state.orcamentos.find(x=>x.id===id);
+  return Boolean(o) && serializarParaComparar(o) !== snapshotServidor[id];
+}
+// Alterações não gravadas no orçamento em edição (o único que o botão Salvar grava)
+function temAlteracoesPendentes(){return orcamentoTemAlteracoes(orcamentoEditandoId);}
 
 // Planejamento locks: map of orcamentoId -> array of versaoIds that are blocked for planning
 const DB_KEY_PLANEJAMENTO_BLOQUEIOS = 'ibuild_planejamento_bloqueios_v1';
@@ -89,7 +110,7 @@ salvar();
 
 function salvar(){
   localStorage.setItem(DB_KEY, JSON.stringify(state));
-  if(snapshotServidor !== null && JSON.stringify(state.orcamentos) !== snapshotServidor){
+  if(temAlteracoesPendentes()){
     erroSalvamento = false;
   }
   atualizarStatusSalvamento();
@@ -107,8 +128,14 @@ function definirStatusSalvamento(texto, classe){
 function atualizarStatusSalvamento(){
   const botao = $('#btnSalvarOrcamento');
   const botaoLista = $('#btnSalvarLista');
-  const pendente = snapshotServidor !== null && JSON.stringify(state.orcamentos) !== snapshotServidor;
-  if(botao)botao.disabled = carregandoDoServidor || salvandoNoServidor || !modoEdicao;
+  const pendente = temAlteracoesPendentes();
+  // Sem alteração desde a última gravação, o Salvar fica inativo (com o banco indisponível, segue ativo para tentar de novo)
+  const semAlteracoes = snapshotServidor !== null && !pendente;
+  if(botao){
+    botao.disabled = carregandoDoServidor || salvandoNoServidor || !modoEdicao || semAlteracoes;
+    botao.classList.toggle('sem-alteracoes', semAlteracoes);
+    botao.title = semAlteracoes ? 'Nenhuma alteração para salvar' : 'Salvar alterações no banco';
+  }
   if(botaoLista)botaoLista.disabled = carregandoDoServidor || salvandoNoServidor || !pendente;
   const painelLista = $('#listaStatusSalvamento');
   const liberarLista = $('#btnLiberarBloqueioLista');
@@ -168,7 +195,12 @@ async function salvarNoServidor(){
     definirStatusSalvamento('⚠️ Entre em modo de edição antes de salvar.', 'save-status-error');
     return;
   }
-  const snapshot = JSON.stringify(state.orcamentos);
+  // Nada mudou desde a última gravação: não envia (e a revisão não sobe)
+  if(!temAlteracoesPendentes()){
+    atualizarStatusSalvamento();
+    return;
+  }
+  const enviado = clone(state.orcamentos.find(o=>o.id===orcamentoEditandoId));
   erroSalvamento = false;
   detalheErroSalvamento = '';
   salvandoNoServidor = true;
@@ -177,7 +209,7 @@ async function salvarNoServidor(){
     const resposta = await fetchComTimeout('/api/orcamentos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orcamentos: JSON.parse(snapshot), editandoId: orcamentoEditandoId })
+      body: JSON.stringify({ orcamentos: [enviado], editandoId: enviado.id })
     });
     const resultado = await resposta.json();
     if(!resposta.ok){
@@ -190,11 +222,12 @@ async function salvarNoServidor(){
       throw new Error(mensagens[resultado.erro] || 'A API recusou a gravação (' + resposta.status + ').');
     }
     if(!resultado || resultado.ok !== true)throw new Error('A API não confirmou a gravação');
-    snapshotServidor = snapshot;
-    const oSalvo = state.orcamentos.find(x=>x.id===orcamentoEditandoId);
-    if(oSalvo){
-      const v = versaoAtiva(oSalvo);
-      v.revisao = (typeof resultado.revisao === 'number') ? resultado.revisao : (Number(v.revisao)||0)+1;
+    // O banco agora tem o que foi enviado; edições feitas durante a gravação continuam pendentes
+    if(snapshotServidor)snapshotServidor[enviado.id] = serializarParaComparar(enviado);
+    const oSalvo = state.orcamentos.find(x=>x.id===enviado.id);
+    if(oSalvo && typeof resultado.revisao === 'number'){
+      const v = oSalvo.versoes.find(x=>Number(x.numero)===Number(resultado.versaoNumero)) || versaoAtiva(oSalvo);
+      v.revisao = resultado.revisao;
       localStorage.setItem(DB_KEY, JSON.stringify(state));
       renderConteudo();
       renderLista();
@@ -254,6 +287,7 @@ async function criarOrcamento(){
 }
 // Cria as linhas do orçamento (todas as versões) no D1; usado ao criar e ao duplicar
 async function registrarOrcamentoNoServidor(o){
+  const enviado = clone(o);
   try {
     const resposta = await fetch('/api/orcamentos', {
       method: 'POST',
@@ -261,11 +295,14 @@ async function registrarOrcamentoNoServidor(o){
       body: JSON.stringify({
         novoOrcamento: true,
         orcamentoId: o.id,
-        orcamentos: [o]
+        orcamentos: [enviado]
       })
     });
     const resultado = await resposta.json();
     if(resposta.ok && resultado.ok) {
+      // Já está no banco como foi criado: só conta como alteração o que for editado depois
+      if(snapshotServidor && snapshotServidor[o.id] === undefined)snapshotServidor[o.id] = serializarParaComparar(enviado);
+      atualizarStatusSalvamento();
       console.log('Orçamento criado no D1:', resultado.versaoId);
     } else {
       console.warn('Orçamento criado localmente mas não salvo no D1:', resultado);
@@ -308,9 +345,7 @@ async function excluirOrcamento(id){
   if(orcamentoEditandoId===id)orcamentoEditandoId=null;
   modoEdicao=false;
   state.orcamentos=state.orcamentos.filter(x=>x.id!==id);
-  if(snapshotServidor!==null){
-    try{ snapshotServidor=JSON.stringify(JSON.parse(snapshotServidor).filter(x=>x.id!==id)); }catch(e){}
-  }
+  if(snapshotServidor)delete snapshotServidor[id];
   if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;
   $('#viewOrcamento').dataset.modo='lista';
   salvar();renderTudo();
@@ -324,7 +359,7 @@ async function duplicarOrcamento(id){
   }
   const c=clone(src);
   c.id=uid();c.codigo=proximoCodigo();c.nome=src.nome+' (cópia)';c.criadoEm=new Date().toISOString();
-  c.versoes.forEach(v=>{v.id=uid();});
+  c.versoes.forEach(v=>{v.id=uid();v.revisao=0;});
   try{
     await window.bloquearOrcamento(c.id);
     orcamentoEditandoId=c.id;
@@ -381,6 +416,14 @@ async function liberarEdicaoAtual(){
       : null
   );
   if(!id)return;
+  const descartar = id===orcamentoEditandoId && temAlteracoesPendentes();
+  if(descartar){
+    const nuncaSalvo = snapshotServidor && snapshotServidor[id] === undefined;
+    const aviso = nuncaSalvo
+      ? 'Este orçamento ainda não foi salvo no banco e será descartado. Liberar mesmo assim?'
+      : 'Existem alterações não salvas neste orçamento. Liberar mesmo assim? As alterações serão descartadas.';
+    if(!confirm(aviso))return;
+  }
   try{
     await window.liberarOrcamento(id);
     delete bloqueiosPorOrcamento[id];
@@ -388,14 +431,22 @@ async function liberarEdicaoAtual(){
     modoEdicao=false;
     $('#viewOrcamento').dataset.modo='editor';
     renderTudo();
+    // Volta ao que está gravado no banco
+    if(descartar)carregarDoServidor();
   }catch(erro){
     alert('Não foi possível liberar o orçamento: '+erro.message);
   }
 }
 
 /* ---------- versões ---------- */
-function gerarVersao(){
+async function gerarVersao(){
   const o=orcamentoAtivo();if(!o)return;
+  // A versão atual precisa estar gravada antes de ser congelada
+  if(o.id===orcamentoEditandoId && temAlteracoesPendentes()){
+    if(!confirm(`Existem alterações não salvas na V${versaoAtiva(o).numero}. Salvar agora e gerar a nova versão?`))return;
+    await salvarNoServidor();
+    if(temAlteracoesPendentes())return; // a gravação não concluiu: o status mostra o motivo
+  }
   const ativa=versaoAtiva(o);
   const novoNum=Math.max(...o.versoes.map(v=>v.numero))+1;
   const rotulo=prompt(`Rótulo da versão ${novoNum} (ex.: Após revisão da cobertura):`, `Versão ${novoNum}`);
@@ -405,29 +456,31 @@ function gerarVersao(){
   salvar();renderTudo();
   if($('#modalVersoes').open)renderVersoes(o);
   // Salva a nova versão como linha separada no D1
-  (async () => {
-    try {
-      const resposta = await fetch('/api/orcamentos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          versaoNova: true,
-          orcamentoId: o.id,
-          versaoNumero: novoNum,
-          rotulo: rotulo.trim() || ('Versão ' + novoNum),
-          orcamentos: [{ id: o.id, nome: o.nome, codigo: o.codigo, criadoEm: o.criadoEm, versoes: o.versoes }]
-        })
-      });
-      const resultado = await resposta.json();
-      if(resposta.ok && resultado.ok) {
-        console.log('Versão ' + novoNum + ' salva como nova linha no D1:', resultado.versaoId);
-      } else {
-        console.warn('Versão criada localmente mas não salva no D1:', resultado);
-      }
-    } catch(e) {
-      console.error('Erro ao salvar versão no D1:', e);
+  const enviado = { id: o.id, nome: o.nome, codigo: o.codigo, criadoEm: o.criadoEm, versoes: clone(o.versoes) };
+  try {
+    const resposta = await fetch('/api/orcamentos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        versaoNova: true,
+        orcamentoId: o.id,
+        versaoNumero: novoNum,
+        rotulo: rotulo.trim() || ('Versão ' + novoNum),
+        orcamentos: [enviado]
+      })
+    });
+    const resultado = await resposta.json();
+    if(resposta.ok && resultado.ok) {
+      // A versão anterior já estava gravada; com a nova no banco, não há alteração pendente
+      if(snapshotServidor)snapshotServidor[o.id] = serializarParaComparar(enviado);
+      atualizarStatusSalvamento();
+      console.log('Versão ' + novoNum + ' salva como nova linha no D1:', resultado.versaoId);
+    } else {
+      console.warn('Versão criada localmente mas não salva no D1:', resultado);
     }
-  })();
+  } catch(e) {
+    console.error('Erro ao salvar versão no D1:', e);
+  }
 }
 function totalVersao(v){let t=0;for(const u of v.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
 function flatServicos(unidades){
@@ -1128,7 +1181,8 @@ renderTudo();
 async function carregarDoServidor(){
   if(carregandoDoServidor || salvandoNoServidor)return;
   const snapshotLocalInicial = JSON.stringify(state.orcamentos);
-  const possuiAlteracoesPendentes = snapshotServidor !== null && snapshotLocalInicial !== snapshotServidor;
+  // O orçamento em edição com alterações não salvas continua como está no navegador
+  const preservarId = orcamentoEditandoId && (snapshotServidor === null || temAlteracoesPendentes()) ? orcamentoEditandoId : null;
   carregandoDoServidor = true;
   atualizarStatusSalvamento();
   try{
@@ -1164,8 +1218,13 @@ async function carregarDoServidor(){
       delete copia.bloqueio;
       return migrarOrcamento(copia);
     });
-    snapshotServidor = JSON.stringify(remotos);
-    if(!possuiAlteracoesPendentes && JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
+    definirSnapshotServidor(remotos);
+    if(JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
+      const local = preservarId && state.orcamentos.find(o=>o.id===preservarId);
+      if(local){
+        const i = remotos.findIndex(o=>o.id===local.id);
+        if(i>=0)remotos[i]=local;else remotos.push(local);
+      }
       state.orcamentos = remotos;
       if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
         state.ativoId = state.orcamentos.length ? state.orcamentos[0].id : null;

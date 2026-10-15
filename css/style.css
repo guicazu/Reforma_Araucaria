@@ -84,6 +84,10 @@ button{font:inherit}
 .oi-acoes{display:flex;gap:4px;flex-wrap:wrap}
 .oi-bloqueio{flex:1 1 100%;font-size:11px;color:var(--vermelho)}
 button:disabled{cursor:wait;opacity:.65}
+/* Salvar sem alterações pendentes: aparência de botão inativo */
+.btn.sem-alteracoes:disabled{opacity:.4;filter:grayscale(.7);cursor:not-allowed;box-shadow:none}
+.btn.sem-alteracoes:disabled:hover{filter:grayscale(.7)}
+.btn-primary.sem-alteracoes:disabled:hover{background:var(--gold)}
 
 .resumo{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .resumo-card{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column}
