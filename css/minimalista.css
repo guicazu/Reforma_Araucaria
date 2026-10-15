@@ -203,23 +203,32 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 #tabelaOrcamento .btn-lupa{width:26px;height:26px;background:transparent;color:var(--suave)}
 .rascunho-dica{font-style:normal;color:var(--fraco)}
 /* memória de cálculo */
-.linha-memo>td{background:#fafafa}
-.linha-memo .tabela-memo td{background:var(--superficie)}
-.memo-box{width:auto;margin:4px 10px 10px 54px;padding:10px 12px;background:var(--superficie);border:1px solid var(--borda);border-left:2px solid #d4d4d8;border-radius:0 6px 6px 0}
-.memo-head{align-items:flex-start}
-.memo-head-total{padding:0;border:0;background:transparent}
-.memo-head-total span{font-size:11px;text-transform:none;color:var(--suave)}
-.memo-head-total strong{font-size:13px}
-.memo-add .btn,.memo-add .btn-primary{height:24px;padding:0 8px;background:transparent;border-color:var(--borda);color:var(--texto);font-size:11.5px}
-.memo-add .btn:hover{background:var(--hover)}
-.memo-head h4{font-size:12px;font-weight:500}
-.memo-head-total{border-color:var(--borda)}
-.memo-head-total strong{font-weight:600}
-.memo-table-wrap{border-color:var(--borda)}
-.tabela-memo th{background:var(--superficie);color:var(--fraco);font-weight:500}
-.tabela-memo td{border-bottom-color:var(--linha)}
-.tabela-memo input{height:24px;border-color:var(--borda)}
-.tabela-memo input:focus{outline:none;border-color:#a1a1aa}
+/* linhas da própria tabela: resultado alinhado com a quantidade do serviço, unidade na coluna UN. */
+#tabelaOrcamento .linha-memo td{padding:3px 10px;background:#fafafa;border-bottom:0;font-size:12px}
+#tabelaOrcamento .memo-cab td{padding-top:8px;vertical-align:bottom}
+#tabelaOrcamento .memo-rodape td{padding-bottom:9px;border-bottom:1px solid var(--linha)}
+.memo-campos{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,58px);gap:6px;align-items:center}
+.memo-cab span,#tabelaOrcamento .linha-memo.memo-cab td.memo-res{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--fraco)}
+.memo-cab .memo-campos span{padding:0 7px}
+.memo-campos .memo-num{text-align:right}
+.memo-campos input{width:100%;min-width:0;height:24px;padding:0 6px;border:1px solid var(--borda);border-radius:4px;background:var(--superficie);color:var(--texto);font:inherit;font-size:12px}
+.memo-campos input:focus{outline:none;border-color:#a1a1aa}
+.memo-campos input[readonly]{border-color:transparent;background:transparent}
+.memo-campos input::placeholder{color:#d4d4d8}
+.memo-campos input[readonly]::placeholder{color:transparent}
+/* mesmo recuo do texto da quantidade do serviço (padding da célula + borda e padding do campo) */
+#tabelaOrcamento .linha-memo td.memo-res{padding-right:18px;text-align:right;font-variant-numeric:tabular-nums;color:var(--texto)}
+#tabelaOrcamento .linha-memo td.memo-incompleto{color:var(--vermelho)}
+#tabelaOrcamento .linha-memo td.memo-soma{color:var(--tinta);font-weight:600;box-shadow:inset 0 1px 0 var(--borda)}
+#tabelaOrcamento .linha-memo td.memo-indice{text-align:right;color:var(--fraco);font-size:11px;font-variant-numeric:tabular-nums}
+#tabelaOrcamento .linha-memo .col-un{color:var(--suave);font-size:11.5px}
+.memo-remover{width:22px;height:22px;color:var(--fraco)}
+.memo-remover:hover{color:var(--vermelho)}
+.memo-rodape-conteudo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.memo-rodape-conteudo>span{font-size:11px;color:var(--suave)}
+.memo-botoes{display:flex;gap:6px}
+.memo-botoes .btn{height:24px;padding:0 8px;background:var(--superficie);border-color:var(--borda);color:var(--texto);font-size:11.5px}
+.memo-botoes .btn:hover{background:var(--hover)}
 
 /* ---------- janelas ---------- */
 .modal,.modal-import{border:1px solid var(--borda);border-radius:10px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.12)}

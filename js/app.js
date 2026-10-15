@@ -1144,37 +1144,41 @@ function renderTabela(o){
   return html;
 }
 
+/* Memória de cálculo em linhas da própria tabela: campos sob código/base/descrição,
+   unidade na coluna UN. e resultado na coluna de quantidade, alinhado com o serviço */
+const CAMPOS_MEMO=[['quantidade','Qtd','1'],['coeficiente','Coef.','1'],['comprimento','Compr.','m'],['altura','Altura','m'],['largura','Largura','m']];
+function unidadeLinhaMemo(r,sv){return r.tipo==='qtd'?(sv.unidadeMedida||''):(r.tipo||'');}
+function textoResultadoMemo(r){return r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor);}
 function renderMemo(sv){
+  const so=modoEdicao?'':' readonly';
+  const cab=`
+  <tr class="linha-memo memo-cab">
+    <td class="col-codigo"></td>
+    <td colspan="3"><div class="memo-campos"><span>Memória de cálculo</span>${CAMPOS_MEMO.map(c=>`<span class="memo-num">${c[1]}</span>`).join('')}</div></td>
+    <td class="col-un"></td><td class="col-num memo-res">Resultado</td><td class="col-num"></td><td class="col-num"></td><td class="col-acoes"></td>
+  </tr>`;
   const linhas=sv.memo.map((l,indice)=>{const r=calcularLinha(l);return `
-  <tr>
-    <td class="memo-indice">${indice+1}</td>
-    <td><input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição" aria-label="Descrição da linha ${indice+1}" /></td>
-    <td><input data-lid="${l.id}" data-campo="quantidade" inputmode="decimal" value="${esc(l.quantidade)}" placeholder="1" aria-label="Quantidade da linha ${indice+1}" /></td>
-    <td><input data-lid="${l.id}" data-campo="coeficiente" inputmode="decimal" value="${esc(l.coeficiente)}" placeholder="1" aria-label="Coeficiente da linha ${indice+1}" /></td>
-    <td><input data-lid="${l.id}" data-campo="comprimento" inputmode="decimal" value="${esc(l.comprimento)}" placeholder="m" aria-label="Comprimento da linha ${indice+1}" /></td>
-    <td><input data-lid="${l.id}" data-campo="altura" inputmode="decimal" value="${esc(l.altura)}" placeholder="m" aria-label="Altura da linha ${indice+1}" /></td>
-    <td><input data-lid="${l.id}" data-campo="largura" inputmode="decimal" value="${esc(l.largura)}" placeholder="m" aria-label="Largura da linha ${indice+1}" /></td>
-    <td class="res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${r.incompleto?'Incompleta':r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo}</td>
-    <td><button class="btn-icon btn-danger" data-acao="del-linha" data-lid="${l.id}" title="Remover" aria-label="Remover linha ${indice+1}">${icone('fechar')}</button></td>
+  <tr class="linha-memo memo-item">
+    <td class="col-codigo memo-indice">${indice+1}</td>
+    <td colspan="3"><div class="memo-campos">
+      <input data-lid="${l.id}" data-campo="descricao" value="${esc(l.descricao)}" placeholder="Descrição" aria-label="Descrição da linha ${indice+1}"${so} />
+      ${CAMPOS_MEMO.map(([campo,rotulo,dica])=>`<input class="memo-num" data-lid="${l.id}" data-campo="${campo}" inputmode="decimal" value="${esc(l[campo])}" placeholder="${dica}" aria-label="${rotulo} da linha ${indice+1}"${so} />`).join('')}
+    </div></td>
+    <td class="col-un" id="un_${l.id}">${esc(unidadeLinhaMemo(r,sv))}</td>
+    <td class="col-num memo-res${r.incompleto?' memo-incompleto':''}" id="res_${l.id}" title="${r.incompleto?'Informe comprimento e altura para calcular dimensões.':''}">${textoResultadoMemo(r)}</td>
+    <td class="col-num"></td><td class="col-num"></td>
+    <td class="col-acoes">${modoEdicao?`<button class="btn-icon memo-remover" data-acao="del-linha" data-lid="${l.id}" title="Remover linha" aria-label="Remover linha ${indice+1}">${icone('fechar')}</button>`:''}</td>
   </tr>`;}).join('');
-  const soma=qtdServico(sv);
-  return `
-  <tr class="linha-memo"><td colspan="9">
-    <div class="memo-box">
-      <div class="memo-head">
-        <div><h4>Memória de cálculo</h4><p>${sv.memo.length} ${sv.memo.length===1?'linha':'linhas'}</p></div>
-        <div class="memo-head-total"><span>Quantidade</span><strong id="soma_${sv.id}">${fmtNum.format(soma)} ${esc(sv.unidadeMedida)}</strong></div>
-      </div>
-      <div class="memo-table-wrap"><table class="tabela-memo">
-        <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th><th>Coef.</th><th>Compr.</th><th>Altura</th><th>Largura</th><th>Resultado</th><th></th></tr></thead>
-        <tbody>${linhas}</tbody>
-      </table></div>
-      <div class="memo-add">
-        <button class="btn btn-primary btn-sm" data-acao="add-linha" data-svid="${sv.id}">${icone('mais','ic-sm')}Linha</button>
-        <button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Quantidade manual</button>
-      </div>
-    </div>
-  </td></tr>`;
+  const botoes=modoEdicao?`<button class="btn btn-sm" data-acao="add-linha" data-svid="${sv.id}">${icone('mais','ic-sm')}Linha</button><button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Quantidade manual</button>`:'';
+  const rodape=`
+  <tr class="linha-memo memo-rodape">
+    <td class="col-codigo"></td>
+    <td colspan="3"><div class="memo-rodape-conteudo"><div class="memo-botoes">${botoes}</div><span>Total da memória</span></div></td>
+    <td class="col-un">${esc(sv.unidadeMedida)}</td>
+    <td class="col-num memo-res memo-soma" id="soma_${sv.id}">${fmtNum.format(qtdServico(sv))}</td>
+    <td class="col-num"></td><td class="col-num"></td><td class="col-acoes"></td>
+  </tr>`;
+  return cab+linhas+rodape;
 }
 
 /* ---------- formulário serviço ---------- */
@@ -1402,13 +1406,15 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
   salvar();
   const r=calcularLinha(l);
   const res=document.getElementById('res_'+lid);
-  if(res){res.textContent=r.incompleto?'Incompleta':(r.valor==null?'—':fmtNum.format(r.valor)+' '+r.tipo);res.classList.toggle('memo-incompleto',!!r.incompleto);res.title=r.incompleto?'Informe comprimento e altura para calcular dimensões.':'';}
+  if(res){res.textContent=textoResultadoMemo(r);res.classList.toggle('memo-incompleto',!!r.incompleto);res.title=r.incompleto?'Informe comprimento e altura para calcular dimensões.':'';}
+  const unEl=document.getElementById('un_'+lid);
+  if(unEl)unEl.textContent=unidadeLinhaMemo(r,sv);
   const qCell=document.getElementById('qtdsv_'+sv.id);
   if(qCell)qCell.value=fmtNum.format(qtdServico(sv));
   const tCell=document.getElementById('totalsv_'+sv.id);
   if(tCell)tCell.textContent=fmtBRL.format(totalServico(sv));
   const somaEl=document.getElementById('soma_'+sv.id);
-  if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv))+' '+sv.unidadeMedida;
+  if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv));
   atualizarTotaisVisuais(o);
 });
 

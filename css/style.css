@@ -130,41 +130,9 @@ button:disabled{cursor:wait;opacity:.65}
 
 .linha-total td{background:#f3ecd2;font-weight:800;color:var(--navy-escuro);border-top:2px solid var(--gold);font-size:15px}
 
-.linha-memo td{background:#fbf7ea;padding:0}
-.memo-box{padding:12px 14px;border-top:1px solid var(--borda);background:#fafafa}
-.memo-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.memo-head h4{margin:0;font-size:13px;color:var(--texto);font-weight:600}
-.memo-head p{margin:0;color:var(--suave);font-size:11px}
-.tabela-memo{width:100%;border-collapse:collapse;font-size:12px}
-.tabela-memo th{text-align:left;padding:5px 6px;color:var(--suave);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--borda);background:transparent}
-.tabela-memo td{padding:4px 5px;border-bottom:1px solid var(--borda);vertical-align:middle}
-.tabela-memo input{width:100%;min-width:56px;padding:4px 5px;font-size:12px;border:1px solid var(--borda);border-radius:4px;background:#fff}
-.tabela-memo .res{font-weight:600;color:var(--texto);white-space:nowrap}
-.memo-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.memo-add .btn{padding:4px 8px;font-size:11px}
 .qtd-servico{width:100%;min-width:76px;padding:6px 8px;border:1px solid #d6d9d5;border-radius:6px;background:#fff;text-align:right;font:inherit;font-variant-numeric:tabular-nums}
 .qtd-servico:focus{outline:2px solid #c5d8cc;border-color:#5d8a6b}
 .qtd-servico[readonly]{background:#eef3ef;border-color:#d9e4db;color:#355744;font-weight:700;cursor:default}
-.linha-memo>td{padding:0!important;background:#f4f7f4;border:0;max-width:0;overflow:hidden}
-.memo-box{width:100%;min-width:0;padding:12px 14px;margin:0 0 4px 34px;border:1px solid var(--borda);border-left:3px solid var(--primaria);border-radius:0 0 6px 6px;background:#fafafa}
-.memo-head{align-items:center;margin-bottom:8px}
-.memo-head h4{font-size:13px;color:var(--texto);font-weight:600}
-.memo-head p{margin:0;color:var(--suave);font-size:11px}
-.memo-head-total{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:5px 9px;border:1px solid var(--borda);border-radius:4px;background:#fff}
-.memo-head-total span{color:var(--suave);font-size:10px;text-transform:uppercase}
-.memo-head-total strong{color:var(--texto);font-size:14px;font-variant-numeric:tabular-nums}
-.memo-table-wrap{overflow-x:auto;border:1px solid var(--borda);border-radius:4px;background:#fff}
-.tabela-memo{min-width:760px;font-size:11px}
-.tabela-memo th{padding:6px 5px;background:#f5f5f5;color:var(--suave);border:0;border-bottom:1px solid var(--borda);font-size:9px}
-.tabela-memo td{padding:4px 5px;border-bottom:1px solid var(--borda)}
-.tabela-memo tbody tr:last-child td{border-bottom:0}
-.tabela-memo input{min-width:54px;padding:4px 5px;border-color:var(--borda);border-radius:3px;font-size:11px}
-.tabela-memo input:focus{outline:2px solid var(--primaria);border-color:var(--primaria)}
-.tabela-memo .memo-indice{width:24px;color:var(--suave);text-align:center;font-variant-numeric:tabular-nums}
-.tabela-memo .res{font-weight:600;color:var(--texto);white-space:nowrap}
-.tabela-memo .res.memo-incompleto{color:#c0392b}
-.memo-add{margin-top:8px}
-.memo-add .btn{padding:4px 8px;font-size:11px}
 
 #viewOrcamento .content{padding:16px 18px 48px}
 #viewOrcamento .orcamento-head{margin-bottom:10px}
@@ -209,16 +177,6 @@ button:disabled{cursor:wait;opacity:.65}
 #tabelaOrcamento .col-acoes .btn-icon{width:25px;height:25px;margin-left:2px;font-size:11px}
 #tabelaOrcamento .grupo.n1 td strong,#tabelaOrcamento .grupo.n2 td strong,#tabelaOrcamento .grupo.n3 td strong,#tabelaOrcamento .linha-servico td strong{font-size:13px}
 .qtd-servico{min-width:68px;padding:5px 7px;font-size:13px}
-.memo-box{padding:10px 12px;margin-left:24px}
-.memo-head{margin-bottom:6px}
-.memo-head-total{padding:4px 7px}
-.memo-table-wrap{border-radius:4px}
-.tabela-memo{min-width:700px;font-size:10px}
-.tabela-memo th{padding:5px 4px}
-.tabela-memo td{padding:3px 4px}
-.tabela-memo input{min-width:48px;padding:3px 4px;font-size:10px}
-.memo-add{margin-top:6px}
-.memo-add .btn{padding:3px 6px;font-size:10px}
 
 .componentes-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 8px}
 .componentes-head h4{margin:0;color:var(--navy-escuro);font-size:14px}
@@ -439,8 +397,6 @@ input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}
   column-gap:14px
 }
 .catalogo-lista .item-acoes{align-self:center;flex-direction:column}
-.memo-box{margin-left:4px;padding:10px}
-.memo-head-total{align-items:flex-start;width:100%}
 #viewOrcamento .content{padding:12px 10px 36px}
 #tabelaOrcamento .col-acoes{width:250px}
 #tabelaOrcamento .col-acoes .btn-icon{width:28px;height:28px}
