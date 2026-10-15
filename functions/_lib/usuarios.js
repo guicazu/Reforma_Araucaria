@@ -19,7 +19,7 @@ export async function autorizarOuRegistrarUsuario({ env, url, email, nome, prove
     if (!env.DB || typeof env.DB.prepare !== 'function') {
       throw new Error('Binding D1 DB ausente');
     }
-    const eAdminConfigurado = admins.includes(email) || email === 'cazu89@gmail.com';
+    const eAdminConfigurado = admins.includes(email);
 
     etapa = 'consultar_usuario';
     let usuario = await env.DB.prepare(

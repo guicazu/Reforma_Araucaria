@@ -52,7 +52,7 @@ async function contextoUsuario(request, env) {
     'SELECT status, isAdmin, podeEditar FROM usuarios WHERE email = ?'
   ).bind(email).all();
   const usuario = results[0] || null;
-  const isAdmin = email === 'cazu89@gmail.com' || admins.includes(email) || Boolean(usuario && usuario.isAdmin);
+  const isAdmin = admins.includes(email) || Boolean(usuario && usuario.isAdmin);
   const aprovado = isAdmin || Boolean(usuario && usuario.status === 'aprovado');
   return {
     isAdmin,

@@ -11,7 +11,7 @@ async function ehAdmin(payload, env) {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  if (admins.includes(payload.email.toLowerCase()) || payload.email.toLowerCase() === 'cazu89@gmail.com') return true;
+  if (admins.includes(payload.email.toLowerCase())) return true;
 
   const usuario = await env.DB.prepare(
     'SELECT isAdmin FROM usuarios WHERE email = ?'

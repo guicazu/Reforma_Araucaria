@@ -31,7 +31,7 @@ export async function onRequestPost({ request, env }) {
     b64 = await gerarPdfPedido({ pedido: p, fornecedor: forn, itens });
   }
 
-  const link = url.origin + '/api/compras/confirmar?pedido=' + id + '&token=' + encodeURIComponent(p.confirmacaoToken || '');
+  const link = url.origin + '/confirmar-pedido?token=' + encodeURIComponent(p.confirmacaoToken || '');
   const html =
     '<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">' +
     '<h2 style="color:#052d33">Pedido de compra ' + (p.numero || '') + '</h2>' +

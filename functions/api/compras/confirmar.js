@@ -1,17 +1,11 @@
-// Rota PÚBLICA (liberada no _middleware) — o fornecedor clica no link do e-mail.
-export async function onRequestGet({ request, env }) {
+// Rota PÚBLICA (liberada no _middleware) — formato antigo do link enviado por e-mail
+// (/api/compras/confirmar?pedido=...&token=...). Encaminha para a página de confirmação,
+// que mostra o pedido e confirma pelo botão (POST /api/compras/confirmar/[token]).
+export async function onRequestGet({ request }) {
   const url = new URL(request.url);
-  const pedidoId = url.searchParams.get('pedido');
   const token = url.searchParams.get('token');
-  if (!pedidoId || !token) {
-    return Response.redirect(url.origin + '/confirmar-pedido.html?status=invalido', 302);
+  if (!token) {
+    return Response.redirect(url.origin + '/confirmar-pedido', 302);
   }
-
-  const agora = new Date().toISOString();
-  const { meta } = await env.DB.prepare(
-    "UPDATE pedidos SET confirmadoEm = ?, status = 'confirmado' WHERE id = ? AND confirmacaoToken = ? AND confirmadoEm IS NULL"
-  ).bind(agora, pedidoId, token).run();
-
-  const status = meta.changes > 0 ? 'confirmado' : (meta.changes === 0 ? 'ja_confirmado' : 'invalido');
-  return Response.redirect(url.origin + '/confirmar-pedido.html?status=' + status, 302);
+  return Response.redirect(url.origin + '/confirmar-pedido?token=' + encodeURIComponent(token), 302);
 }

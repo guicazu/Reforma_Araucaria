@@ -21,6 +21,8 @@ function migrarOrcamento(o){
     o.versoes=[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',criadoEm:o.criadoEm||new Date().toISOString(),unidades:Array.isArray(o.unidades)?o.unidades:[]}];
   }
   o.versoes.forEach(v=>{if(v.revisao==null)v.revisao=0;});
+  // a versão ativa é a última do array: garante ordem crescente de número
+  o.versoes.sort((a,b)=>(Number(a.numero)||0)-(Number(b.numero)||0));
   delete o.unidades;
   return o;
 }
@@ -245,30 +247,31 @@ async function criarOrcamento(){
     state.orcamentos.push(novo);state.ativoId=novo.id;
     $('#viewOrcamento').dataset.modo='editor';
     salvar();renderTudo();
-    // Cria a versão 1 como linha separada no D1
-    (async () => {
-      try {
-        const resposta = await fetch('/api/orcamentos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            novoOrcamento: true,
-            orcamentoId: novo.id,
-            orcamentos: [novo]
-          })
-        });
-        const resultado = await resposta.json();
-        if(resposta.ok && resultado.ok) {
-          console.log('Orçamento criado no D1:', resultado.versaoId);
-        } else {
-          console.warn('Orçamento criado localmente mas não salvo no D1:', resultado);
-        }
-      } catch(e) {
-        console.error('Erro ao salvar orçamento no D1:', e);
-      }
-    })();
+    registrarOrcamentoNoServidor(novo);
   }catch(erro){
     alert('Não foi possível criar o orçamento para edição: '+erro.message);
+  }
+}
+// Cria as linhas do orçamento (todas as versões) no D1; usado ao criar e ao duplicar
+async function registrarOrcamentoNoServidor(o){
+  try {
+    const resposta = await fetch('/api/orcamentos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        novoOrcamento: true,
+        orcamentoId: o.id,
+        orcamentos: [o]
+      })
+    });
+    const resultado = await resposta.json();
+    if(resposta.ok && resultado.ok) {
+      console.log('Orçamento criado no D1:', resultado.versaoId);
+    } else {
+      console.warn('Orçamento criado localmente mas não salvo no D1:', resultado);
+    }
+  } catch(e) {
+    console.error('Erro ao salvar orçamento no D1:', e);
   }
 }
 function renomearOrcamento(){const o=orcamentoAtivo();if(!o)return;const n=prompt('Nome do orçamento:',o.nome);if(n===null)return;o.nome=n.trim()||o.nome;salvar();renderTudo();}
@@ -282,26 +285,35 @@ async function excluirOrcamento(id){
   if(!confirm(`Excluir o orçamento "${o.codigo} — ${o.nome}"?`))return;
   try{
     await window.bloquearOrcamento(id);
-    orcamentoEditandoId=id;
-    bloqueiosPorOrcamento[id]={usuarioEmail:window.usuarioAtual&&window.usuarioAtual.email,usuarioNome:window.usuarioAtual&&window.usuarioAtual.nome};
-    modoEdicao=false;
-    state.orcamentos=state.orcamentos.filter(x=>x.id!==id);
-    if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;
-    $('#viewOrcamento').dataset.modo='lista';
-    salvar();renderTudo();
-    // Libera o bloqueio no D1 após excluir
-    try {
-      await fetch('/api/bloqueios', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id })
-      });
-    } catch(e) {
-      console.warn('Não foi possível liberar bloqueio após exclusão:', e);
-    }
   }catch(erro){
     alert('Não foi possível excluir: '+erro.message);
+    return;
   }
+  try{
+    // Apaga as versões e o bloqueio no D1; só remove localmente se o servidor confirmar
+    const resposta = await fetchComTimeout('/api/orcamentos?id='+encodeURIComponent(id), { method: 'DELETE' });
+    const resultado = await resposta.json().catch(()=>null);
+    if(!resposta.ok || !resultado || resultado.ok !== true){
+      throw new Error((resultado && resultado.erro) || ('A API recusou a exclusão (' + resposta.status + ').'));
+    }
+  }catch(erro){
+    // Só devolve o bloqueio se ele foi adquirido apenas para excluir
+    if(orcamentoEditandoId!==id){
+      try{ await window.liberarOrcamento(id); }catch(e){ console.warn('Não foi possível liberar bloqueio após falha na exclusão:', e); }
+    }
+    alert('Não foi possível excluir: '+erro.message);
+    return;
+  }
+  delete bloqueiosPorOrcamento[id];
+  if(orcamentoEditandoId===id)orcamentoEditandoId=null;
+  modoEdicao=false;
+  state.orcamentos=state.orcamentos.filter(x=>x.id!==id);
+  if(snapshotServidor!==null){
+    try{ snapshotServidor=JSON.stringify(JSON.parse(snapshotServidor).filter(x=>x.id!==id)); }catch(e){}
+  }
+  if(state.ativoId===id)state.ativoId=state.orcamentos.length?state.orcamentos[0].id:null;
+  $('#viewOrcamento').dataset.modo='lista';
+  salvar();renderTudo();
 }
 function ativarOrcamento(id){if(!state.orcamentos.some(o=>o.id===id))return;state.ativoId=id;salvar();renderTudo();}
 async function duplicarOrcamento(id){
@@ -321,6 +333,7 @@ async function duplicarOrcamento(id){
     state.orcamentos.push(c);state.ativoId=c.id;state.expandidos={};
     $('#viewOrcamento').dataset.modo='editor';
     salvar();renderTudo();atualizarTotaisVisuais(c);
+    registrarOrcamentoNoServidor(c);
   }catch(erro){
     alert('Não foi possível criar a cópia para edição: '+erro.message);
   }
@@ -1155,7 +1168,7 @@ async function carregarDoServidor(){
     if(!possuiAlteracoesPendentes && JSON.stringify(state.orcamentos) === snapshotLocalInicial && (remotos.length || !state.orcamentos.length)){
       state.orcamentos = remotos;
       if(!state.orcamentos.some(orcamento=>orcamento.id === state.ativoId)){
-        state.ativoId = state.orcamentos[0].id;
+        state.ativoId = state.orcamentos.length ? state.orcamentos[0].id : null;
       }
     }
 
