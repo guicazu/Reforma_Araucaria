@@ -407,6 +407,7 @@ input:focus{outline:2px solid #f0e2b0;border-color:var(--gold-2)}
 .v-info{flex:1;display:flex;flex-direction:column}
 .v-info strong{font-size:14px;color:var(--navy-escuro)}
 .v-info small{font-size:12px;color:var(--suave)}
+.versao-item .btn-icon{flex:0 0 auto}
 .badge-ativa{background:var(--gold);color:var(--navy-escuro);font-size:11px;font-weight:800;border-radius:20px;padding:2px 10px;text-transform:uppercase;letter-spacing:.4px}
 .cmp-tabela{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
 .cmp-tabela th{text-align:left;padding:6px 8px;background:#e9e4d6;border:1px solid var(--borda);font-size:11px;text-transform:uppercase}

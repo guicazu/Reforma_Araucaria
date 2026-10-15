@@ -284,7 +284,7 @@ export async function onRequestPost({ request, env }) {
   });
 }
 
-// ---------- Excluir orçamento: apaga todas as versões e o bloqueio ----------
+// ---------- Excluir orçamento (todas as versões e o bloqueio) ou só uma versão ----------
 export async function onRequestDelete({ request, env }) {
   const { session, erro } = await autenticarEditor(request, env);
   if (erro) return erro;
@@ -302,6 +302,28 @@ export async function onRequestDelete({ request, env }) {
   }
   if (!(await bloqueioEhDoUsuario(env, id, session.email))) {
     return Response.json({ erro: 'bloqueio_nao_permitido' }, { status: 409 });
+  }
+
+  // ---------- Excluir só uma versão (?versao=N): o orçamento mantém pelo menos uma ----------
+  const versaoParam = url.searchParams.get('versao');
+  if (versaoParam !== null) {
+    const versaoNumero = Number(versaoParam);
+    if (!Number.isInteger(versaoNumero) || versaoNumero < 1) {
+      return Response.json({ erro: 'parametros_invalidos' }, { status: 400 });
+    }
+    // Numa instrução só, para nunca apagar a última versão gravada
+    const { meta } = await env.DB.prepare(
+      `DELETE FROM orcamentos_versoes
+        WHERE orcamentoId = ? AND versaoNumero = ?
+          AND (SELECT COUNT(*) FROM orcamentos_versoes WHERE orcamentoId = ?) > 1`
+    ).bind(id, versaoNumero, id).run();
+    if (meta && meta.changes === 1) return Response.json({ ok: true });
+    const existe = await env.DB.prepare(
+      'SELECT 1 AS ok FROM orcamentos_versoes WHERE orcamentoId = ? AND versaoNumero = ?'
+    ).bind(id, versaoNumero).first();
+    return existe
+      ? Response.json({ erro: 'ultima_versao' }, { status: 409 })
+      : Response.json({ erro: 'versao_nao_encontrada' }, { status: 404 });
   }
 
   await env.DB.batch([

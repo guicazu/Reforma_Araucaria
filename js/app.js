@@ -552,6 +552,7 @@ function compararCodigos(a,b){
 function renderVersoes(o){
   const el=$('#listaVersoes');if(!el)return;
   if(!o.versoes.length){el.innerHTML='<p class="memo-aviso">Nenhuma versão.</p>';return;}
+  const podeExcluir=modoEdicao&&orcamentoEditandoId===o.id&&o.versoes.length>1;
   el.innerHTML=o.versoes.map((v,idx)=>{
     const ultima=idx===o.versoes.length-1;
     return `<div class="versao-item" data-idx="${idx}">
@@ -559,15 +560,61 @@ function renderVersoes(o){
       <span class="v-num">V${v.numero} · Rev.${v.revisao||0}</span>
       <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}</small></span>
       ${ultima?'<span class="badge-ativa">Ativa</span>':''}
+      ${podeExcluir?`<button type="button" class="btn-icon btn-danger" data-excluir-versao="${esc(v.numero)}" title="Excluir V${esc(v.numero)}" aria-label="Excluir V${esc(v.numero)}">🗑</button>`:''}
     </div>`;
   }).join('');
   el.querySelectorAll('.versao-item').forEach(item=>{
     item.addEventListener('click',(ev)=>{
       if(ev.target.tagName==='INPUT')return;
+      const excluir=ev.target.closest('[data-excluir-versao]');
+      if(excluir){excluirVersao(Number(excluir.dataset.excluirVersao));return;}
       const chk=item.querySelector('.chk-versao');chk.checked=!chk.checked;
       item.classList.toggle('selecionada',chk.checked);
     });
   });
+}
+// Exclui uma versão do orçamento em edição; sempre fica pelo menos uma
+async function excluirVersao(numero){
+  const o=orcamentoAtivo();if(!o)return;
+  if(!modoEdicao||orcamentoEditandoId!==o.id){alert('Entre em modo de edição para excluir versões.');return;}
+  const v=o.versoes.find(x=>Number(x.numero)===Number(numero));if(!v)return;
+  if(o.versoes.length<=1){alert('O orçamento precisa ter pelo menos uma versão.');return;}
+  const ativa=v===versaoAtiva(o);
+  let aviso=`Excluir a V${v.numero} "${v.rotulo}"? Essa ação não pode ser desfeita.`;
+  if(ativa){
+    const anterior=o.versoes[o.versoes.length-2];
+    aviso=`Excluir a V${v.numero} "${v.rotulo}", que é a versão ativa? A V${anterior.numero} passa a ser a ativa`+
+      (temAlteracoesPendentes()?' e as alterações não salvas serão perdidas':'')+'. Essa ação não pode ser desfeita.';
+  }
+  if(!confirm(aviso))return;
+  try{
+    const resposta=await fetchComTimeout('/api/orcamentos?id='+encodeURIComponent(o.id)+'&versao='+encodeURIComponent(v.numero),{method:'DELETE'});
+    const resultado=await resposta.json().catch(()=>null);
+    // Versão que só existia no navegador (não chegou ao banco): basta tirá-la daqui
+    const soNoNavegador=resposta.status===404&&resultado&&resultado.erro==='versao_nao_encontrada';
+    if(!soNoNavegador&&(!resposta.ok||!resultado||resultado.ok!==true)){
+      const mensagens={
+        ultima_versao:'O orçamento precisa ter pelo menos uma versão.',
+        bloqueio_nao_permitido:'O bloqueio de edição não está ativo para sua conta. Volte à lista e reabra em Editar.',
+        somente_visualizacao:'Sua conta tem permissão somente para visualizar.',
+        nao_autenticado:'Sua sessão expirou. Entre novamente.'
+      };
+      throw new Error(mensagens[resultado&&resultado.erro]||('A API recusou a exclusão ('+resposta.status+').'));
+    }
+  }catch(erro){
+    alert('Não foi possível excluir a versão: '+erro.message);
+    return;
+  }
+  o.versoes=o.versoes.filter(x=>x!==v);
+  if(ativa)rascunhoServico=null;
+  // O banco não tem mais essa versão: tira também da cópia usada para detectar alterações
+  if(snapshotServidor&&snapshotServidor[o.id]){
+    const banco=JSON.parse(snapshotServidor[o.id]);
+    banco.versoes=banco.versoes.filter(x=>x.numero!==(Number(v.numero)||0));
+    snapshotServidor[o.id]=JSON.stringify(banco);
+  }
+  salvar();renderTudo();
+  if($('#modalVersoes').open){renderVersoes(o);$('#comparacaoVersoes').innerHTML='';}
 }
 function compararVersoes(){
   const o=orcamentoAtivo();if(!o)return;
