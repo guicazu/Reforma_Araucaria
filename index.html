@@ -183,8 +183,7 @@
       <div class="orcamento-head-actions">
         <button id="btnDuplicar" class="btn btn-ghost" title="Duplicar o orçamento atual"><svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg>Duplicar</button>
         <button id="btnVersoes" class="btn btn-ghost" title="Versões e comparação"><svg class="ic" aria-hidden="true"><use href="#i-versoes"/></svg>Versões</button>
-        <button id="btnExportarExcel" class="btn btn-ghost" title="Exportar planilha .xlsx"><svg class="ic" aria-hidden="true"><use href="#i-planilha"/></svg>Excel</button>
-        <button id="btnExportarPdf" class="btn btn-ghost" title="Imprimir / Salvar como PDF"><svg class="ic" aria-hidden="true"><use href="#i-imprimir"/></svg>PDF</button>
+        <button id="btnExportar" class="btn btn-ghost" title="Relatórios em PDF ou Excel"><svg class="ic" aria-hidden="true"><use href="#i-baixar"/></svg>Exportar</button>
         <button id="btnRenomear" class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg>Renomear</button>
         <button id="btnAddUnidade" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-mais"/></svg>Unidade construtiva</button>
         <button id="btnSalvarOrcamento" class="btn btn-primary" title="Salvar alterações no banco"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
@@ -717,6 +716,39 @@
 
 </div>
 
+<dialog id="modalExportar" class="modal modal-exportar" aria-labelledby="exportarTitulo">
+  <h3 id="exportarTitulo">Exportar</h3>
+  <p class="exportar-orcamento" id="exportarOrcamento"></p>
+  <fieldset class="exportar-relatorios">
+    <legend class="exportar-rotulo">Relatório</legend>
+    <label class="exportar-opcao"><input type="radio" name="exportarRelatorio" value="orcamento" /><span><strong>Orçamento</strong><small>EAP com quantidades, preços e totais até o nível escolhido</small></span></label>
+    <label class="exportar-opcao"><input type="radio" name="exportarRelatorio" value="abcServicos" /><span><strong>Curva ABC de serviços</strong><small>Serviços do maior para o menor custo, com as faixas A, B e C</small></span></label>
+    <label class="exportar-opcao"><input type="radio" name="exportarRelatorio" value="abcInsumos" /><span><strong>Curva ABC de insumos</strong><small>Materiais, mão de obra e equipamentos somados de todas as composições</small></span></label>
+  </fieldset>
+  <div class="exportar-detalhes" id="exportarOpcoesOrcamento">
+    <span class="exportar-rotulo">Nível de detalhe</span>
+    <div class="exportar-niveis">
+      <div class="pesquisa-bases" role="radiogroup" aria-label="Nível de detalhe"><label><input type="radio" name="exportarNivel" value="1" /><span>1</span></label><label><input type="radio" name="exportarNivel" value="2" /><span>2</span></label><label><input type="radio" name="exportarNivel" value="3" /><span>3</span></label><label><input type="radio" name="exportarNivel" value="4" /><span>4</span></label><label><input type="radio" name="exportarNivel" value="5" /><span>5</span></label></div>
+      <span class="exportar-legenda" id="exportarNivelLegenda"></span>
+    </div>
+    <label class="exportar-check"><input type="checkbox" id="exportarSeparar" /> Separar material, mão de obra e equipamento</label>
+  </div>
+  <div class="exportar-linha">
+    <label class="exportar-campo"><span class="exportar-rotulo">Versão</span><select id="exportarVersao"></select></label>
+    <div class="exportar-campo"><span class="exportar-rotulo">Formato</span>
+      <div class="pesquisa-bases" role="radiogroup" aria-label="Formato">
+        <label><input type="radio" name="exportarFormato" value="pdf" /><span>PDF</span></label>
+        <label><input type="radio" name="exportarFormato" value="xlsx" /><span>Excel</span></label>
+      </div>
+    </div>
+  </div>
+  <p id="exportarStatus" class="sinapi-status" role="status" aria-live="polite"></p>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-ghost" id="btnCancelarExportar">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="btnConfirmarExportar"><svg class="ic" aria-hidden="true"><use href="#i-baixar"/></svg>Exportar</button>
+  </div>
+</dialog>
+
 <dialog id="modalPesquisaServico" class="modal modal-lg" aria-labelledby="pesquisaServicoTitulo">
   <div class="sinapi-modal-heading">
     <div>
@@ -756,7 +788,6 @@
   </div>
 </dialog>
 
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="/js/texto.js"></script>
 <script src="/js/icones.js"></script>
   <script src="js/app.js"></script>
@@ -767,6 +798,7 @@
 <script src="/js/admin-ui.js"></script>
 <script src="/js/sinapi-ui.js"></script>
 <script src="/js/pesquisa-servico.js"></script>
+<script src="/js/relatorios.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
 <script src="/js/suprimentos.js"></script>

@@ -36,10 +36,11 @@ async function consultarSinpres(termo) {
     include_total: 'false',
     limit: String(LIMITE_SINPRES)
   });
-  // Cache de 1 h na Cloudflare: os preços mudam por mês e as mesmas palavras se repetem enquanto se digita
+  // Cache de 1 h na Cloudflare: os preços mudam por mês e as mesmas palavras se repetem enquanto se digita.
+  // Só respostas boas: um "limite excedido" (429) guardado travaria a busca por 1 h
   const resp = await fetch(
     `https://api.sinpres.com.br/api/v1/sectors/civil-construction/compositions?${params.toString()}`,
-    { cf: { cacheTtl: 3600 } }
+    { cf: { cacheTtlByStatus: { '200-299': 3600, '300-599': 0 } } }
   );
   if (!resp.ok) throw new Error('sinapi_erro');
   const dados = await resp.json();

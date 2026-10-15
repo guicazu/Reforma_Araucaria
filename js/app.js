@@ -944,6 +944,7 @@ function renderLista(){
     const bloqueio=bloqueiosPorOrcamento[o.id];
     const estado=bloqueio?`<span class="oi-bloqueio">${icone('cadeado','ic-sm')}Em edição por ${esc(bloqueio.usuarioNome||bloqueio.nome||bloqueio.usuarioEmail||bloqueio.email||'')}</span>`:'';
     const acoes=`<button class="btn btn-ghost btn-xs" data-acao="ver-orcamento" data-id="${esc(o.id)}" title="Abrir para visualizar">${icone('ver')}Visualizar</button>`+
+      `<button class="btn btn-ghost btn-xs" data-acao="exportar-orcamento" data-id="${esc(o.id)}" title="Relatórios em PDF ou Excel">${icone('baixar')}Exportar</button>`+
       (usuarioPodeEditar?`<button class="btn btn-ghost btn-xs" data-acao="editar-orcamento" data-id="${esc(o.id)}" title="Abrir para editar">${icone('editar')}Editar</button>`:'')+
       (usuarioPodeEditar?`<button class="btn-icon" data-acao="dup-orcamento" data-id="${esc(o.id)}" title="Duplicar">${icone('copiar')}</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${esc(o.id)}" title="Excluir">${icone('excluir')}</button>`:'');
     return `<li class="orcamento-item${ativo}" data-orcamento-id="${esc(o.id)}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · Rev.${versaoAtiva(o).revisao||0} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div>${estado}<div class="oi-acoes">${acoes}</div></li>`;
@@ -1117,8 +1118,6 @@ const CAMPOS_MEMO=[['quantidade','Qtd','1'],['coeficiente','Coef.','1'],['compri
 function unidadeLinhaMemo(r,sv){return r.tipo==='qtd'?(sv.unidadeMedida||''):(r.tipo||'');}
 function textoResultadoMemo(r){return r.valor==null?'—':fmtNum.format(r.valor);}
 function textoValorMemo(r,sv){return r.valor==null||sv.valorUnitario==null?'—':fmtBRL.format(r.valor*(num(sv.valorUnitario)||0));}
-// campo vazio sai vazio na planilha (não é zero: só não entra na conta)
-function celulaMemo(v){const n=num(v);return n==null?'':num2(n);}
 function renderMemo(sv){
   const so=modoEdicao?'':' readonly';
   const cab=`
@@ -1156,86 +1155,6 @@ function renderMemo(sv){
 
 /* ---------- formulário serviço ---------- */
 
-/* ---------- exportar Excel / PDF ---------- */
-function exportarExcel(){
-  const o=orcamentoAtivo();if(!o)return;
-  const unidades=uu(o);
-  const composicoes=mapaComposicoes();
-  const linhaServico=(codigoEap,recuo,sv)=>{
-    const f=fonteServico(sv,composicoes);
-    return [codigoEap,f.codigo,f.base,recuo+sv.nome,sv.unidadeMedida||'',num2(qtdServico(sv)),num2(num(sv.valorUnitario)),num2(totalServico(sv))];
-  };
-  const rows=[];
-  rows.push(['CÓDIGO EAP','CÓDIGO SERVIÇO/INSUMO','BASE','DESCRIÇÃO','UN.','QUANTIDADE ORÇADA','PREÇO UNITÁRIO','PREÇO TOTAL']);
-  unidades.forEach((u,iu)=>{
-    rows.push([String(iu+1),'','',tudoMaiusculo(u.nome),'',null,null,num2(subtotalUnidade(o,u))]);
-    u.etapas.forEach((e,ie)=>{
-      const codigoEtapa=`${iu+1}.${ie+1}`;
-      rows.push([codigoEtapa,'','','   '+e.nome,'',null,null,num2(subtotalEtapa(e))]);
-      (e.servicos||[]).forEach((sv,isv)=>{
-        rows.push(linhaServico(`${codigoEtapa}.${isv+1}`,'      ',sv));
-      });
-      e.subEtapas.forEach((s,is)=>{
-        const codigoSub=`${codigoEtapa}.${(e.servicos||[]).length+is+1}`;
-        rows.push([codigoSub,'','','      '+s.nome,'',null,null,num2(subtotalSub(s))]);
-        s.servicos.forEach((sv,isv)=>{
-          rows.push(linhaServico(`${codigoSub}.${isv+1}`,'         ',sv));
-        });
-      });
-    });
-  });
-  rows.push([]);
-  rows.push(['','','','TOTAL GERAL','','','',num2(totalOrcamento(o))]);
-
-  const mrows=[['CÓDIGO DO SERVIÇO','SERVIÇO','DESCRIÇÃO','QTD','COEF.','COMPR.','ALTURA','LARGURA','RESULTADO']];
-  unidades.forEach((u,iu)=>{
-    u.etapas.forEach((e,ie)=>{
-      const codigoEtapa=`${iu+1}.${ie+1}`;
-      (e.servicos||[]).forEach((sv,isv)=>{
-        if(sv.memo&&sv.memo.length){
-          const cod=`${codigoEtapa}.${isv+1}`;
-          sv.memo.forEach(l=>{
-            const r=calcularLinha(l);
-            mrows.push([cod,sv.nome,l.descricao||'',celulaMemo(l.quantidade),celulaMemo(l.coeficiente),celulaMemo(l.comprimento),celulaMemo(l.altura),celulaMemo(l.largura),r.valor==null?'':num2(r.valor)+' '+unidadeLinhaMemo(r,sv)]);
-          });
-        }
-      });
-      e.subEtapas.forEach((s,is)=>{
-        const codigoSub=`${codigoEtapa}.${(e.servicos||[]).length+is+1}`;
-        s.servicos.forEach((sv,isv)=>{
-          if(sv.memo&&sv.memo.length){
-            const cod=`${codigoSub}.${isv+1}`;
-            sv.memo.forEach(l=>{
-              const r=calcularLinha(l);
-              mrows.push([cod,sv.nome,l.descricao||'',celulaMemo(l.quantidade),celulaMemo(l.coeficiente),celulaMemo(l.comprimento),celulaMemo(l.altura),celulaMemo(l.largura),r.valor==null?'':num2(r.valor)+' '+unidadeLinhaMemo(r,sv)]);
-            });
-          }
-        });
-      });
-    });
-  });
-
-  const nomeArquivo=((o.codigo||'orcamento')+'-'+o.nome).replace(/[^a-zA-Z0-9\-_]+/g,'_');
-  try{
-    if(typeof XLSX!=='undefined'){
-      const ws=XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols']=[{wch:14},{wch:16},{wch:9},{wch:50},{wch:6},{wch:14},{wch:14},{wch:16}];
-      const wb=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb,ws,'Orçamento');
-      if(mrows.length>1){
-        const ws2=XLSX.utils.aoa_to_sheet(mrows);
-        ws2['!cols']=[{wch:14},{wch:36},{wch:36},{wch:8},{wch:8},{wch:10},{wch:8},{wch:9},{wch:14}];
-        XLSX.utils.book_append_sheet(wb,ws2,'Memória de cálculo');
-      }
-      XLSX.writeFile(wb,nomeArquivo+'.xlsx');
-      return;
-    }
-  }catch(err){}
-  const csv='\uFEFF'+rows.map(r=>r.map(c=>{if(c==null)return'';const s=String(c).replace(/"/g,'""');return /[";]/.test(s)?'"'+s+'"':s;}).join(';')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nomeArquivo+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
-}
-function exportarPdf(){window.print();}
 
 /* ---------- eventos ---------- */
 $('#listaOrcamentos').addEventListener('click',(ev)=>{
@@ -1244,6 +1163,7 @@ $('#listaOrcamentos').addEventListener('click',(ev)=>{
     if(b.dataset.acao==='editar-orcamento'){abrirParaEditar(b.dataset.id);return;}
     if(b.dataset.acao==='del-orcamento'){excluirOrcamento(b.dataset.id);return;}
     if(b.dataset.acao==='dup-orcamento'){duplicarOrcamento(b.dataset.id);return;}
+    if(b.dataset.acao==='exportar-orcamento'){if(window.Relatorios)window.Relatorios.abrir(b.dataset.id);return;}
   }
 });
 
@@ -1396,8 +1316,7 @@ $('#btnVersoes').addEventListener('click',()=>{const o=orcamentoAtivo();if(!o)re
 $('#btnGerarVersao').addEventListener('click',gerarVersao);
 $('#btnCompararVersoes').addEventListener('click',compararVersoes);
 $('#btnFecharVersoes').addEventListener('click',()=>$('#modalVersoes').close());
-$('#btnExportarExcel').addEventListener('click',exportarExcel);
-$('#btnExportarPdf').addEventListener('click',exportarPdf);
+$('#btnExportar').addEventListener('click',()=>{const o=orcamentoAtivo();if(o&&window.Relatorios)window.Relatorios.abrir(o.id);});
 $('#btnSalvarOrcamento').addEventListener('click',salvarNoServidor);
 $('#btnSalvarLista').addEventListener('click',salvarNoServidor);
 $('#btnEntrarEdicao').addEventListener('click',()=>{
