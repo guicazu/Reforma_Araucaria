@@ -18,8 +18,9 @@ const state=carregarEstado();
 /* --- migrar estrutura antiga (unidades no topo) para versões --- */
 function migrarOrcamento(o){
   if(!Array.isArray(o.versoes)||!o.versoes.length){
-    o.versoes=[{id:uid(),numero:1,rotulo:'Versão 1',criadoEm:o.criadoEm||new Date().toISOString(),unidades:Array.isArray(o.unidades)?o.unidades:[]}];
+    o.versoes=[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',criadoEm:o.criadoEm||new Date().toISOString(),unidades:Array.isArray(o.unidades)?o.unidades:[]}];
   }
+  o.versoes.forEach(v=>{if(v.revisao==null)v.revisao=0;});
   delete o.unidades;
   return o;
 }
@@ -188,6 +189,14 @@ async function salvarNoServidor(){
     }
     if(!resultado || resultado.ok !== true)throw new Error('A API não confirmou a gravação');
     snapshotServidor = snapshot;
+    const oSalvo = state.orcamentos.find(x=>x.id===orcamentoEditandoId);
+    if(oSalvo){
+      const v = versaoAtiva(oSalvo);
+      v.revisao = (typeof resultado.revisao === 'number') ? resultado.revisao : (Number(v.revisao)||0)+1;
+      localStorage.setItem(DB_KEY, JSON.stringify(state));
+      renderConteudo();
+      renderLista();
+    }
   }catch(erro){
     console.error('Não foi possível salvar as alterações no banco:', erro);
     erroSalvamento = true;
@@ -226,7 +235,7 @@ async function criarOrcamento(){
   const nome=prompt('Nome do orçamento (ex.: Reforma Araucária):','');
   if(nome===null)return;
   const agora=new Date().toISOString();
-  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,rotulo:'Versão 1',criadoEm:agora,unidades:[]}]};
+  const novo={id:uid(),codigo:proximoCodigo(),nome:nome.trim()||'Orçamento sem nome',criadoEm:agora,versoes:[{id:uid(),numero:1,revisao:0,rotulo:'Versão 1',criadoEm:agora,unidades:[]}]};
   try{
     await window.bloquearOrcamento(novo.id);
     orcamentoEditandoId=novo.id;
@@ -378,7 +387,7 @@ function gerarVersao(){
   const novoNum=Math.max(...o.versoes.map(v=>v.numero))+1;
   const rotulo=prompt(`Rótulo da versão ${novoNum} (ex.: Após revisão da cobertura):`, `Versão ${novoNum}`);
   if(rotulo===null)return;
-  o.versoes.push({id:uid(),numero:novoNum,rotulo:rotulo.trim()||('Versão '+novoNum),criadoEm:new Date().toISOString(),unidades:clone(ativa.unidades)});
+  o.versoes.push({id:uid(),numero:novoNum,revisao:0,rotulo:rotulo.trim()||('Versão '+novoNum),criadoEm:new Date().toISOString(),unidades:clone(ativa.unidades)});
   state.expandidos={};
   salvar();renderTudo();
   if($('#modalVersoes').open)renderVersoes(o);
@@ -428,7 +437,7 @@ function renderVersoes(o){
     const ultima=idx===o.versoes.length-1;
     return `<div class="versao-item" data-idx="${idx}">
       <input type="checkbox" class="chk-versao" value="${idx}" />
-      <span class="v-num">V${v.numero}</span>
+      <span class="v-num">V${v.numero} · Rev.${v.revisao||0}</span>
       <span class="v-info"><strong>${esc(v.rotulo)}</strong><small>${new Date(v.criadoEm).toLocaleString('pt-BR')} · ${fmtBRL.format(totalVersao(v))}</small></span>
       ${ultima?'<span class="badge-ativa">Ativa</span>':''}
     </div>`;
@@ -667,7 +676,7 @@ function renderLista(){
     const acoes=`<button class="btn btn-ghost btn-xs" data-acao="ver-orcamento" data-id="${esc(o.id)}" title="Abrir para visualizar">👁 Visualizar</button>`+
       (usuarioPodeEditar?`<button class="btn btn-ghost btn-xs" data-acao="editar-orcamento" data-id="${esc(o.id)}" title="Abrir para editar">✏️ Editar</button>`:'')+
       (usuarioPodeEditar?`<button class="btn-icon" data-acao="dup-orcamento" data-id="${esc(o.id)}" title="Duplicar">⧉</button><button class="btn-icon btn-danger" data-acao="del-orcamento" data-id="${esc(o.id)}" title="Excluir">🗑</button>`:'');
-    return `<li class="orcamento-item${ativo}" data-orcamento-id="${esc(o.id)}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div>${estado}<div class="oi-acoes">${acoes}</div></li>`;
+    return `<li class="orcamento-item${ativo}" data-orcamento-id="${esc(o.id)}"><div class="oi-info"><strong>${esc(o.codigo||'')} — ${esc(o.nome)}</strong><span>${fmtBRL.format(totalOrcamento(o))} · V${versaoAtiva(o).numero} · Rev.${versaoAtiva(o).revisao||0} · ${new Date(o.criadoEm).toLocaleDateString('pt-BR')}</span></div>${estado}<div class="oi-acoes">${acoes}</div></li>`;
   }).join('');
 }
 
@@ -677,7 +686,7 @@ $('#orcamentoNome').textContent=(o.codigo?o.codigo+' — ':'')+o.nome;
 $('#orcamentoMeta').textContent='Criado em '+new Date(o.criadoEm).toLocaleDateString('pt-BR')+' · '+contarServicos(o)+' serviço(s) · '+o.versoes.length+' versão(ões)';
 $('#totalGeral').textContent=fmtBRL.format(totalOrcamento(o));
 $('#totalServicos').textContent=contarServicos(o);
-$('#versaoAtivaLabel').textContent='V'+versaoAtiva(o).numero;
+$('#versaoAtivaLabel').textContent='V'+versaoAtiva(o).numero+' · Rev. '+(versaoAtiva(o).revisao||0);
 $('#totalRodape').textContent=fmtBRL.format(totalOrcamento(o));
 $('#corpoTabela').innerHTML=renderTabela(o);}
 
