@@ -1,5 +1,7 @@
 /* Controla o menu lateral: recolher/expandir e troca entre as views
-   (Início / Orçamento / Usuários / Backup / Suprimentos). Não depende do app.js. */
+   (Início / Orçamento / Usuários / Backup / Suprimentos / Financeiro). Não depende do app.js.
+   Os itens de Suprimentos são a mesma view com data-aba diferente (Painel, Solicitações...):
+   o evento app:viewchange leva { view, aba }. window.ErpNav.abrir(view, aba) navega pelo código. */
 (function () {
   'use strict';
 
@@ -16,18 +18,20 @@
     composicoes: document.getElementById('viewComposicoes'),
     insumos: document.getElementById('viewInsumos'),
     unidades: document.getElementById('viewUnidades'),
-    suprimentos: document.getElementById('viewSuprimentos')
+    suprimentos: document.getElementById('viewSuprimentos'),
+    financeiro: document.getElementById('viewFinanceiro')
   };
-  var itens = document.querySelectorAll('.app-sidebar-item[data-view]');
+  var itens = Array.prototype.slice.call(document.querySelectorAll('.app-sidebar-item[data-view]'));
 
-  function mostrarView(nome) {
+  function mostrarView(nome, aba) {
     Object.keys(views).forEach(function (key) {
       if (views[key]) views[key].classList.toggle('hidden', key !== nome);
     });
     itens.forEach(function (it) {
-      it.classList.toggle('ativo', it.dataset.view === nome);
+      var mesmaView = it.dataset.view === nome;
+      it.classList.toggle('ativo', mesmaView && (!it.dataset.aba || it.dataset.aba === aba));
     });
-    document.dispatchEvent(new CustomEvent('app:viewchange', { detail: { view: nome } }));
+    document.dispatchEvent(new CustomEvent('app:viewchange', { detail: { view: nome, aba: aba || null } }));
   }
 
   // Em telas pequenas o menu cobre o conteúdo: começa recolhido e recolhe ao escolher uma opção
@@ -35,10 +39,12 @@
 
   itens.forEach(function (it) {
     it.addEventListener('click', function () {
-      mostrarView(it.dataset.view);
+      mostrarView(it.dataset.view, it.dataset.aba);
       if (telaPequena && sidebar) sidebar.classList.add('recolhido');
     });
   });
+
+  window.ErpNav = { abrir: mostrarView };
 
   if (toggle && sidebar) {
     toggle.addEventListener('click', function () {

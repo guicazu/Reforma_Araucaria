@@ -8,12 +8,11 @@ const CAMINHOS_PUBLICOS = [
   '/api/auth/google-callback',
   '/api/auth/microsoft',
   '/api/auth/microsoft-callback',
-  '/api/compras/confirmar', // link antigo de confirmação enviado ao fornecedor
-  '/confirmar-pedido', // Cloudflare Pages redireciona /confirmar-pedido.html para cá
-  '/confirmar-pedido.html'
+  '/portal-fornecedor', // Cloudflare Pages redireciona /portal-fornecedor.html para cá
+  '/portal-fornecedor.html'
 ];
-// /api/compras/confirmar/<token>: dados e confirmação do pedido, usados pela página do fornecedor
-const PREFIXOS_PUBLICOS = ['/css/', '/js/', '/api/compras/confirmar/'];
+// /api/portal/<token>: o fornecedor responde a cotação ou confirma o pedido pelo link recebido
+const PREFIXOS_PUBLICOS = ['/css/', '/js/', '/api/portal/'];
 
 export async function onRequest({ request, env, next }) {
   const url = new URL(request.url);

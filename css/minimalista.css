@@ -2,7 +2,7 @@
    Tema minimalista
    Texto pequeno, cinzas neutros, bordas finas, sem sombras nem
    gradientes; um único tom escuro para as ações principais.
-   Carregado por último: sobrescreve style.css e suprimentos.css.
+   Carregado por último: sobrescreve style.css.
    ============================================================ */
 :root{
   --tinta:#18181b;--texto:#27272a;--suave:#71717a;--fraco:#a1a1aa;
@@ -74,8 +74,8 @@ b,strong{font-weight:600}
 /* ---------- botões ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--borda);border-radius:6px;background:var(--superficie);color:var(--texto);font-size:12.5px;font-weight:500;line-height:1;box-shadow:none;filter:none;white-space:nowrap}
 .btn:hover{background:var(--hover);filter:none}
-.btn-primary,.modal-import .btn-primary,#viewPlanejamento .btn-primary,#viewSuprimentos .btn-primary{background:var(--tinta);border-color:var(--tinta);color:#fff}
-.btn-primary:hover,.modal-import .btn-primary:hover,#viewPlanejamento .btn-primary:hover,#viewSuprimentos .btn-primary:hover{background:#3f3f46;border-color:#3f3f46;color:#fff}
+.btn-primary,.modal-import .btn-primary,#viewPlanejamento .btn-primary{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.btn-primary:hover,.modal-import .btn-primary:hover,#viewPlanejamento .btn-primary:hover{background:#3f3f46;border-color:#3f3f46;color:#fff}
 .btn-ghost,.modal-import .btn-ghost,#viewPlanejamento .btn-ghost{background:transparent;border-color:var(--borda);color:var(--texto)}
 .btn-ghost:hover,.modal-import .btn-ghost:hover,#viewPlanejamento .btn-ghost:hover{background:var(--hover);color:var(--tinta)}
 .btn-danger{background:transparent;border-color:var(--borda);color:var(--vermelho)}
@@ -97,7 +97,7 @@ textarea{height:auto;padding:7px 9px}
 input[type=checkbox],input[type=radio]{width:auto;height:auto;accent-color:var(--tinta)}
 input[type=file]{height:auto;padding:0;border:0}
 input:focus,select:focus,textarea:focus,
-#viewSuprimentos textarea:focus,#viewSuprimentos input:focus{outline:none;border-color:#a1a1aa;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.supr textarea:focus,.supr input:focus{outline:none;border-color:#a1a1aa;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
 input::placeholder{color:var(--fraco)}
 
 /* ---------- lista de orçamentos ---------- */
@@ -401,42 +401,7 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 #viewPlanejamento .tabela tbody td{border-bottom-color:var(--linha);font-size:12.5px}
 #viewPlanejamento .tabela tbody tr:hover td{background:#fafafa}
 
-/* ---------- suprimentos (paleta própria vira neutra) ---------- */
-#viewSuprimentos{--cazu-petroleo:#18181b;--cazu-petroleo-2:#27272a;--cazu-verde:#3f3f46;--cazu-limao:#d4d4d8;--cazu-limao-2:#d4d4d8;--cazu-cinza:#a1a1aa;--cazu-cinza-2:#71717a;--cazu-bg:#fafafa;--cazu-branco:#fff;--cazu-borda:#e4e4e7;--cazu-suave:#71717a;font-family:inherit}
-.supr-header h2{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:600;letter-spacing:-.01em}
-.supr-header p{font-size:12px}
-.supr-select-orcamento{font-size:12px}
-.supr-select-orcamento select{height:30px;padding:0 9px;border-radius:6px;font-weight:500}
-.supr-readonly-banner{background:#fafafa;border-color:var(--borda);color:var(--suave);border-radius:8px;font-size:12px}
-.supr-step{background:transparent;border-color:var(--borda);font-size:11.5px;font-weight:500;color:var(--suave)}
-.supr-step .n{background:var(--hover);color:var(--suave)}
-.supr-step.ativo{background:var(--tinta);border-color:var(--tinta);color:#fff}
-.supr-step.ativo .n{background:#fff;color:var(--tinta)}
-.supr-step.concluido{background:transparent;border-color:var(--borda);color:var(--texto)}
-.supr-step.concluido .n{background:var(--texto);color:#fff}
-.supr-tabs{border-bottom:1px solid var(--borda)}
-.supr-tab{padding:8px 12px;font-size:12.5px;font-weight:500;color:var(--suave);border-bottom-width:2px;border-radius:0}
-.supr-tab:hover{background:transparent;color:var(--tinta)}
-.supr-tab.ativa{background:transparent;color:var(--tinta);border-bottom-color:var(--tinta)}
-.supr-card{border:1px solid var(--borda);border-left:1px solid var(--borda);border-radius:8px;box-shadow:none}
-.supr-card:hover{box-shadow:none;border-color:#d4d4d8}
-.supr-card-head strong{font-size:13px;font-weight:500}
-.supr-card-body{font-size:12px}
-.badge{padding:1px 7px;border:1px solid var(--borda);border-radius:4px;background:transparent!important;color:var(--suave)!important;font-size:10px;font-weight:500;letter-spacing:.03em}
-.badge-confirmado,.badge-recebido{color:var(--verde)!important}
-.badge-cancelado{color:var(--vermelho)!important}
-.supr-item-linha:hover{border-color:#d4d4d8}
-.supr-msg{padding:8px 12px;font-size:12px;font-weight:500}
-.supr-msg.ok{background:#f0fdf4;color:var(--verde)}
-.supr-msg.erro{background:#fef2f2;color:var(--vermelho)}
-.mapa-cotacao th,#viewSuprimentos table.tabela th{background:var(--superficie);color:var(--suave);border-bottom:1px solid var(--borda);font-size:10.5px;font-weight:500}
-.mapa-cotacao th .supr-forn-head small{color:var(--fraco)}
-.mapa-cotacao th .supr-cond-pag{border:1px solid var(--borda)}
-.supr-mapa-scroll,.supr-table-wrap{border-radius:8px;box-shadow:none}
-tr.supr-total-row td{background:#fafafa}
-.supr-resumo-cards .resumo-card{border-radius:8px;box-shadow:none}
-.supr-resumo-cards .resumo-card span{font-size:11px;font-weight:400}
-.supr-resumo-cards .resumo-card strong{font-size:15px;font-weight:600}
+/* ---------- suprimentos e contas a pagar: ver css/suprimentos.css ---------- */
 
 /* ---------- usuários e liberação ---------- */
 .ua-table{border-radius:8px}

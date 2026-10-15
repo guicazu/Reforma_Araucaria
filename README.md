@@ -26,6 +26,32 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
   - Adicionar serviço diretamente sob uma etapa (sub-etapa opcional)
   - Menus "Composições" e "Insumos" no sidebar para gerenciamento de materiais
 
+### Suprimentos (no padrão do SIENGE)
+
+Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da versão ativa.
+
+- **Solicitação de compra** por insumo do orçamento: as composições (SINAPI pela base própria e
+  composições próprias) são abertas até os insumos, com quantidade e saldo orçado por serviço.
+  Item acima do saldo ou fora do orçamento sempre vai para autorização (ou é bloqueado, pelo
+  parâmetro). A autorização é por item: os desmarcados são reprovados com motivo.
+- **Cotação** com mapa comparativo (preço, pagamento, prazo, frete, validade), menor preço em
+  destaque, rodadas de negociação, vencedor por item ou pelo menor total e divisão de um item entre
+  fornecedores. O fornecedor responde pelo **portal** (`/portal-fornecedor?t=...`, sem login).
+- **Pedido de compra** gerado pela cotação ou por compra direta, autorizado por **alçada** (tipo de
+  documento e valor por usuário), enviado ao fornecedor por e-mail com PDF ou por link de
+  confirmação; encerramento de saldo e cancelamento.
+- **Entrada de nota fiscal** com entrega parcial, importação do XML da NF-e (fornecedor pelo CNPJ,
+  itens casados com o pedido, impostos e duplicatas), parcelas no contas a pagar e entrada no
+  estoque com frete e impostos rateados no custo. Cancelar a nota estorna tudo.
+- **Contratos e medições**: itens apropriados nos serviços, aditivos (acréscimo, supressão, item
+  novo, prazo), medições com caução, INSS, ISS, IR e PIS/COFINS/CSLL retidos; o líquido vira título
+  a pagar e a caução é liberada no encerramento.
+- **Estoque por obra**: saldo e custo médio, saída para serviço (requisição de material),
+  transferência entre obras, entrada avulsa, inventário e estorno.
+- **Autorizações**, **Painel** (pendências, atrasos, entregas e pagamentos) e **Acompanhamento**
+  (orçado × comprometido × realizado por serviço e por insumo, com CSV).
+- **Financeiro › Contas a pagar**: baixa, estorno e alteração de vencimento dos títulos.
+
 ## Stack
 
 - Front-end: HTML / CSS / JavaScript puro (sem build step)
@@ -36,17 +62,24 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 ## Estrutura
 
 ```
-css/                      estilos
+css/                      estilos (suprimentos.css: telas de Suprimentos e Contas a pagar)
 js/                       app.js (lógica dos orçamentos e sincronização manual com o servidor)
+js/suprimentos/           telas de Suprimentos (nucleo.js: API, janelas, navegação, escolha de insumo)
+js/financeiro.js          Contas a pagar
+portal-fornecedor.html    página pública do fornecedor (responder cotação, confirmar pedido)
 db/                       schema.sql dos orçamentos, schema-usuarios.sql dos usuários
 functions/
   _middleware.js          bloqueia todo o site pra quem não tem sessão aprovada
   _lib/
     session.js             cookie de sessão assinado (HMAC-SHA256)
+    suprimentos/           regras de Suprimentos (orçado por insumo, SC, cotação, pedido, nota,
+                           contrato, estoque, contas a pagar, portal e PDF); rotas em rotas.js
     usuarios.js             cria/aprova usuário no primeiro login
   api/
     orcamentos.js           GET/POST do snapshot de orçamentos (D1)
     bloqueios.js            aquisição e liberação de bloqueios de edição
+    suprimentos/[[rota]].js /api/suprimentos/* (tabela de rotas em _lib/suprimentos/rotas.js)
+    portal/[[rota]].js      /api/portal/<token> — rota pública do portal do fornecedor
     auth/
       google.js / google-callback.js         fluxo OAuth Google
       microsoft.js / microsoft-callback.js   fluxo OAuth Microsoft
@@ -84,6 +117,8 @@ Variáveis de ambiente necessárias (**Workers e Pages → Settings → Environm
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | credenciais OAuth do Microsoft Entra |
 | `SESSION_SECRET` | string aleatória usada para assinar o cookie de sessão |
 | `ADMIN_EMAILS` | e-mails (separados por vírgula) com acesso ao painel `/admin.html` |
+| `RESEND_API_KEY` | (opcional) envio de e-mail de pedidos e convites de cotação pelo [Resend](https://resend.com); sem ela, use "Copiar link" |
+| `REMETENTE_EMAIL` | (opcional) remetente dos e-mails, ex.: `Compras <compras@seudominio.com.br>` |
 
 Associação de banco de dados (**Settings → Functions → D1 database bindings**):
 nome `DB` → banco `ibuild-orcamentos`.
@@ -99,3 +134,13 @@ Execute pelo console do D1 (**Workers e Pages → D1 → ibuild-orcamentos → C
 Não execute a migração em bancos que já tenham a coluna `usuarios.podeEditar`. A migração foi
 aplicada ao D1 de produção; usuários existentes permanecem somente com visualização até a liberação
 de edição pelo administrador.
+
+Suprimentos usa as tabelas `supr_*` e `fin_titulos`, criadas por
+`db/migrations/20261017_suprimentos.sql` (idempotente, só cria e preenche valores iniciais):
+
+```sh
+wrangler d1 execute ibuild-orcamentos --remote --file=db/migrations/20261017_suprimentos.sql
+```
+
+As tabelas antigas do módulo de compras (`requisicoes`, `itens_requisicao`, `cotacoes`,
+`cotacao_*`, `fornecedores`) não são mais usadas.

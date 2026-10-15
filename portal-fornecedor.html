@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Portal do fornecedor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Página pública: o fornecedor responde a cotação ou confirma o pedido pelo link recebido */
+  :root{--tinta:#18181b;--texto:#27272a;--suave:#71717a;--fraco:#a1a1aa;--borda:#e4e4e7;--linha:#f1f1f3;--fundo:#fafafa;--verde:#15803d;--vermelho:#b91c1c;--amarelo:#a16207}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--fundo);color:var(--texto);font:13px/1.5 Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  main{max-width:880px;margin:0 auto;padding:24px 16px 64px}
+  header{margin-bottom:18px}
+  header .empresa{font-size:12px;color:var(--suave)}
+  h1{margin:2px 0 4px;font-size:19px;font-weight:600;color:var(--tinta);letter-spacing:-.01em}
+  h2{margin:22px 0 8px;font-size:14px;font-weight:600;color:var(--tinta)}
+  .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--suave)}
+  .meta b{color:var(--texto);font-weight:500}
+  .cartao{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:14px 16px}
+  .aviso{margin:0 0 14px;padding:10px 12px;border-radius:8px;border:1px solid var(--borda);background:#fff;font-size:12.5px}
+  .aviso.ok{border-color:#bbf7d0;background:#f0fdf4;color:#14532d}
+  .aviso.erro{border-color:#fecaca;background:#fef2f2;color:#7f1d1d}
+  .aviso.alerta{border-color:#fde68a;background:#fefce8;color:#713f12}
+  .item{display:grid;grid-template-columns:1fr 130px 150px;gap:8px 12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--linha)}
+  .item:last-child{border-bottom:0}
+  .item .desc b{display:block;font-weight:500;color:var(--tinta)}
+  .item .desc small{color:var(--suave)}
+  .item .mais{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:500;color:var(--suave)}
+  input,select,textarea{width:100%;height:34px;padding:0 10px;border:1px solid var(--borda);border-radius:7px;background:#fff;color:var(--texto);font:inherit;font-size:13.5px}
+  textarea{height:auto;padding:8px 10px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#a1a1aa;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+  input.num{text-align:right}
+  .total-item{font-size:12px;color:var(--suave);text-align:right;padding-top:22px}
+  .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  .grade .largo{grid-column:1/-1}
+  .totais{display:flex;justify-content:flex-end;gap:16px;margin-top:12px;font-size:14px}
+  .totais b{font-size:16px;color:var(--tinta)}
+  .acoes{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:18px}
+  button{height:38px;padding:0 16px;border:1px solid var(--borda);border-radius:8px;background:#fff;color:var(--texto);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer}
+  button.primario{background:var(--tinta);border-color:var(--tinta);color:#fff}
+  button:disabled{opacity:.5;cursor:default}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{padding:7px 8px;border-bottom:1px solid var(--borda);color:var(--suave);font-size:10.5px;font-weight:500;letter-spacing:.04em;text-align:left}
+  td{padding:7px 8px;border-bottom:1px solid var(--linha);vertical-align:top}
+  td.num,th.num{text-align:right;white-space:nowrap}
+  .rodape{margin-top:28px;font-size:11.5px;color:var(--fraco);text-align:center}
+  @media (max-width:640px){
+    .item{grid-template-columns:1fr 1fr}
+    .item .desc{grid-column:1/-1}
+    .total-item{padding-top:0;text-align:left;grid-column:1/-1}
+    table thead{display:none}
+    table tr{display:grid;grid-template-columns:1fr 1fr;padding:8px 0;border-bottom:1px solid var(--linha)}
+    table td{border:0;padding:2px 0}
+    table td:first-child{grid-column:1/-1;font-weight:500}
+    td.num{text-align:left}
+  }
+</style>
+</head>
+<body>
+<main id="app"><p style="color:var(--suave)">Carregando…</p></main>
+<script>
+(function () {
+  'use strict';
+  var app = document.getElementById('app');
+  var token = new URLSearchParams(location.search).get('t') || new URLSearchParams(location.search).get('token') || '';
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  function moeda(v) { return fmt.format(Number(v) || 0); }
+  function qtd(v) { return (Number(v) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 }); }
+  function data(d) { return d ? String(d).slice(0, 10).split('-').reverse().join('/') : '—'; }
+  function dataHora(d) { var x = new Date(d); return isNaN(x) ? '' : x.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); }
+  function num(v) {
+    var s = String(v == null ? '' : v).trim().replace(/\s|R\$/g, '');
+    if (!s) return null;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    else if ((s.match(/\./g) || []).length > 1) s = s.replace(/\./g, '');
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  function campo(v, casas) { return v == null || v === '' ? '' : String(Math.round(v * Math.pow(10, casas)) / Math.pow(10, casas)).replace('.', ','); }
+
+  function api(metodo, caminho, corpo) {
+    return fetch('/api/portal/' + encodeURIComponent(token) + (caminho ? '/' + caminho : ''), {
+      method: metodo, headers: corpo ? { 'Content-Type': 'application/json' } : {}, body: corpo ? JSON.stringify(corpo) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) throw new Error(d.mensagem || 'Não foi possível concluir agora. Tente de novo.');
+        return d;
+      });
+    });
+  }
+
+  function falhaGeral(msg) { app.innerHTML = '<header><h1>Portal do fornecedor</h1></header><p class="aviso erro">' + esc(msg) + '</p>'; }
+
+  /* ---------- cotação ---------- */
+  function telaCotacao(empresa, c, mensagem) {
+    document.title = 'Cotação nº ' + c.numero + ' — ' + empresa.nome;
+    var aberta = c.status === 'aberta';
+    var p = c.proposta;
+    var outra = p.condicaoPagamento && !p.condicaoPagamentoId;
+    var html = '<header><div class="empresa">' + esc(empresa.nome) + '</div><h1>Solicitação de cotação nº ' + c.numero + '</h1>' +
+      '<div class="meta"><span>Fornecedor: <b>' + esc(c.fornecedor) + '</b></span>' + (c.prazoResposta ? '<span>Responder até: <b>' + data(c.prazoResposta) + '</b></span>' : '') +
+      (c.rodada > 1 ? '<span><b>' + c.rodada + 'ª rodada</b> de negociação</span>' : '') + '</div></header>' +
+      (mensagem ? '<p class="aviso ok">' + esc(mensagem) + '</p>' : '') +
+      (!aberta ? '<p class="aviso alerta">Esta cotação já foi encerrada pelo comprador. Obrigado pela participação.</p>' : '') +
+      (p.declinou ? '<p class="aviso alerta">Você informou que não vai cotar' + (p.respondidoEm ? ' em ' + dataHora(p.respondidoEm) : '') + '. Se mudar de ideia, preencha os preços e envie.</p>'
+        : p.respondidoEm ? '<p class="aviso ok">Proposta recebida em ' + dataHora(p.respondidoEm) + '. Você pode alterar e reenviar enquanto a cotação estiver aberta.</p>' : '') +
+      (c.observacoes ? '<p class="aviso">' + esc(c.observacoes) + '</p>' : '') +
+      '<h2>Itens</h2><div class="cartao">' + c.itens.map(function (i) {
+        return '<div class="item" data-item="' + esc(i.id) + '"><div class="desc"><b>' + esc(i.seq + '. ' + i.descricao) + '</b><small>' + qtd(i.quantidade) + ' ' + esc(i.unidade || '') +
+          (i.insumoCodigo ? ' · cód. ' + esc(i.insumoCodigo) : '') + (i.dataNecessidade ? ' · necessário até ' + data(i.dataNecessidade) : '') + '</small></div>' +
+          '<label>Preço unitário (R$)<input class="num" inputmode="decimal" data-preco value="' + campo(i.precoUnitario, 6) + '"' + (aberta ? '' : ' disabled') + '></label>' +
+          '<div class="total-item" data-total>' + (i.precoUnitario ? moeda(i.precoUnitario * i.quantidade) : '—') + '</div>' +
+          '<div class="mais"><label>Marca / modelo<input data-marca maxlength="120" value="' + esc(i.marca || '') + '"' + (aberta ? '' : ' disabled') + '></label>' +
+          '<label>Observação<input data-obs maxlength="300" value="' + esc(i.observacao || '') + '"' + (aberta ? '' : ' disabled') + '></label></div></div>';
+      }).join('') + '<div class="totais">Total dos itens: <b data-soma>' + moeda(0) + '</b></div></div>' +
+      '<h2>Condições</h2><div class="cartao grade">' +
+      '<label>Condição de pagamento<select data-condicao' + (aberta ? '' : ' disabled') + '><option value="">Escolha</option>' + c.condicoes.map(function (x) {
+        return '<option value="' + esc(x.id) + '"' + (x.id === p.condicaoPagamentoId ? ' selected' : '') + '>' + esc(x.descricao) + '</option>';
+      }).join('') + '<option value="__outra"' + (outra ? ' selected' : '') + '>Outra condição…</option></select></label>' +
+      '<label data-outra-wrap' + (outra ? '' : ' hidden') + '>Qual condição?<input data-outra maxlength="200" value="' + esc(outra ? p.condicaoPagamento : '') + '" placeholder="Ex.: 28/35/42 dias"' + (aberta ? '' : ' disabled') + '></label>' +
+      '<label>Prazo de entrega (dias)<input inputmode="numeric" data-prazo value="' + esc(p.prazoEntregaDias == null ? '' : p.prazoEntregaDias) + '"' + (aberta ? '' : ' disabled') + '></label>' +
+      '<label>Frete<select data-frete' + (aberta ? '' : ' disabled') + '><option value="">Escolha</option><option value="CIF"' + (p.frete === 'CIF' ? ' selected' : '') + '>CIF — incluso no preço</option>' +
+      '<option value="FOB"' + (p.frete === 'FOB' ? ' selected' : '') + '>FOB — cobrado à parte</option></select></label>' +
+      '<label>Valor do frete (R$)<input class="num" inputmode="decimal" data-valor-frete value="' + campo(p.valorFrete || '', 2) + '"' + (aberta ? '' : ' disabled') + '></label>' +
+      '<label>Validade da proposta<input type="date" data-validade value="' + esc(p.validade || '') + '"' + (aberta ? '' : ' disabled') + '></label>' +
+      '<label class="largo">Observações<textarea rows="3" data-observacoes maxlength="1000"' + (aberta ? '' : ' disabled') + '>' + esc(p.declinou ? '' : p.observacoes || '') + '</textarea></label></div>' +
+      '<div class="totais">Total da proposta: <b data-total-geral>' + moeda(0) + '</b></div>' +
+      (aberta ? '<div class="acoes"><button type="button" data-declinar>Não vamos cotar</button><button type="button" class="primario" data-enviar>Enviar proposta</button></div>' : '') +
+      '<p class="rodape">Seus preços são vistos só pelo comprador de ' + esc(empresa.nome) + '.</p>';
+    app.innerHTML = html;
+
+    function somar() {
+      var soma = 0;
+      app.querySelectorAll('[data-item]').forEach(function (el) {
+        var item = c.itens.filter(function (i) { return i.id === el.dataset.item; })[0];
+        var pr = num(el.querySelector('[data-preco]').value);
+        el.querySelector('[data-total]').textContent = pr ? moeda(pr * item.quantidade) : '—';
+        if (pr) soma += pr * item.quantidade;
+      });
+      var frete = num(app.querySelector('[data-valor-frete]').value) || 0;
+      app.querySelector('[data-soma]').textContent = moeda(soma);
+      app.querySelector('[data-total-geral]').textContent = moeda(soma + frete);
+    }
+    app.addEventListener('input', somar);
+    var cond = app.querySelector('[data-condicao]');
+    cond.addEventListener('change', function () { app.querySelector('[data-outra-wrap]').hidden = cond.value !== '__outra'; });
+    somar();
+    if (!aberta) return;
+
+    app.querySelector('[data-enviar]').addEventListener('click', function (ev) {
+      var botao = ev.currentTarget;
+      var precos = [];
+      var erro = null;
+      app.querySelectorAll('[data-item]').forEach(function (el) {
+        var v = el.querySelector('[data-preco]').value;
+        var pr = num(v);
+        if (v.trim() && (pr == null || pr < 0)) erro = 'Preço inválido: ' + v;
+        precos.push({ cotacaoItemId: el.dataset.item, precoUnitario: pr, marca: el.querySelector('[data-marca]').value, observacao: el.querySelector('[data-obs]').value });
+      });
+      if (erro) { alert(erro); return; }
+      if (!precos.some(function (x) { return x.precoUnitario > 0; })) { alert('Informe o preço de ao menos um item.'); return; }
+      var corpo = {
+        precos: precos,
+        condicaoPagamentoId: cond.value && cond.value !== '__outra' ? cond.value : null,
+        condicaoPagamento: cond.value === '__outra' ? app.querySelector('[data-outra]').value : null,
+        prazoEntregaDias: app.querySelector('[data-prazo]').value.trim() === '' ? null : parseInt(app.querySelector('[data-prazo]').value, 10),
+        frete: app.querySelector('[data-frete]').value || null,
+        valorFrete: num(app.querySelector('[data-valor-frete]').value) || 0,
+        validade: app.querySelector('[data-validade]').value || null,
+        observacoes: app.querySelector('[data-observacoes]').value
+      };
+      botao.disabled = true;
+      api('POST', 'proposta', corpo).then(function () { return carregar('Proposta enviada. Obrigado!'); })
+        .catch(function (e) { alert(e.message); botao.disabled = false; });
+    });
+    app.querySelector('[data-declinar]').addEventListener('click', function () {
+      var motivo = prompt('Se quiser, diga o motivo (ex.: sem estoque, fora da nossa linha):', '');
+      if (motivo === null) return;
+      api('POST', 'declinar', { motivo: motivo }).then(function () { return carregar('Registramos que você não vai cotar. Obrigado pelo retorno.'); })
+        .catch(function (e) { alert(e.message); });
+    });
+  }
+
+  /* ---------- pedido ---------- */
+  function telaPedido(empresa, p, mensagem) {
+    document.title = 'Pedido de compra nº ' + p.numero + ' — ' + empresa.nome;
+    var liberado = ['autorizado', 'parcial', 'entregue', 'encerrado'].indexOf(p.status) >= 0;
+    app.innerHTML = '<header><div class="empresa">' + esc(empresa.nome) + '</div><h1>Pedido de compra nº ' + p.numero + '</h1>' +
+      '<div class="meta"><span>Fornecedor: <b>' + esc(p.fornecedor) + '</b></span><span>Emitido em <b>' + data(p.data) + '</b></span>' +
+      (p.dataEntrega ? '<span>Entrega até <b>' + data(p.dataEntrega) + '</b></span>' : '') + '</div></header>' +
+      (mensagem ? '<p class="aviso ok">' + esc(mensagem) + '</p>' : '') +
+      (p.status === 'cancelado' ? '<p class="aviso erro">Este pedido foi cancelado pelo comprador.</p>' : !liberado ? '<p class="aviso alerta">Este pedido ainda não foi liberado.</p>' : '') +
+      (p.confirmadoEm ? '<p class="aviso ok">Recebimento do pedido confirmado em ' + dataHora(p.confirmadoEm) + '.</p>' : '') +
+      '<div class="cartao"><div class="grade">' +
+      '<div><label>Local de entrega</label>' + esc(p.localEntrega || '—') + '</div>' +
+      '<div><label>Condição de pagamento</label>' + esc(p.condicaoPagamento || 'A combinar') + '</div>' +
+      '<div><label>Frete</label>' + (p.frete === 'CIF' ? 'CIF (por conta do fornecedor)' : p.frete === 'FOB' ? 'FOB (por conta do comprador)' : '—') + '</div></div></div>' +
+      '<h2>Itens</h2><div class="cartao"><table><thead><tr><th>Item</th><th class="num">Quantidade</th><th class="num">Preço unit.</th><th class="num">Total</th></tr></thead><tbody>' +
+      p.itens.map(function (i) {
+        return '<tr><td>' + esc(i.seq + '. ' + i.descricao) + (i.marca ? ' · ' + esc(i.marca) : '') + '</td><td class="num">' + qtd(i.quantidade) + ' ' + esc(i.unidade || '') + '</td>' +
+          '<td class="num">' + moeda(i.precoUnitario) + '</td><td class="num">' + moeda(i.valorTotal) + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="totais">' + (p.valorFrete ? 'Frete ' + moeda(p.valorFrete) + ' · ' : '') + (p.valorDesconto ? 'Desconto ' + moeda(p.valorDesconto) + ' · ' : '') + 'Total: <b>' + moeda(p.valorTotal) + '</b></div></div>' +
+      (p.observacoes ? '<h2>Observações</h2><p class="aviso">' + esc(p.observacoes) + '</p>' : '') +
+      '<p class="aviso">Informe o número do pedido (nº ' + p.numero + ') na nota fiscal.</p>' +
+      (liberado && !p.confirmadoEm && p.status !== 'cancelado' ? '<div class="acoes"><button type="button" class="primario" data-confirmar>Confirmar recebimento do pedido</button></div>' : '') +
+      '<p class="rodape">' + esc(empresa.nome) + '</p>';
+    var b = app.querySelector('[data-confirmar]');
+    if (b) b.addEventListener('click', function () {
+      b.disabled = true;
+      api('POST', 'confirmar', {}).then(function () { return carregar('Obrigado! Confirmamos que você recebeu o pedido.'); })
+        .catch(function (e) { alert(e.message); b.disabled = false; });
+    });
+  }
+
+  function carregar(mensagem) {
+    if (!token) { falhaGeral('Link incompleto. Use o link exato que recebeu por e-mail ou mensagem.'); return Promise.resolve(); }
+    return api('GET', '').then(function (d) {
+      if (d.tipo === 'cotacao') telaCotacao(d.empresa, d.cotacao, mensagem);
+      else telaPedido(d.empresa, d.pedido, mensagem);
+      window.scrollTo(0, 0);
+    }).catch(function (e) { falhaGeral(e.message); });
+  }
+  carregar();
+})();
+</script>
+</body>
+</html>

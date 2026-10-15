@@ -57,6 +57,15 @@
   <symbol id="i-opcoes" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4 4 9-9"/></symbol>
   <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4.5 20.5 19.5h-17z"/><path d="M12 10.5V14M12 17h.01"/></symbol>
+  <symbol id="i-painel" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cotacao" viewBox="0 0 24 24"><path d="M12 4.5v15M8 19.5h8M5 8h14"/><path d="M5 8 2.8 13.5a2.3 2.3 0 0 0 4.4 0z"/><path d="M19 8l-2.2 5.5a2.3 2.3 0 0 0 4.4 0z"/></symbol>
+  <symbol id="i-nota" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3z"/><path d="M9 8h6M9 11.5h6M9 15h3.5"/></symbol>
+  <symbol id="i-contrato" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 11h5"/><path d="M9.5 16c1-1.4 1.7-1.4 2.2 0s1.3 1.4 2.3-.4"/></symbol>
+  <symbol id="i-estoque" viewBox="0 0 24 24"><path d="M3.5 9 12 4.5 20.5 9v10.5h-17z"/><path d="M7.5 19.5v-6h9v6M7.5 16.5h9"/></symbol>
+  <symbol id="i-autorizacao" viewBox="0 0 24 24"><path d="M12 3.5 19 6v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+  <symbol id="i-grafico" viewBox="0 0 24 24"><path d="M4 19.5h16"/><rect x="5.5" y="11" width="3" height="6" rx=".5"/><rect x="10.5" y="7" width="3" height="10" rx=".5"/><rect x="15.5" y="13" width="3" height="4" rx=".5"/></symbol>
+  <symbol id="i-fornecedor" viewBox="0 0 24 24"><path d="M3.5 7h10v9h-10z"/><path d="M13.5 10h3.5l3 3v3h-6.5"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/></symbol>
+  <symbol id="i-xml" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4"/><path d="m10 12-2 2 2 2M14 12l2 2-2 2"/></symbol>
   <symbol id="i-sair" viewBox="0 0 24 24"><path d="M14.5 4.5h4v15h-4"/><path d="M10 8l-4 4 4 4M6 12h9.5"/></symbol>
 </svg>
 
@@ -88,8 +97,41 @@
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Suprimentos</span>
-      <button class="app-sidebar-item" data-view="suprimentos" title="Suprimentos">
-        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-suprimentos"/></svg></span><span class="rotulo">Suprimentos</span>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="painel" title="Painel de suprimentos">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-painel"/></svg></span><span class="rotulo">Painel</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="solicitacoes" title="Solicitações de compra">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-prancheta"/></svg></span><span class="rotulo">Solicitações</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="cotacoes" title="Cotações de preço e mapa">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-cotacao"/></svg></span><span class="rotulo">Cotações</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="pedidos" title="Pedidos de compra">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-suprimentos"/></svg></span><span class="rotulo">Pedidos</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="notas" title="Entrada de notas fiscais">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-nota"/></svg></span><span class="rotulo">Notas fiscais</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="contratos" title="Contratos e medições">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-contrato"/></svg></span><span class="rotulo">Contratos</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="estoque" title="Estoque da obra">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-estoque"/></svg></span><span class="rotulo">Estoque</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="autorizacoes" title="Autorizações pendentes">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-autorizacao"/></svg></span><span class="rotulo">Autorizações</span><span class="app-sidebar-contador hidden" id="suprContadorAutorizacoes"></span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="acompanhamento" title="Orçado × comprometido × realizado">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-grafico"/></svg></span><span class="rotulo">Acompanhamento</span>
+      </button>
+      <button class="app-sidebar-item" data-view="suprimentos" data-aba="cadastros" title="Fornecedores, condições, parâmetros e alçadas">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-fornecedor"/></svg></span><span class="rotulo">Cadastros</span>
+      </button>
+    </div>
+    <div class="app-sidebar-group">
+      <span class="app-sidebar-group-label">Financeiro</span>
+      <button class="app-sidebar-item" data-view="financeiro" title="Contas a pagar">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-financeiro"/></svg></span><span class="rotulo">Contas a pagar</span>
       </button>
     </div>
     <div class="app-sidebar-group">
@@ -105,12 +147,6 @@
       </button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-backup"/></svg></span><span class="rotulo">Backup</span>
-      </button>
-    </div>
-    <div class="app-sidebar-group">
-      <span class="app-sidebar-group-label">Financeiro</span>
-      <button class="app-sidebar-item" data-view="financeiro" title="Financeiro">
-        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-financeiro"/></svg></span><span class="rotulo">Financeiro</span>
       </button>
     </div>
   </div>
@@ -261,154 +297,20 @@
   <div id="usuariosConteudo">Carregando...</div>
 </section>
 
-<section class="content hidden" id="viewSuprimentos">
-  <div class="supr-header">
-    <div>
-      <h2>Suprimentos</h2>
-      <p>Requisição → Cotação → Mapa → Pedidos → Recebimento</p>
+<section class="content hidden supr" id="viewSuprimentos">
+  <div class="supr-topo">
+    <div class="supr-titulo">
+      <h2 id="suprTitulo">Suprimentos</h2>
+      <p id="suprSubtitulo"></p>
     </div>
-    <div class="supr-select-orcamento">
-      <label for="suprSelectOrcamento">Obra</label>
-      <select id="suprSelectOrcamento"><option value="">— Selecione a obra —</option></select>
-    </div>
+    <label class="supr-obra"><span>Obra</span><select id="suprObra"><option value="">Todas as obras</option></select></label>
   </div>
+  <div class="supr-aviso-leitura hidden" id="suprAvisoLeitura"><svg class="ic" aria-hidden="true"><use href="#i-cadeado"/></svg>Acesso somente para consulta. Para lançar solicitações, cotações, pedidos e notas, peça liberação de edição ao administrador.</div>
+  <div id="suprConteudo" class="supr-conteudo"></div>
+</section>
 
-  <div class="supr-readonly-banner hidden" id="suprReadonlyBanner"><svg class="ic" aria-hidden="true"><use href="#i-cadeado"/></svg> Você está em modo somente leitura. Para criar requisições, cotações e pedidos, peça liberação de edição ao administrador.</div>
-
-  <div class="supr-stepper" id="suprStepper">
-    <span class="supr-step" data-step="1"><span class="n">1</span> Requisição</span>
-    <span class="supr-step" data-step="2"><span class="n">2</span> Cotação</span>
-    <span class="supr-step" data-step="3"><span class="n">3</span> Mapa de comparação</span>
-    <span class="supr-step" data-step="4"><span class="n">4</span> Pedidos</span>
-  </div>
-
-  <div class="supr-tabs">
-    <button class="supr-tab" data-aba="requisicoes">Requisições</button>
-    <button class="supr-tab" data-aba="cotacoes">Cotações</button>
-    <button class="supr-tab" data-aba="pedidos">Pedidos</button>
-    <button class="supr-tab" data-aba="fornecedores">Fornecedores</button>
-    <button class="supr-tab" data-aba="comparativo">Orçado × Executado</button>
-  </div>
-
-  <!-- ===== REQUISIÇÕES ===== -->
-  <section class="supr-painel" id="suprPainelRequisicoes">
-    <div id="suprReqLista">
-      <div class="supr-toolbar">
-        <div class="supr-toolbar-left">
-          <label><input type="checkbox" id="suprFiltroMinhas" checked> Apenas minhas requisições</label>
-        </div>
-        <button class="btn btn-primary" id="suprBtnNovaRequisicao">+ Nova requisição</button>
-      </div>
-      <div id="suprListaRequisicoes"></div>
-    </div>
-
-    <div id="suprReqNova" class="hidden">
-      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Nova requisição</h3>
-      <p class="supr-msg" style="margin:0 0 12px">Obra: <b id="suprReqOrcamentoInfo">—</b> — selecione os itens do orçamento (via EAP ou busca).</p>
-      <input type="text" id="suprFiltroItens" placeholder="Buscar item, serviço ou caminho…" style="width:100%;max-width:420px;margin-bottom:12px">
-      <div id="suprArvoreItens"></div>
-      <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
-        <button class="btn btn-ghost" id="suprBtnCancelarNova">Cancelar</button>
-        <button class="btn btn-primary" id="suprBtnContinuarSelecao">Continuar (0 itens)</button>
-      </div>
-    </div>
-
-    <div id="suprReqRevisar" class="hidden">
-      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Revisar e definir quantidades</h3>
-      <p class="supr-msg" style="margin:0 0 6px;background:#f0f7e9;color:#4a6d00">A quantidade já vem preenchida com o orçado. Ajuste para mais ou para menos se quiser — depois o comparativo mostra se você comprou acima ou abaixo do orçado.</p>
-      <div id="suprCarrinhoLista"></div>
-      <label style="display:block;font-size:12px;font-weight:700;color:var(--cazu-suave,#4a5d60);margin:12px 0 4px">Observações</label>
-      <textarea id="suprReqObservacoes" rows="2" style="width:100%;max-width:560px" placeholder="Ex.: prioridade, data desejada, observações da obra…"></textarea>
-      <div class="supr-toolbar" style="justify-content:space-between;margin-top:12px">
-        <button class="btn btn-ghost" id="suprBtnVoltarSelecao"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar à seleção</button>
-        <button class="btn btn-primary" id="suprBtnSalvarRequisicao">Salvar requisição</button>
-      </div>
-      <div id="suprMsgRequisicao"></div>
-    </div>
-  </section>
-
-  <!-- ===== COTAÇÕES ===== -->
-  <section class="supr-painel hidden" id="suprPainelCotacoes">
-    <div id="suprCotLista">
-      <div class="supr-toolbar">
-        <div></div>
-        <button class="btn btn-primary" id="suprBtnNovaCotacao">+ Nova cotação</button>
-      </div>
-      <div id="suprListaCotacoes"></div>
-    </div>
-
-    <div id="suprCotNova" class="hidden">
-      <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 10px">Nova cotação — selecione itens e fornecedores</h3>
-      <p class="supr-msg" style="margin:0 0 6px;background:#f0f7e9;color:#4a6d00">Os itens vêm das requisições da obra. Dá para cotar só uma parte dos itens e ajustar as quantidades.</p>
-      <div id="suprItensParaCotar"></div>
-      <h4 style="color:var(--cazu-petroleo,#052d33);margin:18px 0 8px">Fornecedores que vão responder</h4>
-      <div id="suprFornecedoresParaCotar"></div>
-      <div class="supr-toolbar" style="justify-content:space-between;margin-top:14px">
-        <button class="btn btn-ghost" id="suprBtnVoltarListaCot"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar</button>
-        <button class="btn btn-primary" id="suprBtnCriarMapa">Criar mapa de comparação</button>
-      </div>
-      <div id="suprMsgNovaCotacao"></div>
-    </div>
-
-    <div id="suprMapaCotacao" class="hidden">
-      <div id="suprMapaWrap"></div>
-    </div>
-  </section>
-
-  <!-- ===== PEDIDOS ===== -->
-  <section class="supr-painel hidden" id="suprPainelPedidos">
-    <div class="supr-toolbar">
-      <div class="supr-toolbar-left">Pedidos gerados a partir das cotações finalizadas.</div>
-    </div>
-    <div id="suprListaPedidos"></div>
-  </section>
-
-  <!-- ===== FORNECEDORES ===== -->
-  <section class="supr-painel hidden" id="suprPainelFornecedores">
-    <h3 style="color:var(--cazu-petroleo,#052d33);margin:0 0 12px">Cadastro de fornecedores</h3>
-    <div class="supr-form-inline">
-      <label>Nome *<input type="text" id="suprFNome" placeholder="Razão social / nome"></label>
-      <label>CNPJ<input type="text" id="suprFCnpj" placeholder="00.000.000/0000-00"></label>
-      <label>Telefone<input type="text" id="suprFTelefone" placeholder="(16) 99999-9999"></label>
-      <label>E-mail<input type="text" id="suprFEmail" placeholder="compras@fornecedor.com.br"></label>
-      <div class="supr-form-actions"><button class="btn btn-primary" id="suprBtnSalvarFornecedor">+ Salvar</button></div>
-    </div>
-    <div id="suprMsgFornecedor"></div>
-    <div id="suprListaFornecedores"></div>
-  </section>
-
-  <!-- ===== COMPARATIVO ===== -->
-  <section class="supr-painel hidden" id="suprPainelComparativo">
-    <div class="supr-resumo-cards" id="suprResumoComparativo"></div>
-    <div class="supr-table-wrap">
-      <table class="tabela">
-        <thead>
-          <tr><th>Item</th><th>Orçado</th><th>Comprometido</th><th>Executado (recebido)</th><th>Saldo</th></tr>
-        </thead>
-        <tbody id="suprCorpoComparativo"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Dialog de recebimento -->
-  <dialog id="suprDialogRecebimento" class="modal">
-    <h3 style="margin:0 0 10px;color:#052d33">Recebimento do pedido</h3>
-    <p id="suprRecPedidoInfo" style="margin:0 0 10px;font-size:13px;color:#4a5d60"></p>
-    <div class="supr-form-inline">
-      <label>Nº da nota fiscal<input type="text" id="suprRecNotaNumero"></label>
-      <label>Chave de acesso (opcional)<input type="text" id="suprRecNotaChave"></label>
-      <label>Data do recebimento<input type="date" id="suprRecData"></label>
-      <label>Valor total da nota (R$)<input type="number" step="0.01" min="0" id="suprRecValor"></label>
-    </div>
-    <div id="suprRecItensWrap"></div>
-    <label style="display:block;font-size:12px;font-weight:700;color:#4a5d60;margin:10px 0 4px">Observações</label>
-    <textarea id="suprRecObservacoes" rows="2" style="width:100%"></textarea>
-    <div id="suprMsgRecebimento"></div>
-    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-      <button class="btn btn-ghost" id="suprBtnCancelarRecebimento">Cancelar</button>
-      <button class="btn btn-primary" id="suprBtnConfirmarRecebimento">Lançar recebimento</button>
-    </div>
-  </dialog>
+<section class="content hidden supr" id="viewFinanceiro">
+  <div id="finConteudo" class="supr-conteudo"></div>
 </section>
 
 <section class="content hidden" id="viewLiberacao">
@@ -838,27 +740,20 @@
 <script src="/js/sinapi-base.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
-<script src="/js/suprimentos.js"></script>
+<script src="/js/suprimentos/nucleo.js"></script>
+<script src="/js/suprimentos/painel.js"></script>
+<script src="/js/suprimentos/solicitacoes.js"></script>
+<script src="/js/suprimentos/cotacoes.js"></script>
+<script src="/js/suprimentos/pedidos.js"></script>
+<script src="/js/suprimentos/notas.js"></script>
+<script src="/js/suprimentos/contratos.js"></script>
+<script src="/js/suprimentos/estoque.js"></script>
+<script src="/js/suprimentos/autorizacoes.js"></script>
+<script src="/js/suprimentos/acompanhamento.js"></script>
+<script src="/js/suprimentos/cadastros.js"></script>
+<script src="/js/financeiro.js"></script>
 
-<section id="viewFinanceiro" class="hidden">
-  <div class="content">
-    <h2>Financeiro</h2>
-    <div class="dash-grid">
-      <div class="dash-card">
-        <h3>Contas a Pagar</h3>
-        <p>Acesse relatórios e controle de pagamentos.</p>
-      </div>
-      <div class="dash-card">
-        <h3>Relatórios</h3>
-        <p>Emissão de relatórios financeiros.</p>
-      </div>
-      <div class="dash-card">
-        <h3>Orçamento Financeiro</h3>
-        <p>Controle orçamentário e fluxo de caixa.</p>
-      </div>
-    </div>
-  </div>
-</section>
+
 </body>
 </html>
 
