@@ -653,7 +653,18 @@ body{display:flex}
 .sinapi-status.erro{color:var(--vermelho)}
 
 .sinapi-resultados{margin-top:12px;max-height:min(44vh,420px);overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.modal#modalBuscaSinapi{max-height:calc(100vh - 32px);overflow-y:auto}
+.modal#modalBuscaSinapi,.modal#modalPesquisaServico{max-height:calc(100vh - 32px);overflow-y:auto}
+/* Pesquisa de serviços: base em botões agrupados, palavras encontradas destacadas */
+.pesquisa-bases{display:inline-flex;margin:0 0 14px;border:1px solid var(--borda);border-radius:8px;overflow:hidden}
+.modal .pesquisa-bases label{position:relative;display:flex;margin:0;font-size:13px}
+.pesquisa-bases input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.pesquisa-bases span{padding:7px 18px;background:#fff;color:var(--navy);font-weight:600;cursor:pointer}
+.pesquisa-bases label+label span{border-left:1px solid var(--borda)}
+.pesquisa-bases input:checked+span{background:var(--navy);color:#fff}
+.pesquisa-bases input:focus-visible+span{outline:2px solid var(--gold);outline-offset:-2px}
+.pesquisa-label-excluir{margin-top:12px}
+.pesquisa-palavras{font-size:11px;color:var(--suave)}
+.pesquisa-item .sinapi-resultado-descricao mark{background:#fbeeb8;color:inherit;border-radius:2px;padding:0 1px}
 .sinapi-resultado-item{
   border:1px solid var(--borda);border-radius:10px;padding:12px 14px;background:#fff;
   display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;font-size:13px;

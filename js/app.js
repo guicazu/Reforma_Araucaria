@@ -813,16 +813,29 @@ async function buscarCodigoRascunho(){
   renderTudo();
   focarCodigoRascunho();
 }
-// Lupa: abre a janela de busca para a linha; o que já foi digitado vai para a busca SINAPI
-function pesquisarServicoRascunho(o){
-  const r=rascunhoServico;if(!r)return;
+// Lupa: abre a pesquisa de serviços para a linha, já com o que foi digitado
+function pesquisarServicoRascunho(){
+  const r=rascunhoServico;if(!r||!window.PesquisaServico)return;
   const campo=document.getElementById('codigoNovoServico');
   const texto=(campo?campo.value:r.codigo).trim();
   r.codigo=texto;
   // a janela tira o foco do campo: essa saída não deve buscar o código pela metade
   r.pesquisando=true;
-  abrirModalServico(null,r.sid?acharSubPorId(o,r.sid):null,acharEtapa(o,r.uid,r.eid),acharUnidade(o,r.uid));
-  if(texto&&!/^comp-/i.test(texto)&&typeof window.abrirBuscaSinapi==='function')window.abrirBuscaSinapi(texto);
+  window.PesquisaServico.abrir({texto,aoEscolher:(escolha)=>incluirServicoEscolhido(r,escolha)});
+}
+// Serviço escolhido na pesquisa entra no lugar da linha em rascunho
+function incluirServicoEscolhido(r,escolha){
+  const o=orcamentoAtivo();
+  if(r.cancelado||rascunhoServico!==r||!o||o.id!==r.orcamentoId||!modoEdicao)return false;
+  const dados=escolha.tipo==='propria'?dadosServicoPropria(escolha.composicao):dadosServicoSinapi(escolha.resultado);
+  if(!dados.nome||!dados.unidadeMedida||dados.valorUnitario==null)return false;
+  const sv=adicionarServico(o,r.uid,r.eid,r.sid,dados);
+  if(!sv)return false;
+  rascunhoServico=null;
+  salvar();renderTudo();
+  // a quantidade só pode receber o foco depois que a janela fechar
+  setTimeout(()=>{const qtd=document.getElementById('qtdsv_'+sv.id);if(qtd){qtd.focus();qtd.select();}},0);
+  return true;
 }
 
 function renomearServico(sv){if(!sv)return;const n=prompt('Renomear serviço:',sv.nome);if(n===null)return;sv.nome=n.trim()||sv.nome;salvar();renderTudo();}
@@ -1234,7 +1247,7 @@ $('#corpoTabela').addEventListener('click',(ev)=>{
     case 'ren-sub':renomearSub(s);break;
     case 'del-sub':excluirSub(e,s);break;
     case 'add-servico':novaLinhaServico(u,e,s);break;
-    case 'buscar-servico':pesquisarServicoRascunho(o);break;
+    case 'buscar-servico':pesquisarServicoRascunho();break;
     case 'cancelar-servico':cancelarLinhaServico();break;
 
     case 'up-sv':moverServico(e,s,sv,-1);break;

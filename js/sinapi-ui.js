@@ -38,6 +38,8 @@
   }
 
   function iniciar() {
+    // Usado também pela pesquisa de serviços (js/pesquisa-servico.js)
+    window.SinapiUI = { renderizarItens: renderizarItens, tituloAmigavel: tituloAmigavel, unidadeAmigavel: unidadeAmigavel };
     var fCodigo = document.getElementById('fCodigoSinapi');
     var fNome = document.getElementById('fNome');
     var fUnidade = document.getElementById('fUnidadeMedida');
@@ -230,22 +232,6 @@
       renderizarResultados([]);
     }
     if (btnAbrir) btnAbrir.addEventListener('click', abrirBusca);
-
-    // Abre a busca já preenchida (lupa da nova linha do orçamento):
-    // número vai para o código; texto, para a descrição
-    window.abrirBuscaSinapi = function (termo) {
-      abrirBusca();
-      var texto = String(termo || '').trim();
-      if (!texto) return;
-      if (/^\d+$/.test(texto)) {
-        if (campoCodigo) campoCodigo.value = texto;
-        buscarPorCodigo(texto);
-      } else if (incs[0]) {
-        incs[0].value = texto;
-        incs[0].focus();
-        executarBuscaPorDescricao();
-      }
-    };
     if (btnFechar) btnFechar.addEventListener('click', function () { modal.close(); });
     modal.addEventListener('click', function (ev) {
       if (ev.target === modal) modal.close();

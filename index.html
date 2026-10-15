@@ -710,6 +710,31 @@
   </form>
 </dialog>
 
+<dialog id="modalPesquisaServico" class="modal modal-lg" aria-labelledby="pesquisaServicoTitulo">
+  <div class="sinapi-modal-heading">
+    <div>
+      <h3 id="pesquisaServicoTitulo">Pesquisar serviço</h3>
+      <p>SINAPI: preços do Paraná · Não desonerado</p>
+    </div>
+  </div>
+  <div class="pesquisa-bases" role="radiogroup" aria-label="Base da pesquisa">
+    <label><input type="radio" name="pesquisaBase" value="todas" checked /><span>Todas</span></label>
+    <label><input type="radio" name="pesquisaBase" value="sinapi" /><span>SINAPI</span></label>
+    <label><input type="radio" name="pesquisaBase" value="propria" /><span>Própria</span></label>
+  </div>
+  <label class="sinapi-label-principal" for="pesquisaPalavras">Palavras</label>
+  <input class="sinapi-descricao-input" type="search" id="pesquisaPalavras" placeholder="Ex.: chapisco alvenaria interna" autocomplete="off" />
+  <p class="sinapi-ajuda-busca">Em qualquer ordem. Aparecem primeiro os serviços com mais palavras encontradas.</p>
+  <label class="sinapi-label-principal pesquisa-label-excluir" for="pesquisaExcluir">Excluir palavras</label>
+  <input type="search" id="pesquisaExcluir" placeholder="Ex.: fachada, rolo" autocomplete="off" />
+  <p class="sinapi-ajuda-busca">Separe por vírgula. Serviços que tenham qualquer uma delas não aparecem.</p>
+  <p id="pesquisaStatus" class="sinapi-status" role="status" aria-live="polite"></p>
+  <div id="pesquisaResultados" class="sinapi-resultados"></div>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-ghost" id="btnFecharPesquisa">Fechar</button>
+  </div>
+</dialog>
+
 <dialog id="modalBuscaSinapi" class="modal modal-lg">
   <div class="sinapi-modal-heading">
     <div>
@@ -761,6 +786,7 @@
 <script src="/js/composicoes.js"></script>
 <script src="/js/admin-ui.js"></script>
 <script src="/js/sinapi-ui.js"></script>
+<script src="/js/pesquisa-servico.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
 <script src="/js/suprimentos.js"></script>
