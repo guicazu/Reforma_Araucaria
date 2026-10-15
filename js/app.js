@@ -528,19 +528,26 @@ async function gerarVersao(){
     console.error('Erro ao salvar versão no D1:', e);
   }
 }
-function totalVersao(v){let t=0;for(const u of v.unidades)for(const e of u.etapas)for(const s of e.subEtapas)for(const sv of s.servicos)t+=totalServico(sv);return t;}
+// Serviços da versão com os códigos da tabela: os direto na etapa primeiro, depois os das sub etapas
 function flatServicos(unidades){
   const out=[];
+  const incluir=(cod,sv)=>out.push({id:sv.id,cod,nome:sv.nome,un:sv.unidadeMedida,qtd:qtdServico(sv),total:totalServico(sv)});
   unidades.forEach((u,iu)=>{
     u.etapas.forEach((e,ie)=>{
-      e.subEtapas.forEach((s,is)=>{
-        s.servicos.forEach((sv,isv)=>{
-          out.push({cod:`${iu+1}.${ie+1}.${is+1}.${isv+1}`,nome:sv.nome,un:sv.unidadeMedida,qtd:qtdServico(sv),total:totalServico(sv)});
-        });
-      });
+      const cE=`${iu+1}.${ie+1}`;
+      const diretos=e.servicos||[];
+      diretos.forEach((sv,isv)=>incluir(`${cE}.${isv+1}`,sv));
+      e.subEtapas.forEach((s,is)=>s.servicos.forEach((sv,isv)=>incluir(`${cE}.${diretos.length+is+1}.${isv+1}`,sv)));
     });
   });
   return out;
+}
+function totalVersao(v){return flatServicos(v.unidades).reduce((t,x)=>t+x.total,0);}
+// Ordem numérica de códigos EAP (1.2 antes de 1.10)
+function compararCodigos(a,b){
+  const pa=a.split('.').map(Number),pb=b.split('.').map(Number);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){const d=(pa[i]??-1)-(pb[i]??-1);if(d)return d;}
+  return 0;
 }
 function renderVersoes(o){
   const el=$('#listaVersoes');if(!el)return;
@@ -568,9 +575,11 @@ function compararVersoes(){
   if(sel.length!==2){alert('Selecione exatamente 2 versões para comparar.');return;}
   const a=o.versoes[sel[0]],b=o.versoes[sel[1]];
   const fa=flatServicos(a.unidades),fb=flatServicos(b.unidades);
+  // O serviço mantém o id entre versões; o código EAP muda quando algo é incluído antes dele
   const ma={},mb={};
-  fa.forEach(x=>ma[x.cod]=x);fb.forEach(x=>mb[x.cod]=x);
-  const keys=[...new Set([...Object.keys(ma),...Object.keys(mb)])].sort();
+  fa.forEach(x=>ma[x.id||x.cod]=x);fb.forEach(x=>mb[x.id||x.cod]=x);
+  const keys=[...new Set([...Object.keys(ma),...Object.keys(mb)])]
+    .sort((k1,k2)=>compararCodigos((mb[k1]||ma[k1]).cod,(mb[k2]||ma[k2]).cod));
   let html=`
     <div class="cmp-head">
       <span><b>${esc(a.rotulo)} (V${a.numero})</b>: ${fmtBRL.format(totalVersao(a))}</span>
@@ -579,12 +588,13 @@ function compararVersoes(){
     </div>
     <table class="cmp-tabela">
       <thead><tr><th>Código</th><th>Serviço</th><th>Un.</th><th>Qtd ${esc(a.rotulo)}</th><th>Total ${esc(a.rotulo)}</th><th>Qtd ${esc(b.rotulo)}</th><th>Total ${esc(b.rotulo)}</th><th>Situação</th></tr></thead><tbody>`;
-  keys.forEach(cod=>{
-    const x=ma[cod],y=mb[cod];
+  keys.forEach(chave=>{
+    const x=ma[chave],y=mb[chave];
+    const cod=(y||x).cod;
     let sit,cls;
     if(!x&&y){sit='Adicionado';cls='sit-add';}
     else if(x&&!y){sit='Removido';cls='sit-rem';}
-    else if(Math.abs((x.qtd||0)-(y.qtd||0))>0.001||Math.abs((x.total||0)-(y.total||0))>0.001){sit='Alterado';cls='sit-alt';}
+    else if(x.nome!==y.nome||Math.abs((x.qtd||0)-(y.qtd||0))>0.001||Math.abs((x.total||0)-(y.total||0))>0.001){sit='Alterado';cls='sit-alt';}
     else{sit='Igual';cls='sit-ig';}
     const nome=x?esc(x.nome):esc(y.nome);
     const un=x?esc(x.un):esc(y.un);
