@@ -295,6 +295,33 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 .modal .exportar-campo{display:block;margin:0;font-size:12px;font-weight:400}
 .exportar-campo select{min-width:180px;height:30px;margin:0}
 #exportarStatus{min-height:18px;margin:14px 0 0}
+/* tela Base SINAPI */
+.sinapi-base-atual{display:flex;align-items:center;gap:8px;margin:0 0 18px;font-size:12.5px;color:var(--suave)}
+.sinapi-base-atual strong{color:var(--tinta);font-weight:600}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d4d4d8}
+.status-dot.status-ok{background:#16a34a}
+.sinapi-importar{margin:0 0 24px;padding:16px 18px;background:var(--superficie);border:1px solid var(--borda);border-radius:8px}
+.sinapi-importar h3,.sinapi-titulo-lista{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--tinta)}
+.sinapi-passos{margin:0 0 14px;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--suave)}
+.sinapi-passos b{font-weight:500;color:var(--texto)}
+.sinapi-escolha{display:flex;flex-wrap:wrap;gap:8px}
+.sinapi-previa:not(:empty){margin-top:14px;padding-top:14px;border-top:1px solid var(--linha)}
+.sinapi-previa-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:10px}
+.sinapi-previa-cab strong{font-size:14px;font-weight:600;color:var(--tinta)}
+.sinapi-previa-cab span{font-size:12px;color:var(--fraco)}
+.sinapi-previa-numeros{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 12px}
+.sinapi-previa-numeros dt{font-size:11px;color:var(--fraco)}
+.sinapi-previa-numeros dd{margin:1px 0 0;font-size:15px;font-weight:600;color:var(--tinta);font-variant-numeric:tabular-nums}
+.sinapi-conferencias{margin:0;padding:0;list-style:none;font-size:12.5px;color:var(--texto)}
+.sinapi-conferencias li{display:flex;align-items:center;gap:7px;padding:2px 0}
+.sinapi-conferencias li.ok .ic{color:#16a34a}
+.sinapi-conferencias li.falha{color:var(--vermelho)}
+.sinapi-progresso{height:4px;margin-top:14px;border-radius:2px;background:var(--linha);overflow:hidden}
+.sinapi-progresso[hidden]{display:none}
+.sinapi-progresso span{display:block;width:0;height:100%;background:var(--tinta);transition:width .2s}
+#sinapiImportStatus{min-height:18px;margin:10px 0 0}
+.sinapi-tabela-referencias td small{display:block;font-size:11px;color:var(--fraco)}
+.sinapi-tabela-referencias th.col-num,.sinapi-tabela-referencias td.col-num{text-align:right}
 .sinapi-filtros{border-color:var(--borda)}
 .sinapi-filtros summary{color:var(--suave);font-weight:500}
 

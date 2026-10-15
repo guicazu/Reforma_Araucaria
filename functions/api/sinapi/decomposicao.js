@@ -1,5 +1,6 @@
-// Abre composições SINAPI até os insumos (endpoint "expanded" da SINPRES) para os relatórios:
-// separação de material, mão de obra e equipamento e curva ABC de insumos.
+// Abre composições SINAPI até os insumos para os relatórios (separação de material, mão de obra e
+// equipamento e curva ABC de insumos): pela base própria, com a classificação oficial dos insumos
+// (functions/_lib/sinapi-base.js), ou, sem mês importado, pelo endpoint "expanded" da SINPRES.
 // GET /api/sinapi/decomposicao?codigos=87879,103355&mes=2026-08 (até MAX_CODIGOS por chamada; o mês
 // é opcional e evita consultá-lo de novo a cada lote)
 //
@@ -11,6 +12,7 @@
 // - demais composições auxiliares (argamassa, concreto...) são abertas até esses recursos.
 
 import { SINAPI_ESTADO, SINAPI_DESONERADO } from '../../_lib/sinapi.js';
+import { referenciaAtual, decomporDaBase } from '../../_lib/sinapi-base.js';
 
 const BASE = 'https://api.sinpres.com.br/api/v1/sectors/civil-construction/compositions/';
 const MAX_CODIGOS = 15;            // cada código é uma consulta (+ até 4 do mês); o Pages limita subrequisições
@@ -94,7 +96,7 @@ async function decompor(codigo, params) {
   };
 }
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const codigos = Array.from(new Set((url.searchParams.get('codigos') || '')
     .split(',').map((c) => c.trim()).filter((c) => /^\d+$/.test(c))));
@@ -102,6 +104,8 @@ export async function onRequestGet({ request }) {
   if (codigos.length > MAX_CODIGOS) {
     return Response.json({ erro: 'codigos_demais', maximo: MAX_CODIGOS }, { status: 400 });
   }
+  const ref = await referenciaAtual(env);
+  if (ref) return Response.json(await decomporDaBase(env, ref, codigos));
 
   const params = new URLSearchParams({ state: SINAPI_ESTADO, is_desonerated: SINAPI_DESONERADO });
   let referencia = /^\d{4}-\d{2}$/.test(url.searchParams.get('mes') || '') ? url.searchParams.get('mes') : '';

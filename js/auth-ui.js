@@ -125,6 +125,8 @@
     if (usuario.isAdmin) {
       var navUsuarios = document.getElementById('navUsuarios');
       if (navUsuarios) navUsuarios.classList.remove('hidden');
+      var navSinapi = document.getElementById('navSinapi');
+      if (navSinapi) navSinapi.classList.remove('hidden');
     }
   }
 

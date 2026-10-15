@@ -731,10 +731,11 @@ function renderLinhaRascunho(codigoEap){
   </tr>`;
 }
 function dadosServicoSinapi(r){
-  return{nome:primeiraMaiuscula(r.descricao),unidadeMedida:String(r.unidade||'').trim(),valorUnitario:num(r.valor),codigo:String(r.codigo),catalogoTipo:'sinapi',catalogoId:String(r.codigo),catalogoDetalheId:null};
+  // referencia: mês SINAPI de onde veio o preço (data-base do serviço)
+  return{nome:primeiraMaiuscula(r.descricao),unidadeMedida:String(r.unidade||'').trim(),valorUnitario:num(r.valor),codigo:String(r.codigo),catalogoTipo:'sinapi',catalogoId:String(r.codigo),catalogoDetalheId:null,referencia:r.referencia||null};
 }
 function dadosServicoPropria(c){
-  return{nome:primeiraMaiuscula(c.nome),unidadeMedida:c.unidade||'un',valorUnitario:num(c.valorUnitario),codigo:c.codigo||'',catalogoTipo:'composicao',catalogoId:c.id,catalogoDetalheId:null};
+  return{nome:primeiraMaiuscula(c.nome),unidadeMedida:c.unidade||'un',valorUnitario:num(c.valorUnitario),codigo:c.codigo||'',catalogoTipo:'composicao',catalogoId:c.id,catalogoDetalheId:null,referencia:null};
 }
 // Procura primeiro nas composições próprias (código COMP-…) e depois no SINAPI (códigos numéricos).
 // Devolve os dados do serviço, null se o código não existe, ou lança erro com a mensagem para a linha.

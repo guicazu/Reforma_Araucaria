@@ -1,14 +1,18 @@
-// Busca uma composição SINAPI específica pelo código, via API pública SINPRES.
+// Uma composição SINAPI pelo código, com seus itens: da base própria (arquivo oficial importado)
+// ou, enquanto não houver mês importado, da API pública SINPRES.
 
 import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
+import { referenciaAtual, composicaoDaBase } from '../../_lib/sinapi-base.js';
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const codigo = (url.searchParams.get('codigo') || '').trim();
 
   if (!codigo) {
     return Response.json({ encontrado: false });
   }
+  const ref = await referenciaAtual(env);
+  if (ref) return Response.json(/^\d+$/.test(codigo) ? await composicaoDaBase(env, ref, codigo) : { encontrado: false });
 
   const params = new URLSearchParams({
     state: ESTADO_PADRAO,

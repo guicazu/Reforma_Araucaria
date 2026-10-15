@@ -12,6 +12,7 @@
     liberacao: document.getElementById('viewLiberacao'),
     usuarios: document.getElementById('viewUsuarios'),
     backup: document.getElementById('viewBackup'),
+    sinapi: document.getElementById('viewSinapi'),
     composicoes: document.getElementById('viewComposicoes'),
     insumos: document.getElementById('viewInsumos'),
     unidades: document.getElementById('viewUnidades'),

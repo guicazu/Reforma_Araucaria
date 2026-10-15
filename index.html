@@ -36,6 +36,7 @@
   <symbol id="i-seta-dir" viewBox="0 0 24 24"><path d="M9.5 6.5 15 12l-5.5 5.5"/></symbol>
   <symbol id="i-seta-baixo" viewBox="0 0 24 24"><path d="M6.5 9.5 12 15l5.5-5.5"/></symbol>
   <symbol id="i-calculadora" viewBox="0 0 24 24"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M8.5 7.5h7M8.7 12h.6M11.7 12h.6M14.7 12h.6M8.7 15.5h.6M11.7 15.5h.6M14.7 15.5h.6"/></symbol>
+  <symbol id="i-base" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
   <symbol id="i-planilha" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M4 14.5h16M9.5 9.5V20"/></symbol>
   <symbol id="i-imprimir" viewBox="0 0 24 24"><path d="M7 9V4.5h10V9"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 13.5h10v6H7z"/></symbol>
   <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5v-3a1 1 0 0 0-1-1h-9a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></symbol>
@@ -98,6 +99,9 @@
       </button>
       <button class="app-sidebar-item admin-only hidden" id="navLiberacao" data-view="liberacao" title="Liberação de orçamento">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-destravar"/></svg></span><span class="rotulo">Liberação</span>
+      </button>
+      <button class="app-sidebar-item admin-only hidden" id="navSinapi" data-view="sinapi" title="Base SINAPI">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-base"/></svg></span><span class="rotulo">Base SINAPI</span>
       </button>
       <button class="app-sidebar-item" data-view="backup" title="Backup">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-backup"/></svg></span><span class="rotulo">Backup</span>
@@ -432,6 +436,39 @@
   <p class="memo-aviso" style="margin-top:14px">Importar um backup <b>substitui</b> todos os orçamentos atuais pelos do arquivo.</p>
 </section>
 
+<section class="content hidden view-sinapi" id="viewSinapi">
+  <div class="orcamento-head">
+    <div>
+      <h2>Base SINAPI</h2>
+      <p>Referência oficial da Caixa usada nas buscas, nos preços e nos relatórios.</p>
+    </div>
+  </div>
+  <p class="sinapi-base-atual" id="sinapiBaseAtual"></p>
+  <div class="sinapi-importar">
+    <h3>Importar mês</h3>
+    <ol class="sinapi-passos">
+      <li>Baixe no site da Caixa o arquivo do mês no formato xlsx (SINAPI-AAAA-MM-formato-xlsx.zip) e guarde em <b>Sinapi/UPLOAD</b> no OneDrive.</li>
+      <li>Escolha o arquivo abaixo. Ele é lido e conferido aqui no navegador; nada é gravado até você clicar em importar.</li>
+    </ol>
+    <div class="sinapi-escolha">
+      <label class="btn btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-buscar"/></svg>Escolher arquivo ZIP
+        <input type="file" id="sinapiArquivo" accept=".zip,application/zip" hidden />
+      </label>
+      <button type="button" class="btn btn-primary" id="btnImportarSinapi" disabled><svg class="ic" aria-hidden="true"><use href="#i-enviar"/></svg>Importar</button>
+    </div>
+    <div id="sinapiPrevia" class="sinapi-previa"></div>
+    <div id="sinapiProgresso" class="sinapi-progresso" hidden><span></span></div>
+    <p id="sinapiImportStatus" class="sinapi-status" role="status" aria-live="polite"></p>
+  </div>
+  <h3 class="sinapi-titulo-lista">Meses na base</h3>
+  <div class="table-wrap">
+    <table class="tabela sinapi-tabela-referencias">
+      <thead><tr><th>Mês</th><th>Emissão</th><th class="col-num">Insumos</th><th class="col-num">Composições</th><th>Importado</th><th>Situação</th><th class="col-acoes"><span class="sr-only">Ações</span></th></tr></thead>
+      <tbody id="sinapiReferencias"></tbody>
+    </table>
+  </div>
+</section>
+
 <main class="layout hidden" id="viewPlanejamento" data-modo="lista">
   <aside class="sidebar">
     <div class="sidebar-head">
@@ -587,23 +624,6 @@
     </div>
   </form>
 </dialog>
-<dialog id="suprModalRecebimento" class="modal">
-5  <h3>Lançar recebimento / nota fiscal</h3>
-6  <p id="suprModalRecPedidoInfo" style="color:var(--suave);font-size:13px;margin-top:-10px"></p>
-7  <div class="grid-2">
-8    <label>Nº da nota fiscal<input id="suprRecNotaNumero" type="text"></label>
-9    <label>Chave de acesso (opcional)<input id="suprRecNotaChave" type="text"></label>
-10    <label>Data do recebimento<input id="suprRecData" type="date"></label>
-11    <label>Valor total da nota (R$)<input id="suprRecValor" type="number" step="0.01" min="0"></label>
-12  </div>
-13  <div id="suprRecItensWrap"></div>
-14  <label>Observações<textarea id="suprRecObservacoes" rows="2"></textarea></label>
-15  <div id="suprMsgRecebimento" class="supr-msg"></div>
-16  <div class="modal-actions">
-17    <button class="btn btn-ghost" id="suprBtnCancelarRecebimento">Cancelar</button>
-18    <button class="btn btn-primary" id="suprBtnConfirmarRecebimento">Lançar recebimento</button>
-19  </div>
-20</dialog>
 <section class="content hidden" id="viewInsumos">
   <div class="orcamento-head catalogo-page-head">
     <div>
@@ -799,6 +819,7 @@
 <script src="/js/sinapi-ui.js"></script>
 <script src="/js/pesquisa-servico.js"></script>
 <script src="/js/relatorios.js"></script>
+<script src="/js/sinapi-base.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
 <script src="/js/planejamento-ui.js"></script>
 <script src="/js/suprimentos.js"></script>

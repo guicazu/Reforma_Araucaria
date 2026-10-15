@@ -20,6 +20,7 @@
 
   var sinapi = new Map(); // código SINAPI -> composição aberta até os recursos, ou { erro }
   var referenciaSinapi = '';
+  var fonteSinapi = '';     // 'base' (arquivo oficial importado) ou 'sinpres' (API pública)
   var modal, el = {};
   var orcamentoId = null;
   var exportando = false;
@@ -103,6 +104,7 @@
           }
           if (!resposta.ok) throw new Error('sinapi');
           if (dados.referencia) referenciaSinapi = dados.referencia;
+          fonteSinapi = dados.fonte || 'sinpres';
           dados.composicoes.forEach(function (c) {
             sinapi.set(String(c.codigo), c);
             if (c.erro === 'limite') { noLimite.push(String(c.codigo)); espera = Math.max(espera, c.espera || 60); }
@@ -240,9 +242,13 @@
     return [l.descricao || 'Linha da memória', partes.length > 1 ? partes.join(' × ') : ''].filter(Boolean).join(' — ');
   }
   function notaDecomposicao(servicos, decompor) {
-    var notas = ['Material, mão de obra e equipamento: proporções da composição SINAPI (consultada na referência ' +
-      (referenciaSinapi || 'mais recente') + ') ou dos componentes da composição própria, aplicadas ao preço unitário deste orçamento. ' +
-      'Mão de obra inclui os encargos complementares; equipamento, os custos horários (CHP/CHI) e locações.'];
+    var notas = [fonteSinapi === 'base'
+      ? 'Material, mão de obra e equipamento: composição SINAPI aberta até os insumos com a classificação oficial da Caixa (base importada, referência ' +
+        (referenciaSinapi || '—') + '), ou componentes da composição própria; proporções aplicadas ao preço unitário deste orçamento. ' +
+        'Profissionais aparecem com os encargos complementares; equipamentos, pelo custo horário (CHP/CHI); serviços terceirizados contam como material.'
+      : 'Material, mão de obra e equipamento: proporções da composição SINAPI (consultada na referência ' +
+        (referenciaSinapi || 'mais recente') + ') ou dos componentes da composição própria, aplicadas ao preço unitário deste orçamento. ' +
+        'Mão de obra inclui os encargos complementares; equipamento, os custos horários (CHP/CHI) e locações.'];
     var sem = servicos.filter(function (sv) { return decompor(sv).porUnidade.semDetalhe > 0; });
     if (sem.length) {
       var codigos = Array.from(new Set(sem.map(function (sv) { return sv.codigo || sv.nome; })));

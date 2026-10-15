@@ -1,11 +1,14 @@
-// Busca composições SINAPI (via API pública SINPRES) por palavras, em qualquer ordem.
+// Busca composições SINAPI por palavras, em qualquer ordem: na base própria (arquivo oficial da
+// Caixa importado) ou, enquanto não houver mês importado, na API pública SINPRES.
 // Vêm primeiro as composições com mais palavras encontradas; "excluir" (termos separados
 // por vírgula) remove as que contêm qualquer um deles. UF e regime: os de functions/_lib/sinapi.js.
 
 import { SINAPI_ESTADO as ESTADO_PADRAO, SINAPI_DESONERADO as DESONERADO_PADRAO } from '../../_lib/sinapi.js';
+import { referenciaAtual, buscarComposicoes } from '../../_lib/sinapi-base.js';
 const LIMITE_SINPRES = 100;       // máximo aceito pela SINPRES por consulta
 const MAX_PALAVRAS_CONSULTA = 6;  // limita quantas consultas uma busca dispara
 const MAX_RESULTADOS = 60;
+const MAX_CANDIDATOS_BASE = 400; // da busca por palavras, antes de contar e ordenar
 // Palavras muito comuns não ajudam a encontrar nem a ordenar
 const PALAVRAS_IGNORADAS = new Set(['a', 'o', 'as', 'os', 'ao', 'aos', 'de', 'da', 'do', 'das', 'dos', 'e', 'em',
   'no', 'na', 'nos', 'nas', 'um', 'uma', 'para', 'por', 'com', 'ou', 'que']);
@@ -47,7 +50,7 @@ async function consultarSinpres(termo) {
   return Array.isArray(dados.data) ? dados.data : [];
 }
 
-export async function onRequestGet({ request }) {
+export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const palavras = extrairPalavras(url.searchParams.get('q'));
   const exclusoes = extrairExclusoes(url.searchParams.get('excluir'));
@@ -56,6 +59,20 @@ export async function onRequestGet({ request }) {
     return Response.json({ resultados: [], palavras });
   }
 
+  const ref = await referenciaAtual(env);
+  let candidatos;
+  if (ref) {
+    const linhas = await buscarComposicoes(env, ref, palavras, MAX_CANDIDATOS_BASE);
+    candidatos = linhas.map((c) => ({ codigo: c.codigo, descricao: c.descricao, unidade: c.unidade, valor: c.custo, referencia: ref.mes }));
+  } else {
+    candidatos = await candidatosSinpres(palavras);
+    if (!candidatos) return Response.json({ resultados: [], palavras, erro: 'sinapi_indisponivel' }, { status: 502 });
+  }
+  return Response.json({ resultados: ordenar(candidatos, palavras, exclusoes), palavras, fonte: ref ? 'base' : 'sinpres' });
+}
+
+// Lista de candidatos da SINPRES (null se nenhuma consulta respondeu)
+async function candidatosSinpres(palavras) {
   // A SINPRES só devolve o que tem TODAS as palavras da consulta (em qualquer ordem) e compara
   // palavras inteiras ("25" não acha "25MPA"). Para trazer também quem tem parte delas: uma
   // consulta com todas; com todas menos uma (tolera uma palavra que não aparece, como erro de
@@ -66,9 +83,7 @@ export async function onRequestGet({ request }) {
   if (consulta.length >= 2) consulta.forEach((palavra) => termos.add(palavra));
 
   const respostas = await Promise.allSettled([...termos].map(consultarSinpres));
-  if (respostas.every((resposta) => resposta.status === 'rejected')) {
-    return Response.json({ resultados: [], palavras, erro: 'sinapi_indisponivel' }, { status: 502 });
-  }
+  if (respostas.every((resposta) => resposta.status === 'rejected')) return null;
 
   const porCodigo = new Map();
   for (const resposta of respostas) {
@@ -76,9 +91,20 @@ export async function onRequestGet({ request }) {
     for (const c of resposta.value) if (!porCodigo.has(c.code)) porCodigo.set(c.code, c);
   }
 
+  return Array.from(porCodigo.values(), (c) => ({
+    codigo: c.code,
+    descricao: c.description,
+    unidade: c.unit,
+    valor: typeof c.baseUnitCost === 'number' ? c.baseUnitCost / 100 : null,
+    referencia: c.referenceMonth || null
+  }));
+}
+
+// Conta as palavras encontradas (pedaços de palavra valem), tira as excluídas e ordena
+function ordenar(candidatos, palavras, exclusoes) {
   const resultados = [];
-  for (const c of porCodigo.values()) {
-    const texto = normalizarTexto(c.description);
+  for (const c of candidatos) {
+    const texto = normalizarTexto(c.descricao);
     if (exclusoes.some((termo) => texto.includes(termo))) continue;
     let encontradas = 0;
     let posicao = 0;
@@ -88,11 +114,7 @@ export async function onRequestGet({ request }) {
     }
     if (!encontradas) continue;
     resultados.push({
-      codigo: c.code,
-      descricao: c.description,
-      unidade: c.unit,
-      valor: typeof c.baseUnitCost === 'number' ? c.baseUnitCost / 100 : null,
-      referencia: c.referenceMonth || null,
+      ...c,
       encontradas,
       posicao,
       tamanho: texto.length
@@ -102,8 +124,5 @@ export async function onRequestGet({ request }) {
   // Mais palavras encontradas primeiro; no empate, quem traz as palavras mais cedo e a descrição mais curta
   resultados.sort((a, b) => b.encontradas - a.encontradas || a.posicao - b.posicao || a.tamanho - b.tamanho);
 
-  return Response.json({
-    resultados: resultados.slice(0, MAX_RESULTADOS).map(({ posicao, tamanho, ...resultado }) => resultado),
-    palavras
-  });
+  return resultados.slice(0, MAX_RESULTADOS).map(({ posicao, tamanho, ...resultado }) => resultado);
 }
