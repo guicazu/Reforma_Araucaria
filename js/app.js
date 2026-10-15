@@ -1142,10 +1142,11 @@ function renderTabela(o){
 }
 
 /* Memória de cálculo em linhas da própria tabela: campos sob código/base/descrição,
-   unidade na coluna UN. e resultado na coluna de quantidade, alinhado com o serviço */
+   unidade na coluna UN., resultado na coluna de quantidade e valor na de preço total */
 const CAMPOS_MEMO=[['quantidade','Qtd','1'],['coeficiente','Coef.','1'],['comprimento','Compr.','m'],['altura','Altura','m'],['largura','Largura','m']];
 function unidadeLinhaMemo(r,sv){return r.tipo==='qtd'?(sv.unidadeMedida||''):(r.tipo||'');}
 function textoResultadoMemo(r){return r.valor==null?'—':fmtNum.format(r.valor);}
+function textoValorMemo(r,sv){return r.valor==null||sv.valorUnitario==null?'—':fmtBRL.format(r.valor*(num(sv.valorUnitario)||0));}
 // campo vazio sai vazio na planilha (não é zero: só não entra na conta)
 function celulaMemo(v){const n=num(v);return n==null?'':num2(n);}
 function renderMemo(sv){
@@ -1154,7 +1155,7 @@ function renderMemo(sv){
   <tr class="linha-memo memo-cab">
     <td class="col-codigo"></td>
     <td colspan="3"><div class="memo-campos"><span>Memória de cálculo</span>${CAMPOS_MEMO.map(c=>`<span class="memo-num">${c[1]}</span>`).join('')}</div></td>
-    <td class="col-un"></td><td class="col-num memo-res">Resultado</td><td class="col-num"></td><td class="col-num"></td><td class="col-acoes"></td>
+    <td class="col-un"></td><td class="col-num memo-res">Resultado</td><td class="col-num"></td><td class="col-num">Valor</td><td class="col-acoes"></td>
   </tr>`;
   const linhas=sv.memo.map((l,indice)=>{const r=calcularLinha(l);return `
   <tr class="linha-memo memo-item">
@@ -1165,7 +1166,8 @@ function renderMemo(sv){
     </div></td>
     <td class="col-un" id="un_${l.id}">${esc(unidadeLinhaMemo(r,sv))}</td>
     <td class="col-num memo-res" id="res_${l.id}">${textoResultadoMemo(r)}</td>
-    <td class="col-num"></td><td class="col-num"></td>
+    <td class="col-num"></td>
+    <td class="col-num" id="valor_${l.id}">${textoValorMemo(r,sv)}</td>
     <td class="col-acoes">${modoEdicao?`<button class="btn-icon memo-remover" data-acao="del-linha" data-lid="${l.id}" title="Remover linha" aria-label="Remover linha ${indice+1}">${icone('fechar')}</button>`:''}</td>
   </tr>`;}).join('');
   const botoes=modoEdicao?`<button class="btn btn-sm" data-acao="add-linha" data-svid="${sv.id}">${icone('mais','ic-sm')}Linha</button><button class="btn btn-ghost btn-sm" data-acao="clear-memo" data-svid="${sv.id}">Quantidade manual</button>`:'';
@@ -1175,7 +1177,9 @@ function renderMemo(sv){
     <td colspan="3"><div class="memo-rodape-conteudo"><div class="memo-botoes">${botoes}</div><span>Total da memória</span></div></td>
     <td class="col-un">${esc(sv.unidadeMedida)}</td>
     <td class="col-num memo-res memo-soma" id="soma_${sv.id}">${fmtNum.format(qtdServico(sv))}</td>
-    <td class="col-num"></td><td class="col-num"></td><td class="col-acoes"></td>
+    <td class="col-num"></td>
+    <td class="col-num memo-soma" id="valormemo_${sv.id}">${fmtBRL.format(totalServico(sv))}</td>
+    <td class="col-acoes"></td>
   </tr>`;
   return cab+linhas+rodape;
 }
@@ -1408,12 +1412,16 @@ $('#corpoTabela').addEventListener('input',(ev)=>{
   if(res)res.textContent=textoResultadoMemo(r);
   const unEl=document.getElementById('un_'+lid);
   if(unEl)unEl.textContent=unidadeLinhaMemo(r,sv);
+  const valorEl=document.getElementById('valor_'+lid);
+  if(valorEl)valorEl.textContent=textoValorMemo(r,sv);
   const qCell=document.getElementById('qtdsv_'+sv.id);
   if(qCell)qCell.value=fmtNum.format(qtdServico(sv));
   const tCell=document.getElementById('totalsv_'+sv.id);
   if(tCell)tCell.textContent=fmtBRL.format(totalServico(sv));
   const somaEl=document.getElementById('soma_'+sv.id);
   if(somaEl)somaEl.textContent=fmtNum.format(qtdServico(sv));
+  const valorMemoEl=document.getElementById('valormemo_'+sv.id);
+  if(valorMemoEl)valorMemoEl.textContent=fmtBRL.format(totalServico(sv));
   atualizarTotaisVisuais(o);
 });
 

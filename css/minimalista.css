@@ -208,7 +208,7 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 #tabelaOrcamento .memo-cab td{padding-top:8px;vertical-align:bottom}
 #tabelaOrcamento .memo-rodape td{padding-bottom:9px;border-bottom:1px solid var(--linha)}
 .memo-campos{display:grid;grid-template-columns:minmax(0,1fr) repeat(5,58px);gap:6px;align-items:center}
-.memo-cab span,#tabelaOrcamento .linha-memo.memo-cab td.memo-res{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--fraco)}
+.memo-cab span,#tabelaOrcamento .linha-memo.memo-cab td.col-num{font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--fraco)}
 .memo-cab .memo-campos span{padding:0 7px}
 .memo-campos .memo-num{text-align:right}
 .memo-campos input{width:100%;min-width:0;height:24px;padding:0 6px;border:1px solid var(--borda);border-radius:4px;background:var(--superficie);color:var(--texto);font:inherit;font-size:12px}
@@ -216,6 +216,9 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 .memo-campos input[readonly]{border-color:transparent;background:transparent}
 .memo-campos input::placeholder{color:#d4d4d8}
 .memo-campos input[readonly]::placeholder{color:transparent}
+/* dados da memória em itálico, para diferenciar das linhas de serviço */
+#tabelaOrcamento .memo-item td,.memo-item .memo-campos input,#tabelaOrcamento .memo-rodape td.col-num,#tabelaOrcamento .memo-rodape td.col-un{font-style:italic}
+#tabelaOrcamento .memo-item td.col-num{color:var(--texto)}
 /* mesmo recuo do texto da quantidade do serviço (padding da célula + borda e padding do campo) */
 #tabelaOrcamento .linha-memo td.memo-res{padding-right:18px;text-align:right;font-variant-numeric:tabular-nums;color:var(--texto)}
 #tabelaOrcamento .linha-memo td.memo-soma{color:var(--tinta);font-weight:600;box-shadow:inset 0 1px 0 var(--borda)}
