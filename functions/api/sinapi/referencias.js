@@ -124,13 +124,18 @@ async function concluir(env, corpo) {
   if (c.insumos !== Number(corpo.insumos) || c.composicoes !== Number(corpo.composicoes) || c.semEstrutura > 0) {
     return erro('contagem_diferente', 422, { gravado: c, esperado: { insumos: corpo.insumos, composicoes: corpo.composicoes } });
   }
-  await env.DB.batch([
-    // a busca por palavras usa as descrições mais recentes
-    env.DB.prepare("INSERT INTO sinapi_composicoes_busca(sinapi_composicoes_busca) VALUES ('rebuild')"),
-    env.DB.prepare("INSERT INTO sinapi_insumos_busca(sinapi_insumos_busca) VALUES ('rebuild')"),
+  // A busca por palavras usa as descrições mais recentes. Só é refeita se este mês trouxe descrição
+  // nova ou alterada (mês antigo importado depois não mexe no cadastro): poupa ~15 mil gravações.
+  const doMes = await env.DB.prepare(
+    'SELECT (SELECT COUNT(*) FROM sinapi_insumos WHERE mes = ?1) AS insumos, (SELECT COUNT(*) FROM sinapi_composicoes WHERE mes = ?1) AS composicoes'
+  ).bind(mes).first();
+  const refazer = [];
+  if (doMes.composicoes) refazer.push(env.DB.prepare("INSERT INTO sinapi_composicoes_busca(sinapi_composicoes_busca) VALUES ('rebuild')"));
+  if (doMes.insumos) refazer.push(env.DB.prepare("INSERT INTO sinapi_insumos_busca(sinapi_insumos_busca) VALUES ('rebuild')"));
+  await env.DB.batch(refazer.concat([
     env.DB.prepare("UPDATE sinapi_referencias SET status = 'ok', insumos = ?4, composicoes = ?5, importadoEm = ?6 WHERE mes = ?1 AND uf = ?2 AND regime = ?3")
       .bind(mes, SINAPI_UF, SINAPI_REGIME, c.insumos, c.composicoes, new Date().toISOString())
-  ]);
+  ]));
   return Response.json({ ok: true, mes, insumos: c.insumos, composicoes: c.composicoes });
 }
 
