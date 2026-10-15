@@ -1,4 +1,5 @@
 import { lerCookie, validarSessao } from '../_lib/session.js';
+import { permissoesDoEmail, pode } from '../_lib/permissoes.js';
 
 async function usuarioDaSessao(request, env) {
   const token = lerCookie(request, 'sessao');
@@ -17,11 +18,8 @@ async function ehAdmin(payload, env) {
 
 async function podeEditar(payload, env) {
   if (!payload || !payload.email) return false;
-  if (await ehAdmin(payload, env)) return true;
-  const usuario = await env.DB.prepare(
-    'SELECT podeEditar FROM usuarios WHERE email = ?'
-  ).bind(payload.email.toLowerCase()).first();
-  return Boolean(usuario && usuario.podeEditar);
+  const { permissoes } = await permissoesDoEmail(env, payload.email);
+  return pode(permissoes, 'orcamento', 'editar');
 }
 
 // Lista todos os bloqueios ativos (usado pela tela do admin)

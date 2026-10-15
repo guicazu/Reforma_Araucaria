@@ -139,6 +139,9 @@
       duplicatas: Array.from(inf.getElementsByTagName('dup')).map((d) => ({ vencimento: um(d, 'dVenc'), valor: numero(um(d, 'vDup')) })).filter((d) => d.vencimento && d.valor > 0)
     };
   }
+  function mensagemFornecedorSemCadastro(doc) {
+    return 'O emitente da nota (CNPJ ' + S.documento(doc) + ') não está nos fornecedores e você não tem permissão para cadastrar. Peça o cadastro em Suprimentos › Cadastros.';
+  }
   // Semelhança entre descrições (palavras em comum), para casar o item da nota com o do pedido
   function palavras(t) { return new Set(S.normalizar(t).split(/[^a-z0-9]+/).filter((p) => p.length > 1)); }
   function semelhanca(a, b) {
@@ -313,6 +316,10 @@
         xml = lerXmlNfe(texto);
         const doc = String(xml.emitente.documento || '').replace(/\D/g, '');
         let forn = fornecedores.find((f) => f.documento === doc);
+        if (!forn && doc && !S.podeEditar('cadastros')) {
+          xml = null;
+          throw new Error(mensagemFornecedorSemCadastro(doc));
+        }
         if (!forn && doc) {
           const criar = await S.acao({ titulo: 'Fornecedor não cadastrado', botao: 'Cadastrar e continuar', depois: false,
             texto: '<b>' + S.esc(xml.emitente.nome) + '</b> (' + S.esc(S.documento(doc)) + ') ainda não está nos fornecedores. Cadastrar com os dados do XML?',

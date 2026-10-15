@@ -96,7 +96,7 @@
         '<label class="largo">Observações para os fornecedores<textarea rows="2" data-obs maxlength="2000" placeholder="Condições de entrega, especificações, horário de recebimento na obra…"></textarea></label></div>' +
         S.secao('Itens a cotar', '<div data-itens></div>') +
         S.secao('Fornecedores', '<div class="supr-barra">' + S.busca('', 'Nome, CNPJ ou o que fornece') + '<span class="espaco"></span>' +
-          S.botao('novo-fornecedor', 'Novo fornecedor', { icone: 'mais' }) + '</div><div data-fornecedores></div>') +
+          (S.podeEditar('cadastros') ? S.botao('novo-fornecedor', 'Novo fornecedor', { icone: 'mais' }) : '') + '</div><div data-fornecedores></div>') +
         '<div class="supr-rodape"><button type="button" class="btn btn-ghost" data-voltar>Cancelar</button>' +
         '<button type="button" class="btn btn-primary" data-acao="criar">' + S.ic('cotacao') + 'Criar cotação</button></div>';
 
@@ -504,8 +504,8 @@
         const r = await S.dialogo({
           titulo: 'Incluir fornecedor na cotação', botao: 'Incluir',
           corpo: '<label class="campo">Fornecedor<select data-f>' + S.opcoesFornecedores(lista, '') + '</select></label>' +
-            '<p class="supr-dica" style="margin-top:8px">Não está na lista? <button type="button" class="supr-link" data-novo>Cadastrar fornecedor</button></p>',
-          aoAbrir: (corpo, dlg, fechar) => corpo.querySelector('[data-novo]').addEventListener('click', async () => {
+            (S.podeEditar('cadastros') ? '<p class="supr-dica" style="margin-top:8px">Não está na lista? <button type="button" class="supr-link" data-novo>Cadastrar fornecedor</button></p>' : ''),
+          aoAbrir: (corpo, dlg, fechar) => corpo.querySelector('[data-novo]') && corpo.querySelector('[data-novo]').addEventListener('click', async () => {
             const id = await S.novoFornecedor();
             if (id) { await S.post('cotacoes/' + cot.id + '/fornecedores', { fornecedorId: id }); fechar(true); }
           }),

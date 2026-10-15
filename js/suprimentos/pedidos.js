@@ -79,10 +79,10 @@
         if (S.podeAutorizar('pedido', p.valorTotal)) acoes.push(S.botao('autorizar', 'Autorizar', { primario: true, icone: 'check' }));
         if (S.podeAutorizar('pedido', 0)) acoes.push(S.botao('reprovar', 'Reprovar', { perigo: true }));
       }
+      if (ativo && S.podeEditar('notas')) acoes.push(S.botao('nota', 'Lançar nota fiscal', { primario: true, icone: 'nota' }));
       if (S.podeEditar()) {
         if (['pendente', 'reprovado'].includes(p.status)) acoes.push(S.botao('editar', p.status === 'reprovado' ? 'Alterar e reenviar' : 'Alterar', { icone: 'editar' }));
         if (ativo) {
-          acoes.push(S.botao('nota', 'Lançar nota fiscal', { primario: true, icone: 'nota' }));
           acoes.push(S.botao('enviar', p.enviadoEm ? 'Reenviar ao fornecedor' : 'Enviar ao fornecedor', { icone: 'email' }));
           acoes.push(S.botao('link', 'Copiar link', { icone: 'link', titulo: 'Link para o fornecedor ver e confirmar o pedido' }));
         }
@@ -199,7 +199,7 @@
         '<div class="supr-form">' +
         '<label class="duplo">Obra<select data-obra' + (edicao ? ' disabled' : '') + '>' + S.opcoesObras(obraId) + '</select></label>' +
         '<label class="duplo">Fornecedor<select data-fornecedor' + (edicao ? ' disabled' : '') + '>' + S.opcoesFornecedores(fornecedores, edicao ? edicao.fornecedorId : (prm.fornecedor || '')) + '</select>' +
-        (edicao ? '' : '<button type="button" class="supr-link" data-acao="novo-forn" style="align-self:flex-start;font-size:11.5px">Cadastrar fornecedor</button>') + '</label>' +
+        (edicao || !S.podeEditar('cadastros') ? '' : '<button type="button" class="supr-link" data-acao="novo-forn" style="align-self:flex-start;font-size:11.5px">Cadastrar fornecedor</button>') + '</label>' +
         '<label>Condição de pagamento<select data-condicao>' + S.opcoesCondicoes(condicoes, condInicial, edicao && edicao.condicaoPagamento && !condInicial ? edicao.condicaoPagamento : 'A combinar') + '</select></label>' +
         '<label>Entrega até<input type="date" data-entrega value="' + S.esc(edicao ? edicao.dataEntrega || '' : S.somarDias(S.hoje(), 7)) + '"></label>' +
         '<label class="duplo">Local de entrega<input data-local value="' + S.esc(edicao ? edicao.localEntrega || '' : S.parametro('local_entrega_padrao') || '') + '" placeholder="Endereço da obra"></label>' +

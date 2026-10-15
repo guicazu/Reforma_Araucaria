@@ -2,6 +2,7 @@
 // documentos, histórico, parâmetros e alçadas de autorização.
 // O D1 aceita até 100 parâmetros por consulta: listas de ids vão como um JSON só (json_each).
 import { lerCookie, validarSessao } from '../session.js';
+import { permissoesDoEmail } from '../permissoes.js';
 
 export class ErroApi extends Error {
   constructor(status, codigo, mensagem, extra) {
@@ -53,26 +54,20 @@ export function lerJson(texto, padrao) {
 }
 
 /* ---------- usuário da sessão ---------- */
+// Usuário da sessão com as permissões por módulo (functions/_lib/permissoes.js). O roteador
+// (rotas.js) confere a permissão da rota e marca podeEditarModulo para exigirEdicao.
 export async function contextoUsuario(request, env) {
   const cookie = lerCookie(request, 'sessao');
   const sessao = cookie ? await validarSessao(cookie, env.SESSION_SECRET) : null;
   if (!sessao || !sessao.email) return null;
   const email = sessao.email.toLowerCase();
-  const admins = (env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  const usuario = await env.DB.prepare('SELECT nome, isAdmin, podeEditar FROM usuarios WHERE email = ?')
-    .bind(email).first();
-  const isAdmin = admins.includes(email) || Boolean(usuario && usuario.isAdmin);
-  return {
-    email,
-    nome: (usuario && usuario.nome) || sessao.nome || email,
-    isAdmin,
-    podeEditar: isAdmin || Boolean(usuario && usuario.podeEditar)
-  };
+  const { usuario, isAdmin, permissoes } = await permissoesDoEmail(env, email);
+  return { email, nome: (usuario && usuario.nome) || sessao.nome || email, isAdmin, permissoes, podeEditarModulo: false };
 }
 
 export function exigirEdicao(ctx) {
-  if (!ctx.podeEditar) {
-    falha(403, 'somente_visualizacao', 'Seu acesso é somente de visualização. Peça liberação de edição ao administrador.');
+  if (!ctx.podeEditarModulo) {
+    falha(403, 'somente_visualizacao', 'Você não tem permissão para editar este módulo. Peça ao administrador (Usuários › Editar permissões).');
   }
 }
 

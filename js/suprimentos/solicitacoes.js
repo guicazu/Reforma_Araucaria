@@ -235,12 +235,12 @@
         if (S.podeAutorizar('solicitacao', sc.valorEstimado)) acoes.push(S.botao('autorizar', 'Autorizar', { primario: true, icone: 'check' }));
         if (S.podeAutorizar('solicitacao', 0)) acoes.push(S.botao('reprovar', 'Reprovar', { perigo: true }));
       }
+      if (paraCotar.length && sc.status === 'autorizada') {
+        if (S.podeEditar('cotacoes')) acoes.push(S.botao('cotar', 'Gerar cotação', { primario: true, icone: 'cotacao' }));
+        if (S.podeEditar('pedidos')) acoes.push(S.botao('comprar', 'Comprar direto', { icone: 'suprimentos', titulo: 'Pedido de compra sem cotação' }));
+      }
       if (S.podeEditar()) {
         if (['pendente', 'reprovada'].includes(sc.status)) acoes.push(S.botao('editar', sc.status === 'reprovada' ? 'Alterar e reenviar' : 'Alterar', { icone: 'editar' }));
-        if (paraCotar.length && sc.status === 'autorizada') {
-          acoes.push(S.botao('cotar', 'Gerar cotação', { primario: true, icone: 'cotacao' }));
-          acoes.push(S.botao('comprar', 'Comprar direto', { icone: 'suprimentos', titulo: 'Pedido de compra sem cotação' }));
-        }
         if (['pendente', 'autorizada'].includes(sc.status) && sc.itens.some((i) => ['pendente', 'autorizado'].includes(i.status) && i.comprado <= 1e-6 && i.emCotacao <= 1e-6)) {
           acoes.push(S.botao('cancelar', 'Cancelar', { perigo: true }));
         }

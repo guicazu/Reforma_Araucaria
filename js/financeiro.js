@@ -47,7 +47,7 @@
         { t: 'Valor', v: (t) => S.moeda(t.valor), c: 'num' },
         { t: 'Pago', v: (t) => (t.dataPagamento ? S.moeda(t.valorPago) + '<small>' + S.data(t.dataPagamento) + '</small>' : '—'), c: 'num' },
         { t: 'Situação', v: (t) => S.status('titulo', situacao(t)) },
-        { t: '', v: (t) => (!S.podeEditar() ? '' : t.status === 'aberto'
+        { t: '', v: (t) => (!S.podeEditar('financeiro') ? '' : t.status === 'aberto'
           ? S.botao('pagar', 'Pagar', { primario: true, dados: 'data-id="' + S.esc(t.id) + '"' }) + S.botao('vencimento', 'Vencimento', { dados: 'data-id="' + S.esc(t.id) + '"' })
           : t.status === 'pago' ? S.botao('estornar', 'Estornar', { dados: 'data-id="' + S.esc(t.id) + '"' }) : ''), c: 'acoes' }
       ], linhas, { id: (t) => t.origemTipo + ':' + t.origemId, classeLinha: (t) => (situacao(t) === 'vencido' ? 'alerta' : ''),

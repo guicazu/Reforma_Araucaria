@@ -1,14 +1,10 @@
 import { lerCookie, validarSessao } from '../_lib/session.js';
+import { permissoesDoEmail, pode } from '../_lib/permissoes.js';
 
 async function usuarioPodeEditar(payload, env) {
-  const email = payload && payload.email ? payload.email.toLowerCase() : '';
-  if (!email) return false;
-  const admins = (env.ADMIN_EMAILS || '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);
-  if (admins.includes(email)) return true;
-  const usuario = await env.DB.prepare(
-    'SELECT podeEditar, isAdmin FROM usuarios WHERE email = ?'
-  ).bind(email).first();
-  return Boolean(usuario && (usuario.podeEditar || usuario.isAdmin));
+  if (!payload || !payload.email) return false;
+  const { permissoes } = await permissoesDoEmail(env, payload.email);
+  return pode(permissoes, 'orcamento', 'editar');
 }
 
 // O bloqueio de edição precisa estar ativo e pertencer ao usuário da sessão
@@ -49,7 +45,16 @@ async function autenticarEditor(request, env) {
   return { session };
 }
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  // Quem não vê Orçamento nem Planejamento (que importa a EAP) não recebe os orçamentos
+  const token = lerCookie(request, 'sessao');
+  const sessao = token ? await validarSessao(token, env.SESSION_SECRET) : null;
+  if (!sessao || !sessao.email) return Response.json({ erro: 'nao_autenticado' }, { status: 401 });
+  const { permissoes } = await permissoesDoEmail(env, sessao.email);
+  if (!pode(permissoes, 'orcamento', 'visualizar') && !pode(permissoes, 'planejamento', 'visualizar')) {
+    return Response.json({ dados: [] });
+  }
+
   // Lê todas as versões de todos os orçamentos, da mais antiga para a mais nova:
   // o front-end trata a ÚLTIMA versão do array como a ativa.
   const { results: versoes } = await env.DB.prepare(

@@ -404,6 +404,28 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 /* ---------- suprimentos e contas a pagar: ver css/suprimentos.css ---------- */
 
 /* ---------- usuários e liberação ---------- */
+/* permissões por módulo (js/permissoes-ui.js): o que a pessoa não pode ver some do menu */
+.app-sidebar-item.sem-permissao,.app-sidebar-group.sem-permissao{display:none!important}
+body.sem-editar-planejamento #btnNovoPlanejamento,body.sem-editar-planejamento #btnCriarCronogramaVazio,
+body.sem-editar-planejamento #btnDuplicarPlanejamento,body.sem-editar-planejamento #btnRenomearPlanejamento,
+body.sem-editar-planejamento #btnAddFase,body.sem-editar-planejamento #btnImportarDoOrcamento,
+body.sem-editar-planejamento #btnSalvarPlanejamento,body.sem-editar-planejamento #btnSalvarListaPlanejamento,
+body.sem-editar-planejamento #btnEntrarEdicaoPlanejamento,body.sem-editar-planejamento #viewPlanejamento [data-acao="editar"],
+body.sem-editar-planejamento #viewPlanejamento [data-acao="excluir"],body.sem-editar-planejamento #viewPlanejamento [data-acao="editar-duracao"],
+body.sem-editar-backup #viewBackup label:has(#inputImportar){display:none!important}
+.ua-permissoes{font-size:11.5px;color:var(--suave)}
+.modal-permissoes{width:min(620px,94vw)}
+.modal-permissoes .perm-tabela{width:100%;border-collapse:collapse;font-size:12.5px}
+.modal-permissoes .perm-tabela th{padding:7px 8px;border-bottom:1px solid var(--borda);color:var(--suave);font-size:10.5px;font-weight:500;letter-spacing:.04em;text-align:left}
+.modal-permissoes .perm-tabela th.col-check,.modal-permissoes .perm-tabela td.col-check{width:96px;text-align:center}
+.modal-permissoes .perm-tabela td{padding:6px 8px;border-bottom:1px solid var(--linha)}
+.modal-permissoes .perm-tabela tr.perm-grupo td{padding-top:12px;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--fraco);border-bottom:1px solid var(--borda)}
+.modal-permissoes .perm-tabela td small{display:block;font-size:11px;color:var(--fraco)}
+.modal-permissoes .perm-tabela input[type=checkbox]{width:16px;height:16px;margin:0;cursor:pointer}
+.modal-permissoes .perm-tabela th label{display:inline-flex;flex-direction:column;align-items:center;gap:3px;margin:0;font-size:10.5px;font-weight:500;color:var(--suave);cursor:pointer}
+.modal-permissoes .perm-nota{margin:0 0 12px;font-size:12px;color:var(--suave)}
+.modal-permissoes .perm-wrap{max-height:min(60vh,520px);overflow:auto;border:1px solid var(--borda);border-radius:8px}
+.modal-permissoes .perm-tabela thead th{position:sticky;top:0;z-index:1;background:var(--superficie)}
 .ua-table{border-radius:8px}
 .ua-table th{background:var(--superficie);color:var(--suave);font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
 .ua-table th,.ua-table td{border-bottom-color:var(--linha);font-size:12.5px}

@@ -184,7 +184,7 @@ export async function condicaoPorId(env, id) {
 export async function obterConfiguracao({ env, ctx }) {
   const [p, alcadas] = await Promise.all([parametros(env), alcadasDoUsuario(env, ctx)]);
   return json({
-    usuario: { email: ctx.email, nome: ctx.nome, isAdmin: ctx.isAdmin, podeEditar: ctx.podeEditar },
+    usuario: { email: ctx.email, nome: ctx.nome, isAdmin: ctx.isAdmin, permissoes: ctx.permissoes },
     parametros: p,
     alcadas
   });

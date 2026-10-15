@@ -84,7 +84,7 @@
         '<div class="supr-form">' +
         '<label class="duplo">Obra<select data-obra' + (ct ? ' disabled' : '') + '>' + S.opcoesObras(obraId) + '</select></label>' +
         '<label class="duplo">Fornecedor (contratado)<select data-fornecedor>' + S.opcoesFornecedores(fornecedores, ct ? ct.fornecedorId : '') + '</select>' +
-        '<button type="button" class="supr-link" data-acao="novo-forn" style="align-self:flex-start;font-size:11.5px">Cadastrar fornecedor</button></label>' +
+        (S.podeEditar('cadastros') ? '<button type="button" class="supr-link" data-acao="novo-forn" style="align-self:flex-start;font-size:11.5px">Cadastrar fornecedor</button>' : '') + '</label>' +
         '<label class="largo">Objeto<input data-objeto maxlength="500" value="' + v('objeto') + '" placeholder="Ex.: mão de obra de alvenaria e revestimento do bloco A"></label>' +
         '<label>Tipo<select data-tipo>' + Object.keys(TIPOS).map((k) => '<option value="' + k + '"' + (ct && ct.tipo === k ? ' selected' : '') + '>' + TIPOS[k] + '</option>').join('') + '</select></label>' +
         '<label>Assinatura<input type="date" data-assinatura value="' + v('dataAssinatura') + '"></label>' +

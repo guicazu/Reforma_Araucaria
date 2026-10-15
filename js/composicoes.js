@@ -131,9 +131,12 @@
     return true;
   }
 
-  function usuarioPodeEditarCatalogos() {
+  // Permissão do módulo (composicoes, insumos ou unidades) definida em Usuários › Editar permissões
+  function usuarioPodeEditarCatalogos(modulo) {
     const usuario = window.usuarioAtual || {};
-    return Boolean(usuario.podeEditar || usuario.isAdmin);
+    if (usuario.isAdmin) return true;
+    if (usuario.permissoes && modulo) return Boolean(usuario.permissoes[modulo] && usuario.permissoes[modulo].editar);
+    return Boolean(usuario.podeEditar);
   }
 
   function parseReal(valor) {
@@ -319,7 +322,7 @@
   function renderUnidades() {
     const tbody = document.getElementById('listaUnidades');
     if (!tbody) return;
-    const podeEditar = usuarioPodeEditarCatalogos();
+    const podeEditar = usuarioPodeEditarCatalogos('unidades');
     const botaoAdicionar = document.getElementById('btnAddUnidadeMedida');
     const aviso = document.getElementById('avisoMigracaoUnidades');
     if (botaoAdicionar) {
@@ -353,7 +356,7 @@
   function renderComposicoes() {
     const container = document.getElementById('listaComposicoes');
     if (!container) return;
-    const podeEditar = usuarioPodeEditarCatalogos();
+    const podeEditar = usuarioPodeEditarCatalogos('composicoes');
     const botaoAdicionar = document.getElementById('btnAddComposicao');
     const contagem = document.getElementById('contagemComposicoes');
     const base = baseSelecionada('baseComposicao');
@@ -410,7 +413,7 @@
   function renderInsumos() {
     const container = document.getElementById('listaInsumos');
     if (!container) return;
-    const podeEditar = usuarioPodeEditarCatalogos();
+    const podeEditar = usuarioPodeEditarCatalogos('insumos');
     const botaoAdicionar = document.getElementById('btnAddInsumo');
     const contagem = document.getElementById('contagemInsumos');
     const base = baseSelecionada('baseInsumo');
@@ -544,7 +547,7 @@
       resultados.innerHTML = lista.map(function (item) {
         const codigo = String(item.codigo);
         itensPorCodigo.set(codigo, item);
-        const botaoCopiar = usuarioPodeEditarCatalogos()
+        const botaoCopiar = usuarioPodeEditarCatalogos(composicao ? 'composicoes' : 'insumos')
           ? '<button type="button" class="btn btn-primary btn-sm" data-sinapi-copiar="' + escaparHtml(codigo) + '">' +
             (composicao ? 'Copiar composição' : 'Copiar insumo') + '</button>'
           : '';

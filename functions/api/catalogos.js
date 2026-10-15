@@ -1,4 +1,5 @@
 import { lerCookie, validarSessao } from '../_lib/session.js';
+import { resolverPermissoes, pode } from '../_lib/permissoes.js';
 import { SINAPI_PARAMS } from '../_lib/sinapi.js';
 import { escolherReferencia, composicaoFormatoSinpres, insumoDaBase, SINAPI_UF, SINAPI_REGIME } from '../_lib/sinapi-base.js';
 
@@ -51,7 +52,7 @@ async function contextoUsuario(request, env) {
   const email = sessao.email.toLowerCase();
   const admins = (env.ADMIN_EMAILS || '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);
   const { results } = await env.DB.prepare(
-    'SELECT status, isAdmin, podeEditar FROM usuarios WHERE email = ?'
+    'SELECT status, isAdmin, podeEditar, permissoes FROM usuarios WHERE email = ?'
   ).bind(email).all();
   const usuario = results[0] || null;
   const isAdmin = admins.includes(email) || Boolean(usuario && usuario.isAdmin);
@@ -59,7 +60,8 @@ async function contextoUsuario(request, env) {
   return {
     isAdmin,
     aprovado,
-    podeEditar: isAdmin || Boolean(usuario && usuario.podeEditar)
+    podeEditar: isAdmin || Boolean(usuario && usuario.podeEditar),
+    permissoes: resolverPermissoes(usuario, isAdmin)
   };
 }
 
@@ -423,14 +425,18 @@ export async function onRequestPost({ request, env }) {
   const usuario = await contextoUsuario(request, env);
   if (!usuario) return respostaErro('nao_autenticado', 401);
   if (!usuario.aprovado) return respostaErro('nao_aprovado', 403);
-  if (!usuario.podeEditar) return respostaErro('somente_visualizacao', 403);
 
   const corpo = await request.clone().json().catch(() => null);
   if (!corpo || typeof corpo !== 'object') return respostaErro('json_invalido', 400);
   if (corpo.migrarUnidades === true) return migrarUnidades(request, env, usuario);
-  if (corpo.importarSinapi) return importarSinapi(env, corpo);
+  if (corpo.importarSinapi) {
+    const modulo = corpo.importarSinapi && corpo.importarSinapi.tipo === 'insumo' ? 'insumos' : 'composicoes';
+    if (!pode(usuario.permissoes, modulo, 'editar')) return respostaErro('somente_visualizacao', 403);
+    return importarSinapi(env, corpo);
+  }
   const tipo = corpo.tipo;
   if (!Object.hasOwn(TIPOS, tipo)) return respostaErro('tipo_invalido', 400);
+  if (!pode(usuario.permissoes, tipo, 'editar')) return respostaErro('somente_visualizacao', 403);
 
   try {
     const dados = prepararItem(tipo, corpo.item, null);
@@ -447,13 +453,13 @@ export async function onRequestPut({ request, env }) {
   const usuario = await contextoUsuario(request, env);
   if (!usuario) return respostaErro('nao_autenticado', 401);
   if (!usuario.aprovado) return respostaErro('nao_aprovado', 403);
-  if (!usuario.podeEditar) return respostaErro('somente_visualizacao', 403);
   const corpo = await request.json().catch(() => null);
   const tipo = corpo && corpo.tipo;
   const item = corpo && corpo.item;
   if (!corpo || !Object.hasOwn(TIPOS, tipo) || !item || typeof item.id !== 'string') {
     return respostaErro('item_invalido', 400);
   }
+  if (!pode(usuario.permissoes, tipo, 'editar')) return respostaErro('somente_visualizacao', 403);
   const { tabela, colunas } = TIPOS[tipo];
   const existente = await env.DB.prepare(`SELECT * FROM ${tabela} WHERE id = ?`).bind(item.id).first();
   if (!existente) return respostaErro('nao_encontrado', 404);
@@ -478,11 +484,11 @@ export async function onRequestDelete({ request, env }) {
   const usuario = await contextoUsuario(request, env);
   if (!usuario) return respostaErro('nao_autenticado', 401);
   if (!usuario.aprovado) return respostaErro('nao_aprovado', 403);
-  if (!usuario.podeEditar) return respostaErro('somente_visualizacao', 403);
   const corpo = await request.json().catch(() => null);
   const tipo = corpo && corpo.tipo;
   const id = corpo && corpo.id;
   if (!Object.hasOwn(TIPOS, tipo) || typeof id !== 'string' || !id) return respostaErro('parametros_invalidos', 400);
+  if (!pode(usuario.permissoes, tipo, 'editar')) return respostaErro('somente_visualizacao', 403);
   const { tabela } = TIPOS[tipo];
   const existente = await env.DB.prepare(`SELECT * FROM ${tabela} WHERE id = ?`).bind(id).first();
   if (!existente) return respostaErro('nao_encontrado', 404);

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   status TEXT NOT NULL DEFAULT 'pendente',
   isAdmin INTEGER NOT NULL DEFAULT 0,
   podeEditar INTEGER NOT NULL DEFAULT 0,
+  permissoes TEXT,                 -- JSON por módulo (functions/_lib/permissoes.js)
   criadoEm TEXT NOT NULL,
   aprovadoEm TEXT
 );

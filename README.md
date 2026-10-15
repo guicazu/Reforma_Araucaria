@@ -92,6 +92,17 @@ aguardando-aprovacao.html  tela pra quem já logou mas ainda não foi aprovado
 admin.html                 painel pra aprovar/bloquear usuários e gerenciar bloqueios
 ```
 
+## Permissões por módulo
+
+Em **Usuários › Editar permissões** o administrador marca, para cada pessoa, se ela pode
+**visualizar** e/ou **editar** cada módulo do menu (Orçamento, Planejamento, Composições, Insumos,
+Unidades, cada área de Suprimentos, Contas a pagar e Backup). Editar inclui visualizar; o que a pessoa
+não pode visualizar some do menu e a API recusa. Quem ainda não teve a matriz salva segue a regra
+antiga (visualiza tudo e edita se tinha "Permitir edição"). Administradores têm acesso total; quem
+autoriza compras é definido pelas alçadas (Suprimentos › Cadastros). A regra fica em
+`functions/_lib/permissoes.js` (coluna `usuarios.permissoes`, migração
+`db/migrations/20261018_permissoes_modulos.sql`).
+
 ## Autenticação e aprovação de acesso
 
 1. A pessoa acessa o site e é redirecionada pra `/login`
@@ -99,8 +110,8 @@ admin.html                 painel pra aprovar/bloquear usuários e gerenciar blo
 3. No primeiro login, é criado um registro em `usuarios` com status `pendente`,
    e a pessoa vê a tela "aguardando aprovação"
 4. O administrador entra em `/admin.html` e aprova (ou bloqueia) o acesso
-5. Usuários aprovados começam somente com visualização; o administrador pode habilitar
-   edição globalmente na lista de usuários
+5. Usuários aprovados começam somente com visualização; o administrador define o que cada um
+   visualiza e edita em **Editar permissões**
 6. Para editar, a pessoa seleciona **Editar** no orçamento; **Visualizar** não adquire bloqueio
 7. O bloqueio permanece até o editor clicar em **Liberar orçamento** ou um administrador
    liberá-lo no painel. Não há expiração automática.

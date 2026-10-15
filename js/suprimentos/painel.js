@@ -12,11 +12,19 @@
       if (!c.vigente()) return;
       const pend = p.pendentes;
       const totalPend = pend.solicitacoes + pend.pedidos + pend.contratos + pend.aditivos + pend.medicoes;
-      const card = (aba, rotulo, icone, valor, det, classe) => '<button type="button" class="supr-card' + (classe ? ' ' + classe : '') + '" data-ir="' + aba + '">' +
-        '<span class="rotulo">' + S.ic(icone) + S.esc(rotulo) + '</span><span class="valor">' + valor + '</span><span class="det">' + det + '</span></button>';
-      const atalhos = S.podeEditar() ? '<div class="supr-atalhos">' + S.botao('nova-sc', 'Nova solicitação', { primario: true, icone: 'mais' }) +
-        S.botao('nova-cot', 'Nova cotação', { icone: 'cotacao' }) + S.botao('nova-nf', 'Lançar nota fiscal', { icone: 'nota' }) +
-        S.botao('novo-ct', 'Novo contrato', { icone: 'contrato' }) + '</div>' : '';
+      // cartão vira link só para o módulo que a pessoa pode ver
+      const card = (aba, rotulo, icone, valor, det, classe) => {
+        const pode = aba === 'autorizacoes' || S.pode(aba, 'visualizar');
+        const tag = pode ? 'button type="button"' : 'div';
+        return '<' + tag + ' class="supr-card' + (classe ? ' ' + classe : '') + '"' + (pode ? ' data-ir="' + aba + '"' : '') + '>' +
+          '<span class="rotulo">' + S.ic(icone) + S.esc(rotulo) + '</span><span class="valor">' + valor + '</span><span class="det">' + det + '</span>' + (pode ? '</button>' : '</div>');
+      };
+      const atalhos = [
+        S.podeEditar('solicitacoes') ? S.botao('nova-sc', 'Nova solicitação', { primario: true, icone: 'mais' }) : '',
+        S.podeEditar('cotacoes') ? S.botao('nova-cot', 'Nova cotação', { icone: 'cotacao' }) : '',
+        S.podeEditar('notas') ? S.botao('nova-nf', 'Lançar nota fiscal', { icone: 'nota' }) : '',
+        S.podeEditar('contratos') ? S.botao('novo-ct', 'Novo contrato', { icone: 'contrato' }) : ''
+      ].join('');
       let resumo = '';
       if (p.resumoObra && !p.resumoObra.erro) {
         const r = p.resumoObra;
@@ -39,7 +47,7 @@
         { t: 'Situação', v: (x) => S.status('pedido', x.status) }
       ], lista, { id: (x) => 'pedido:' + x.id, vazio });
 
-      c.innerHTML = atalhos + '<div class="supr-cards">' +
+      c.innerHTML = (atalhos ? '<div class="supr-atalhos">' + atalhos + '</div>' : '') + '<div class="supr-cards">' +
         card('autorizacoes', 'Aguardando autorização', 'autorizacao', String(totalPend),
           [pend.solicitacoes ? pend.solicitacoes + ' SC' : '', pend.pedidos ? pend.pedidos + ' pedido(s)' : '', pend.contratos ? pend.contratos + ' contrato(s)' : '',
             pend.aditivos ? pend.aditivos + ' aditivo(s)' : '', pend.medicoes ? pend.medicoes + ' medição(ões)' : ''].filter(Boolean).join(' · ') || 'nada pendente', totalPend ? 'alerta' : '') +
@@ -48,9 +56,9 @@
         card('cotacoes', 'Cotações abertas', 'cotacao', String(p.cotacoesAbertas.length),
           p.cotacoesAbertas.length ? p.cotacoesAbertas.reduce((s, x) => s + x.respostas, 0) + ' resposta(s) de ' + p.cotacoesAbertas.reduce((s, x) => s + x.fornecedores, 0) + ' convite(s)' : 'nenhuma') +
         card('pedidos', 'Entregas atrasadas', 'relogio', String(p.pedidosAtrasados.length), p.entregasProximas.length + ' entrega(s) nos próximos 7 dias', p.pedidosAtrasados.length ? 'perigo' : '') +
-        '<button type="button" class="supr-card' + (p.titulos.qtdVencido ? ' perigo' : '') + '" data-ir-financeiro><span class="rotulo">' + S.ic('financeiro') + 'Contas a pagar</span>' +
+        (S.pode('financeiro', 'visualizar') ? '<button type="button" class="supr-card' + (p.titulos.qtdVencido ? ' perigo' : '') + '" data-ir-financeiro><span class="rotulo">' + S.ic('financeiro') + 'Contas a pagar</span>' +
         '<span class="valor">' + S.moeda(p.titulos.proximos) + '</span><span class="det">' + p.titulos.qtdProximos + ' título(s) em 7 dias' +
-        (p.titulos.qtdVencido ? ' · ' + S.moeda(p.titulos.vencido) + ' vencido' : '') + '</span></button></div>' +
+        (p.titulos.qtdVencido ? ' · ' + S.moeda(p.titulos.vencido) + ' vencido' : '') + '</span></button>' : '') + '</div>' +
         resumo +
         '<div class="supr-duas">' + S.secao('Entregas atrasadas', listaPedidos(p.pedidosAtrasados, 'Nenhuma entrega atrasada.')) +
         S.secao('Entregas nos próximos 7 dias', listaPedidos(p.entregasProximas, 'Nenhuma entrega prevista.')) + '</div>' +

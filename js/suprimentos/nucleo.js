@@ -266,7 +266,22 @@
     if (sel) sel.value = estado.obra;
     S.recarregar();
   };
-  S.podeEditar = () => !!(estado.config && estado.config.usuario.podeEditar);
+  // Permissões por módulo (Usuários › Editar permissões). Sem módulo, vale o da tela aberta.
+  const SUPRIMENTOS = ['solicitacoes', 'cotacoes', 'pedidos', 'notas', 'contratos', 'estoque', 'acompanhamento', 'cadastros', 'financeiro'];
+  const SEM_MODULO = { painel: true, autorizacoes: true };
+  function moduloDaTela() {
+    const tela = S.telas[estado.aba];
+    const menu = (tela && tela.menu) || estado.aba;
+    return SEM_MODULO[menu] ? null : menu;
+  }
+  S.pode = (modulo, acao) => {
+    const p = estado.config && estado.config.usuario.permissoes;
+    if (!p) return false;
+    if (modulo === '*') return SUPRIMENTOS.some((m) => p[m] && p[m].visualizar);
+    const x = p[modulo];
+    return Boolean(x && (acao === 'editar' ? x.editar : x.visualizar));
+  };
+  S.podeEditar = (modulo) => { const m = modulo || moduloDaTela(); return m ? S.pode(m, 'editar') : false; };
   S.isAdmin = () => !!(estado.config && estado.config.usuario.isAdmin);
   S.parametro = (chave) => (estado.config ? estado.config.parametros[chave] : null);
   S.podeAutorizar = (tipo, valor) => {
@@ -549,8 +564,9 @@
     area.replaceChildren(c);
     document.getElementById('suprTitulo').textContent = tela.titulo || 'Suprimentos';
     document.getElementById('suprSubtitulo').textContent = tela.subtitulo || '';
-    document.getElementById('suprAvisoLeitura').classList.toggle('hidden', S.podeEditar());
     marcarMenu(tela.menu || nomeTela);
+    const modulo = moduloDaTela();
+    document.getElementById('suprAvisoLeitura').classList.toggle('hidden', !modulo || modulo === 'acompanhamento' || S.podeEditar(modulo));
     const minha = ++geracao;
     c.vigente = () => minha === geracao && c.isConnected;
     c.addEventListener('click', (ev) => { if (ev.target.closest('[data-voltar]')) S.voltar(tela.menu || nomeTela); });
@@ -641,6 +657,9 @@
     });
   });
 
-  // Contador de autorizações no menu assim que o usuário entra (não precisa abrir Suprimentos)
-  document.addEventListener('app:profilechange', () => { S.iniciar().then(S.atualizarContador).catch(() => {}); });
+  // Contador de autorizações no menu assim que o usuário entra (só para quem vê Suprimentos)
+  document.addEventListener('app:profilechange', () => {
+    if (window.Permissoes && !window.Permissoes.pode('*suprimentos')) return;
+    S.iniciar().then(S.atualizarContador).catch(() => {});
+  });
 })();
