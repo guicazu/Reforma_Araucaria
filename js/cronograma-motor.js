@@ -125,10 +125,29 @@ const inteiro = (v, min, max, padrao) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : padrao;
 };
 
+// Equipe na proporção das horas do orçamento: 8 h de oficial e 16 h de ajudante = 1 oficial para 2
+// ajudantes; 16 h e 8 h = 2 oficiais para 1 ajudante. Sem ajudante, 0 ajudantes; sem oficial, 0 oficiais.
+export function equipePadrao(mao) {
+  if (!mao) return { oficiais: 0, ajudantes: 0 };
+  if (mao.oficial > 0 && mao.ajudante > 0) {
+    return mao.oficial >= mao.ajudante ? { oficiais: Math.max(1, Math.round(mao.oficial / mao.ajudante)), ajudantes: 1 }
+      : { oficiais: 1, ajudantes: Math.max(1, Math.round(mao.ajudante / mao.oficial)) };
+  }
+  return mao.oficial > 0 ? { oficiais: 1, ajudantes: 0 } : { oficiais: 0, ajudantes: mao.ajudante > 0 ? 1 : 0 };
+}
+// Ajudantes que acompanham os oficiais na mesma proporção das horas
+export function ajudantesNaProporcao(oficiais, mao) {
+  if (!mao || !(mao.ajudante > 0)) return 0;
+  if (!(mao.oficial > 0)) return Math.max(1, oficiais);
+  const p = equipePadrao(mao);
+  return Math.max(1, Math.round(oficiais * p.ajudantes / p.oficiais));
+}
+
 // Configuração completa de uma tarefa (a salva ou a padrão para serviço sem configuração). Modo
 // "equipe": a duração sai das horas de mão de obra do serviço no orçamento (config.mao) divididas
-// pela equipe — as horas do oficial principal pelo número de oficiais; sem oficial, as do ajudante
-// pelo de ajudantes. Modo manual: a duração digitada, em dias.
+// pela equipe — as horas do oficial pelo número de oficiais; sem oficial, as do ajudante pelo de
+// ajudantes. Os ajudantes acompanham os oficiais na proporção das horas, a não ser que tenham sido
+// digitados (ajudantesFixos). Modo manual: a duração digitada, em dias.
 export function tarefaDe(config, servicoId, padrao) {
   const c = config && config.tarefas ? config.tarefas[servicoId] : null;
   const mao = config && config.mao ? config.mao[servicoId] : null;
@@ -139,15 +158,37 @@ export function tarefaDe(config, servicoId, padrao) {
     duracao: c ? inteiro(c.duracao, 0, LIMITE_DURACAO, DURACAO_PADRAO) : inteiro(config && config.duracaoPadrao, 0, LIMITE_DURACAO, DURACAO_PADRAO),
     predecessoras: (c ? c.predecessoras : padrao.get(servicoId)) || [],
     inicioMinimo: c && ehData(c.inicioMinimo) ? c.inicioMinimo : null,
-    novo: !c, modo,
-    oficiais: inteiro(c && c.oficiais, 1, LIMITE_EQUIPE, 1), ajudantes: inteiro(c && c.ajudantes, 1, LIMITE_EQUIPE, 1),
+    novo: !c, modo, oficiais: 0, ajudantes: 0, ajudantesFixos: false, ajudantesProporcao: 0,
     mao: temMao ? { oficial: mao.oficial || 0, ajudante: mao.ajudante || 0 } : null
   };
+  if (temMao) {
+    const p = equipePadrao(t.mao);
+    if (t.mao.oficial > 0) {
+      t.oficiais = inteiro(c && c.oficiais, 1, LIMITE_EQUIPE, p.oficiais);
+      t.ajudantesProporcao = ajudantesNaProporcao(t.oficiais, t.mao);
+      t.ajudantesFixos = Boolean(c && c.ajudantesFixos) && t.mao.ajudante > 0;
+      t.ajudantes = t.ajudantesFixos ? inteiro(c.ajudantes, 1, LIMITE_EQUIPE, t.ajudantesProporcao) : t.ajudantesProporcao;
+    } else {
+      t.ajudantes = inteiro(c && c.ajudantes, 1, LIMITE_EQUIPE, p.ajudantes);
+      t.ajudantesProporcao = t.ajudantes;
+    }
+  }
   if (modo === 'equipe') {
-    t.base = mao.oficial > 0 ? 'oficial' : 'ajudante';
-    t.horas = t.base === 'oficial' ? mao.oficial / t.oficiais : mao.ajudante / t.ajudantes;
+    t.base = t.mao.oficial > 0 ? 'oficial' : 'ajudante';
+    t.horas = t.base === 'oficial' ? t.mao.oficial / t.oficiais : t.mao.ajudante / t.ajudantes;
   }
   return t;
+}
+
+// Quantas pessoas do papel que decide a duração (oficiais; sem oficial, ajudantes) fazem a tarefa
+// em "dias" dias de trabalho a partir do início dela: as horas do orçamento ÷ as horas desses dias.
+// Menos de 1 = nem uma pessoa precisa de tantos dias.
+export function equipeParaDuracao(t, calendario, dias) {
+  if (!t.mao || !(dias > 0)) return null;
+  const total = t.mao.oficial > 0 ? t.mao.oficial : t.mao.ajudante;
+  let disponivel = 0;
+  for (let i = t.es; i < t.es + dias; i++) disponivel += calendario.horas(i);
+  return disponivel > 0 ? total / disponivel : null;
 }
 
 /* ---------- cálculo (CPM) ---------- */

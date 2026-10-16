@@ -137,9 +137,10 @@ function validarConfig(corpo, nos) {
     for (const k of ['oficiais', 'ajudantes']) {
       if (t[k] == null) continue;
       const n = Number(t[k]);
-      if (!Number.isInteger(n) || n < 1 || n > LIMITE_EQUIPE) falha(400, 'equipe', `Equipe inválida no serviço ${s.eap}: de 1 a ${LIMITE_EQUIPE} ${k}.`);
+      if (!Number.isInteger(n) || n < 0 || n > LIMITE_EQUIPE) falha(400, 'equipe', `Equipe inválida no serviço ${s.eap}: de 0 a ${LIMITE_EQUIPE} ${k}.`);
       equipe[k] = n;
     }
+    if (t.ajudantesFixos) equipe.ajudantesFixos = true;
     tarefas[id] = { duracao, predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}), modo: t.modo === 'equipe' ? 'equipe' : 'manual', ...equipe };
   }
   const calendarioId = corpo.calendarioId ? String(corpo.calendarioId) : null;

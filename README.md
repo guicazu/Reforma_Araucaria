@@ -61,8 +61,12 @@ etapa anterior) e fica marcado como “novo” até alguém revisar e salvar.
 - **Duração pela equipe**: as horas de mão de obra de cada serviço vêm da composição no orçamento. Se
   o serviço tem oficial, a duração é horas do oficial principal ÷ número de oficiais; só com ajudante,
   horas do ajudante ÷ número de ajudantes (encarregado, engenheiro e afins não contam). As horas viram
-  dias pelo horário de cada dia do calendário (ex.: sexta mais curta). Digitar a duração deixa o
-  serviço manual; ↺ volta ao cálculo. Serviço sem mão de obra no orçamento tem duração digitada.
+  dias pelo horário de cada dia do calendário (ex.: sexta mais curta). A equipe segue a proporção das
+  horas (8 h de oficial e 16 h de ajudante = 1 oficial para 2 ajudantes; papel que a composição não
+  tem fica 0); mudar os oficiais leva os ajudantes junto, e ajudante digitado fica fixo (com aviso se
+  ficar abaixo da proporção). Digitar a duração ajusta a equipe para caber nesses dias; se nem uma
+  pessoa precisa de tantos dias, o serviço fica manual. ↺ volta ao cálculo. Serviço sem mão de obra
+  no orçamento tem duração digitada.
 - **Avanço físico**: o % executado acumulado de cada serviço numa data (até hoje); etapas e obra
   somam pelo valor orçado. Cada apontamento fica no histórico e pode ser excluído.
 - **Curva S**: previsto pelo cronograma × realizado pelos apontamentos, com tabela.

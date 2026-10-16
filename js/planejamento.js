@@ -287,17 +287,25 @@ function barraHtml(n, lt) {
   return '<span class="plan-barra' + (t.critico ? ' critico' : '') + '" data-dica-plan="' + esc(n.id) + '" style="left:' + x.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px">' +
     '<span class="plan-exec" style="width:' + (exec * 100).toFixed(1) + '%"></span></span>';
 }
-// Equipe da atividade: oficiais e ajudantes (só os papéis que a composição tem)
+// Equipe da atividade: oficiais e ajudantes. Papel que a composição não tem fica 0; os ajudantes
+// acompanham os oficiais na proporção das horas, a não ser que tenham sido digitados
 function equipeHtml(n, t, editar) {
-  const m = (estado.dados.maoDeObra || {})[n.id] || {};
-  const campo = (k, papel, rotulo) => {
-    if (!t.mao || !(t.mao[papel] > 0)) return '<span class="plan-eq-vazio" title="Sem ' + papel + ' na composição">–</span>';
-    const dica = rotulo + ' (' + (m[papel] ? m[papel].nome : papel) + ')' + (t.modo === 'equipe' && t.base === papel ? ' — define a duração' : '');
-    return editar ? '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" step="1" inputmode="numeric" data-campo="' + k + '" value="' + t[k] + '" title="' + esc(dica) +
-      '" aria-label="' + esc(rotulo + ' em ' + n.eap) + '"' + (t.modo === 'equipe' && t.base === papel ? ' class="base"' : '') + '>'
-      : '<span title="' + esc(dica) + '">' + t[k] + '</span>';
-  };
   if (!t.mao) return '<span class="plan-eq-vazio" title="Sem mão de obra na composição do orçamento: a duração é digitada">—</span>';
+  const m = (estado.dados.maoDeObra || {})[n.id] || {};
+  const p = M.equipePadrao(t.mao);
+  const proporcao = t.mao.oficial > 0 && t.mao.ajudante > 0 ? 'proporção ' + p.oficiais + ' oficial(is) : ' + p.ajudantes + ' ajudante(s)' : '';
+  const campo = (k, papel, rotulo) => {
+    if (!(t.mao[papel] > 0)) return '<span class="plan-eq-zero" title="Sem ' + papel + ' na composição">0</span>';
+    const define = t.modo === 'equipe' && t.base === papel;
+    const abaixo = k === 'ajudantes' && t.ajudantesFixos && t.ajudantes < t.ajudantesProporcao;
+    const dica = rotulo + ' (' + (m[papel] ? m[papel].nome : papel) + ')' + (define ? ' — define a duração' : '') +
+      (k === 'ajudantes' && t.mao.oficial > 0 ? (t.ajudantesFixos ? ' — digitado' + (abaixo ? '; abaixo da ' + proporcao + ' (seriam ' + t.ajudantesProporcao + ')' : '')
+        : ' — pela ' + proporcao + '; digite para fixar') : '');
+    const classes = [define ? 'base' : '', abaixo ? 'abaixo' : '', k === 'ajudantes' && t.mao.oficial > 0 && !t.ajudantesFixos ? 'derivado' : ''].filter(Boolean).join(' ');
+    return editar ? '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" step="1" inputmode="numeric" data-campo="' + k + '" value="' + t[k] + '" title="' + esc(dica) +
+      '" aria-label="' + esc(rotulo + ' em ' + n.eap) + '"' + (classes ? ' class="' + classes + '"' : '') + '>'
+      : '<span title="' + esc(dica) + '"' + (abaixo ? ' class="abaixo"' : '') + '>' + t[k] + '</span>';
+  };
   return '<span class="plan-equipe">' + campo('oficiais', 'oficial', 'Oficiais') + campo('ajudantes', 'ajudante', 'Ajudantes') + '</span>';
 }
 // Horas de mão de obra do serviço no orçamento (a que decide a duração em destaque)
@@ -399,7 +407,7 @@ function atualizarCronograma() {
         tr.classList.toggle('critico', info.critico);
         const dur = tr.querySelector('[data-col="dur"]');
         if (!dur.contains(document.activeElement)) dur.innerHTML = duracaoHtml(n, info, podeEditar());
-        tr.querySelectorAll('.plan-equipe input').forEach((i) => i.classList.toggle('base', info.modo === 'equipe' && i.dataset.campo === (info.base === 'oficial' ? 'oficiais' : 'ajudantes')));
+        atualizarEquipe(tr.querySelector('.c-equipe'), n, info);
       } else tr.querySelector('[data-col="duracao"]').textContent = info.duracao;
       const tl = tr.querySelector('.plan-tl');
       const antiga = tl.querySelector('.plan-barra, .plan-marco, .plan-resumo');
@@ -410,6 +418,19 @@ function atualizarCronograma() {
   atualizarAvisos();
   atualizarBotoesSalvar();
   atualizarCartoes();
+}
+// Equipe redesenhada depois de uma edição; o campo em que a pessoa está digitando fica (só a aparência muda)
+function atualizarEquipe(celula, n, t) {
+  const novo = document.createElement('td');
+  novo.innerHTML = equipeHtml(n, t, podeEditar());
+  const foco = document.activeElement;
+  if (!celula.contains(foco)) { celula.innerHTML = novo.innerHTML; return; }
+  celula.querySelectorAll('input').forEach((i) => {
+    const igual = novo.querySelector('[data-campo="' + i.dataset.campo + '"]');
+    if (!igual) return;
+    if (i === foco) { i.className = igual.className; i.title = igual.title; }
+    else i.replaceWith(igual);
+  });
 }
 function atualizarBotoesSalvar() {
   const aviso = area.querySelector('[data-sujo]');
@@ -434,10 +455,39 @@ function atualizarCartoes() {
   antigo.replaceWith(temp.firstChild);
 }
 
+// Duração digitada: com mão de obra no orçamento, ajusta a equipe para caber nesses dias (horas do
+// orçamento ÷ horas dos dias); se nem uma pessoa precisa de tantos dias, o serviço fica manual com
+// a duração digitada. Sem mão de obra (ou duração zero, marco), é manual.
+function mudarDuracao(id, qtd) {
+  const t = estado.res.tarefas.get(id);
+  const tarefa = tarefaEditavel(id);
+  const necessario = t.mao && qtd > 0 ? M.equipeParaDuracao(t, estado.res.calendario, qtd) : null;
+  if (necessario == null) {
+    Object.assign(tarefa, { duracao: qtd, modo: 'manual' });
+  } else if (necessario < 1 - 1e-9) {
+    // nem uma pessoa precisa de tantos dias: a atividade fica mais lenta, com a duração digitada
+    const papel = t.mao.oficial > 0 ? 'oficial' : 'ajudante';
+    Object.assign(tarefa, { duracao: qtd, modo: 'manual' });
+    S.aviso('Com 1 ' + papel + ' o serviço já cabe em menos de ' + qtd + (qtd === 1 ? ' dia' : ' dias') + ': ficou com a duração digitada (manual).');
+  } else {
+    const n = Math.min(M.LIMITE_EQUIPE, Math.ceil(necessario - 1e-9));
+    tarefa.modo = 'equipe';
+    if (t.mao.oficial > 0) { tarefa.oficiais = n; delete tarefa.ajudantesFixos; } else tarefa.ajudantes = n;
+    marcarSujo();
+    const novo = estado.res.tarefas.get(id);
+    S.aviso('Equipe ajustada: ' + (t.mao.oficial > 0 ? n + ' oficial(is)' + (novo.ajudantes ? ' e ' + novo.ajudantes + ' ajudante(s)' : '') : n + ' ajudante(s)') +
+      (novo.duracao !== qtd ? ' — leva ' + novo.duracao + (novo.duracao === 1 ? ' dia' : ' dias') : '') + '.');
+    atualizarCronograma();
+    return;
+  }
+  marcarSujo();
+  atualizarCronograma();
+}
 function tarefaEditavel(id) {
   if (!estado.config.tarefas[id]) {
     const t = estado.res.tarefas.get(id);
-    estado.config.tarefas[id] = { duracao: t.duracao, predecessoras: t.predecessoras.map((p) => ({ ...p })), modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes };
+    estado.config.tarefas[id] = { duracao: t.duracao, predecessoras: t.predecessoras.map((p) => ({ ...p })), modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes,
+      ...(t.ajudantesFixos ? { ajudantesFixos: true } : {}) };
   }
   return estado.config.tarefas[id];
 }
@@ -513,8 +563,10 @@ async function configurar(criar) {
         for (const s of servicos()) {
           const temMao = mao[s.id] && (mao[s.id].oficial || mao[s.id].ajudante);
           const antiga = usar && antigas.has(s.id);
+          // equipe na proporção das horas (ex.: 8 h de oficial e 16 h de ajudante = 1 oficial e 2 ajudantes)
+          const equipe = M.equipePadrao(temMao ? { oficial: mao[s.id].oficial ? mao[s.id].oficial.horas : 0, ajudante: mao[s.id].ajudante ? mao[s.id].ajudante.horas : 0 } : null);
           tarefas[s.id] = { duracao: antiga ? antigas.get(s.id) : padrao, predecessoras: pad.get(s.id) || [],
-            modo: temMao && !antiga ? 'equipe' : 'manual', oficiais: 1, ajudantes: 1 };
+            modo: temMao && !antiga ? 'equipe' : 'manual', oficiais: equipe.oficiais, ajudantes: equipe.ajudantes };
         }
         estado.dados = await api('PUT', 'obras/' + encodeURIComponent(d.obra.id), { ...base, tarefas, revisao: 0 });
         reiniciarCronograma();
@@ -576,8 +628,11 @@ function editarTarefa(id) {
   const m = (estado.dados.maoDeObra || {})[id];
   const linhasMao = m ? [m.oficial ? ['Oficial', m.oficial.nome + ' — ' + horasTxt(m.oficial.horas)] : null, m.ajudante ? ['Ajudante', m.ajudante.nome + ' — ' + horasTxt(m.ajudante.horas)] : null,
     ...(m.apoio || []).map((a) => ['Apoio (não conta)', a.nome + ' — ' + horasTxt(a.horas)])].filter(Boolean) : [];
+  const p = t.mao ? M.equipePadrao(t.mao) : null;
   const campoEquipe = (k, papel, rotulo) => (t.mao && t.mao[papel] > 0
-    ? '<label class="campo">' + rotulo + '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" data-f="' + k + '" value="' + t[k] + '"></label>' : '');
+    ? '<label class="campo">' + rotulo + (k === 'ajudantes' && t.mao.oficial > 0 ? ' <span class="supr-dica">(proporção ' + p.oficiais + ':' + p.ajudantes + (t.ajudantesFixos ? '; digitado' : '') + ')</span>' : '') +
+      '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" data-f="' + k + '" value="' + t[k] + '"></label>'
+    : t.mao ? '<label class="campo">' + rotulo + '<input type="number" value="0" disabled title="Sem ' + papel + ' na composição"></label>' : '');
   S.dialogo({
     titulo: 'Linha ' + linhaDe(id) + ' · ' + n.eap + ' ' + n.nome, tamanho: 'md', botao: 'Aplicar',
     corpo: S.ficha([['Início', S.data(t.inicio)], ['Término', S.data(t.termino)], ['Folga', t.critico ? 'nenhuma (caminho crítico)' : esc(dias(t.folga))],
@@ -601,7 +656,7 @@ function editarTarefa(id) {
       if (!auto && (!Number.isInteger(duracao) || duracao < 0 || duracao > M.LIMITE_DURACAO)) { f('duracao').classList.add('invalido'); S.aviso('Duração de 0 a ' + M.LIMITE_DURACAO + ' dias.', 'erro'); return false; }
       const equipe = {};
       for (const k of ['oficiais', 'ajudantes']) {
-        if (!f(k)) continue;
+        if (!f(k) || f(k).disabled) continue;
         const v = Number(f(k).value);
         if (!Number.isInteger(v) || v < 1 || v > M.LIMITE_EQUIPE) { f(k).classList.add('invalido'); S.aviso('Equipe de 1 a ' + M.LIMITE_EQUIPE + '.', 'erro'); return false; }
         equipe[k] = v;
@@ -610,6 +665,11 @@ function editarTarefa(id) {
       if (lido.erros.length) { f('pred').classList.add('invalido'); S.aviso('Predecessoras inválidas: ' + lido.erros.join(', '), 'erro'); return false; }
       const minimo = f('minimo').value;
       const tarefa = tarefaEditavel(id);
+      // ajudantes ficam fixos só se forem diferentes da proporção dos oficiais escolhidos
+      if (t.mao && t.mao.oficial > 0 && equipe.ajudantes != null) {
+        if (equipe.ajudantes === M.ajudantesNaProporcao(equipe.oficiais || t.oficiais, t.mao)) { delete equipe.ajudantes; delete tarefa.ajudantesFixos; }
+        else equipe.ajudantesFixos = true;
+      }
       Object.assign(tarefa, equipe, { modo: auto ? 'equipe' : 'manual', predecessoras: lido.lista });
       if (!auto) tarefa.duracao = duracao;
       if (minimo) tarefa.inicioMinimo = minimo; else delete tarefa.inicioMinimo;
@@ -628,7 +688,7 @@ async function salvarCronograma() {
   for (const s of servicos()) {
     const t = estado.res.tarefas.get(s.id);
     tarefas[s.id] = { duracao: t.duracao, predecessoras: t.predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}),
-      modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes };
+      modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes, ...(t.ajudantesFixos ? { ajudantesFixos: true } : {}) };
   }
   const botao = area.querySelector('[data-acao="salvar"]');
   if (botao) botao.disabled = true;
@@ -874,17 +934,20 @@ function ligarEventos() {
       const v = Number(el.value);
       if (!Number.isInteger(v) || v < 0 || v > M.LIMITE_DURACAO) { el.classList.add('invalido'); el.title = 'Duração de 0 a ' + M.LIMITE_DURACAO + ' dias'; return; }
       el.classList.remove('invalido');
-      // duração digitada: o serviço passa a manual
-      Object.assign(tarefaEditavel(tr.dataset.id), { duracao: v, modo: 'manual' });
-      marcarSujo();
       el.blur();
-      atualizarCronograma();
+      mudarDuracao(tr.dataset.id, v);
     } else if ((campo === 'oficiais' || campo === 'ajudantes') && tr) {
       const v = Number(el.value);
       if (!Number.isInteger(v) || v < 1 || v > M.LIMITE_EQUIPE) { el.classList.add('invalido'); el.title = 'De 1 a ' + M.LIMITE_EQUIPE; return; }
       el.classList.remove('invalido');
-      // mexer na equipe volta o serviço ao cálculo pelas horas
-      Object.assign(tarefaEditavel(tr.dataset.id), { [campo]: v, modo: 'equipe' });
+      // mexer na equipe volta o serviço ao cálculo pelas horas; mudar os oficiais leva os ajudantes
+      // de volta à proporção; digitar os ajudantes (com oficial no serviço) deixa-os fixos
+      const t = estado.res.tarefas.get(tr.dataset.id);
+      const tarefa = tarefaEditavel(tr.dataset.id);
+      tarefa.modo = 'equipe';
+      tarefa[campo] = v;
+      if (campo === 'oficiais') delete tarefa.ajudantesFixos;
+      else if (t.mao && t.mao.oficial > 0) tarefa.ajudantesFixos = true;
       marcarSujo();
       atualizarCronograma();
     } else if (campo === 'pred' && tr) {
