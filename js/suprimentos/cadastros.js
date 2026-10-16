@@ -7,28 +7,176 @@
   const filtro = { aba: 'fornecedores', busca: '', inativos: false };
   const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
+  /* ---------- busca automática: CNPJ (Receita, via BrasilAPI) e CEP (ViaCEP) ---------- */
+  const so = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+  const maskCep = (v) => { const d = so(v).slice(0, 8); return d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d; };
+  const maskFone = (v) => {
+    const s = so(v);
+    if (s.length === 10) return '(' + s.slice(0, 2) + ') ' + s.slice(2, 6) + '-' + s.slice(6);
+    if (s.length === 11) return '(' + s.slice(0, 2) + ') ' + s.slice(2, 7) + '-' + s.slice(7);
+    return s;
+  };
+  function cnpjValido(c) {
+    if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+    const dv = (n) => {
+      const pesos = n === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+      const r = pesos.reduce((acc, p, i) => acc + Number(c[i]) * p, 0) % 11;
+      return r < 2 ? 0 : 11 - r;
+    };
+    return dv(12) === Number(c[12]) && dv(13) === Number(c[13]);
+  }
+  // A Receita devolve tudo em maiúsculas: "AV PAULISTA, 1000" -> "Av Paulista, 1000".
+  // Preposições, UFs, algarismos romanos e palavras com número ficam como estão.
+  const MIUDAS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+  const ROMANO = /^(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
+  const titulo = (t) => String(t == null ? '' : t).trim().split(/\s+/).map((p, i) => {
+    if (!p || /\d/.test(p) || ROMANO.test(p) || (p.length === 2 && UFS.indexOf(p) >= 0)) return p;
+    const m = p.toLocaleLowerCase('pt-BR');
+    return i > 0 && MIUDAS.has(m) ? m : m.replace(/(^|[(\-/])(\p{L})/gu, (x, a, l) => a + l.toLocaleUpperCase('pt-BR'));
+  }).join(' ');
+  function enderecoDoCnpj(d) {
+    const rua = [[d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' '), d.numero].filter(Boolean).join(', ');
+    return titulo([rua, d.complemento, d.bairro].filter(Boolean).join(' - '));
+  }
+  async function buscarJson(url) {
+    const ctl = new AbortController();
+    const prazo = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const r = await fetch(url, { signal: ctl.signal });
+      let dados = null;
+      try { dados = await r.json(); } catch (e) { /* resposta sem corpo */ }
+      return { status: r.status, dados };
+    } finally { clearTimeout(prazo); }
+  }
+  // null = CNPJ não encontrado; exceção = serviço fora do ar
+  async function consultarCnpj(cnpj) {
+    const r = await buscarJson('https://brasilapi.com.br/api/cnpj/v1/' + cnpj);
+    if (r.status === 404) return null;
+    if (r.status !== 200 || !r.dados) throw new Error('consulta indisponível');
+    return r.dados;
+  }
+  // { rua, bairro, cidade, uf } ou null (CEP inexistente). ViaCEP primeiro; se ela cair, tenta a BrasilAPI.
+  async function consultarCep(cep) {
+    try {
+      const r = await buscarJson('https://viacep.com.br/ws/' + cep + '/json/');
+      if (r.status === 200 && r.dados) return r.dados.erro ? null : { rua: r.dados.logradouro, bairro: r.dados.bairro, cidade: r.dados.localidade, uf: r.dados.uf };
+      if (r.status === 400) return null;
+    } catch (e) { /* tenta a outra */ }
+    const r2 = await buscarJson('https://brasilapi.com.br/api/cep/v2/' + cep);
+    if (r2.status === 404) return null;
+    if (r2.status !== 200 || !r2.dados) throw new Error('consulta indisponível');
+    return { rua: r2.dados.street, bairro: r2.dados.neighborhood, cidade: r2.dados.city, uf: r2.dados.state };
+  }
+
   /* ---------- fornecedor ---------- */
   S.formFornecedor = (f) => {
     const v = (k) => S.esc(f && f[k] != null ? f[k] : '');
     return S.dialogo({
       titulo: f ? 'Fornecedor' : 'Novo fornecedor', tamanho: 'md', botao: 'Salvar',
       corpo: '<div class="grade">' +
+        '<label class="campo">CNPJ ou CPF<input data-c="documento" inputmode="numeric" value="' + S.esc(f ? S.documento(f.documento) : '') + '"><small class="supr-dica" data-status="documento"></small></label>' +
+        '<label class="campo">Inscrição estadual<input data-c="inscricaoEstadual" maxlength="30" value="' + v('inscricaoEstadual') + '"></label>' +
+        '<label class="campo">Telefone / WhatsApp<input data-c="telefone" maxlength="40" value="' + v('telefone') + '"></label>' +
         '<label class="campo largo">Razão social / nome<input data-c="nome" maxlength="200" value="' + v('nome') + '"></label>' +
         '<label class="campo">Nome fantasia<input data-c="nomeFantasia" maxlength="200" value="' + v('nomeFantasia') + '"></label>' +
-        '<label class="campo">CNPJ ou CPF<input data-c="documento" inputmode="numeric" value="' + S.esc(f ? S.documento(f.documento) : '') + '"></label>' +
-        '<label class="campo">Inscrição estadual<input data-c="inscricaoEstadual" maxlength="30" value="' + v('inscricaoEstadual') + '"></label>' +
         '<label class="campo">E-mail (pedidos e cotações)<input type="email" data-c="email" maxlength="200" value="' + v('email') + '"></label>' +
-        '<label class="campo">Telefone / WhatsApp<input data-c="telefone" maxlength="40" value="' + v('telefone') + '"></label>' +
         '<label class="campo">Contato<input data-c="contato" maxlength="120" value="' + v('contato') + '"></label>' +
-        '<label class="campo largo">Endereço<input data-c="endereco" maxlength="300" value="' + v('endereco') + '"></label>' +
+        '<label class="campo">CEP<input data-c="cep" inputmode="numeric" maxlength="10" value="' + S.esc(maskCep(f && f.cep)) + '"><small class="supr-dica" data-status="cep"></small></label>' +
         '<label class="campo">Cidade<input data-c="cidade" maxlength="120" value="' + v('cidade') + '"></label>' +
         '<label class="campo">UF<select data-c="uf"><option value=""></option>' + UFS.map((u) => '<option' + (f && f.uf === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></label>' +
-        '<label class="campo">CEP<input data-c="cep" inputmode="numeric" maxlength="10" value="' + v('cep') + '"></label>' +
+        '<label class="campo largo">Endereço<input data-c="endereco" maxlength="300" value="' + v('endereco') + '"></label>' +
         '<label class="campo largo">O que fornece<input data-c="categorias" maxlength="300" value="' + v('categorias') + '" placeholder="Ex.: concreto usinado, aço, agregados"></label>' +
         '<label class="campo largo">Dados bancários / PIX<input data-c="dadosBancarios" maxlength="500" value="' + v('dadosBancarios') + '"></label>' +
         '<label class="campo largo">Observações<textarea rows="2" data-c="observacoes" maxlength="1000">' + v('observacoes') + '</textarea></label>' +
         (f ? '<label class="check largo"><input type="checkbox" data-c="ativo"' + (f.ativo ? ' checked' : '') + '>Ativo (aparece nas cotações e pedidos)</label>' : '') + '</div>',
-      aoAbrir: (corpo) => setTimeout(() => corpo.querySelector('[data-c="nome"]').focus(), 30),
+      aoAbrir: (corpo) => {
+        const campo = (k) => corpo.querySelector('[data-c="' + k + '"]');
+        const aviso = (k, texto, erro) => {
+          const el = corpo.querySelector('[data-status="' + k + '"]');
+          if (!el) return;
+          el.textContent = texto || '';
+          el.classList.toggle('supr-negativo', !!erro);
+        };
+        const gravar = (k, valor) => { const el = campo(k); if (el) el.value = valor == null ? '' : valor; };
+        const gravarSeVazio = (k, valor) => { const el = campo(k); if (el && valor && !el.value.trim()) el.value = valor; };
+        // selo: só a última consulta de cada campo vale; resposta atrasada de outra digitação é descartada
+        let seloDoc = 0, seloCep = 0;
+        let ultimoDoc = so(f && f.documento), ultimoCep = so(f && f.cep);
+        const docEl = campo('documento'), cepEl = campo('cep');
+
+        // CNPJ: preenche razão social, fantasia e endereço completo; telefone e e-mail só se estiverem vazios
+        const porCnpj = async (cnpj, selo) => {
+          aviso('documento', 'Consultando CNPJ…');
+          try {
+            const d = await consultarCnpj(cnpj);
+            if (selo !== seloDoc) return;
+            if (!d) { aviso('documento', 'CNPJ não encontrado na Receita. Preencha os dados à mão.', true); return; }
+            gravar('nome', d.razao_social);
+            gravar('nomeFantasia', d.nome_fantasia);
+            gravar('endereco', enderecoDoCnpj(d));
+            gravar('cidade', titulo(d.municipio));
+            gravar('uf', String(d.uf || '').toUpperCase());
+            gravar('cep', maskCep(d.cep));
+            seloCep++; ultimoCep = so(d.cep); aviso('cep', '');
+            gravarSeVazio('telefone', maskFone(d.ddd_telefone_1));
+            gravarSeVazio('email', String(d.email || '').trim().toLowerCase());
+            const situacao = String(d.descricao_situacao_cadastral || '').toUpperCase();
+            if (situacao && situacao !== 'ATIVA') aviso('documento', 'Dados preenchidos, mas a situação na Receita é ' + situacao.toLowerCase() + '. Confira antes de cadastrar.', true);
+            else aviso('documento', 'Dados preenchidos pela Receita Federal.');
+          } catch (e) {
+            if (selo === seloDoc) aviso('documento', 'Não foi possível consultar o CNPJ agora. Preencha os dados à mão.', true);
+          }
+        };
+
+        // CEP: troca rua, bairro, cidade e UF; o número o usuário digita (a Receita/Correios não trazem o do imóvel)
+        const porCep = async (cep, selo) => {
+          aviso('cep', 'Consultando CEP…');
+          try {
+            const r = await consultarCep(cep);
+            if (selo !== seloCep) return;
+            if (!r) { aviso('cep', 'CEP não encontrado. Confira os números ou preencha o endereço à mão.', true); return; }
+            if (r.cidade) gravar('cidade', r.cidade);
+            if (r.uf) gravar('uf', String(r.uf).toUpperCase());
+            if (!r.rua) { aviso('cep', 'CEP geral da cidade: preencha rua e número à mão.'); return; }
+            gravar('endereco', r.rua + (r.bairro ? ' - ' + r.bairro : ''));
+            const fim = campo('endereco');
+            fim.focus();
+            fim.setSelectionRange(r.rua.length, r.rua.length);
+            aviso('cep', 'Endereço preenchido pelo CEP. Falta o número: digite depois do nome da rua.');
+          } catch (e) {
+            if (selo === seloCep) aviso('cep', 'Não foi possível consultar o CEP agora. Preencha o endereço à mão.', true);
+          }
+        };
+
+        docEl.addEventListener('input', () => {
+          const d = so(docEl.value);
+          if (d === ultimoDoc) return;
+          ultimoDoc = d;
+          const selo = ++seloDoc;
+          aviso('documento', '');
+          if (d.length !== 14) return;
+          docEl.value = S.documento(d);
+          if (!cnpjValido(d)) { aviso('documento', 'CNPJ inválido. Confira os dígitos.', true); return; }
+          porCnpj(d, selo);
+        });
+        docEl.addEventListener('blur', () => {
+          const d = so(docEl.value);
+          if (d.length === 11 || d.length === 14) docEl.value = S.documento(d);
+        });
+        cepEl.addEventListener('input', () => {
+          const d = so(cepEl.value);
+          if (d === ultimoCep) return;
+          ultimoCep = d;
+          const selo = ++seloCep;
+          aviso('cep', '');
+          if (d.length !== 8) return;
+          cepEl.value = maskCep(d);
+          porCep(d, selo);
+        });
+
+        // fornecedor novo começa pelo CNPJ; ao editar, pelo nome
+        setTimeout(() => (f ? campo('nome') : docEl).focus(), 30);
+      },
       aoConfirmar: async (corpo) => {
         const d = {};
         corpo.querySelectorAll('[data-c]').forEach((x) => { d[x.dataset.c] = x.type === 'checkbox' ? x.checked : x.value; });
