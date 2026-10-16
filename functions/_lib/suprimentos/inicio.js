@@ -8,6 +8,7 @@ import { movimentosDaObra, movimentosPorObra, consolidar } from './saldos.js';
 import { pode } from '../permissoes.js';
 import { configDe, resumoDoCronograma, ultimosAvancos } from '../planejamento/cronogramas.js';
 import { calendariosPorId } from '../planejamento/calendarios.js';
+import { maoDeObraDaObra } from '../planejamento/maoDeObra.js';
 import { curvaS, indexarAvancos, previstoDaTarefa, realizadoDaTarefa } from '../../../js/cronograma-motor.js';
 
 const MODULOS_COMPRAS = ['solicitacoes', 'cotacoes', 'pedidos', 'notas', 'contratos', 'estoque', 'cadastros'];
@@ -93,7 +94,7 @@ async function avancoFisico(env, doFiltro, obra, dia) {
     const config = configs.get(v.id);
     if (!config) { linhas.push({ ...base, temCronograma: false }); continue; }
     const apontados = ultimos.get(v.id) || [];
-    const r = resumoDoCronograma(v.nos, config, apontados, dia, calendarios.get(config.calendarioId));
+    const r = resumoDoCronograma(v.nos, config, apontados, dia, calendarios.get(config.calendarioId), await maoDeObraDaObra(env, v.id));
     const servicos = v.nos.filter((n) => n.tipo === 'servico');
     linhas.push({ ...base, temCronograma: true, inicio: r.inicio, termino: r.termino, duracao: r.duracao,
       previsto: r.previsto, realizado: r.realizado, peso: servicos.reduce((s, n) => s + n.valor, 0) });

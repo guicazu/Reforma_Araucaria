@@ -89,12 +89,35 @@ export function descreverRegra(regra) {
   return movel ? movel[1] : 'Páscoa ' + (n < 0 ? '− ' + -n : '+ ' + n) + ' dias';
 }
 
+/* ---------- jornada (horário de trabalho de cada dia da semana) ---------- */
+// Um turno por dia: início, fim (se for menor que o início, passa da meia-noite, como o turno da
+// noite) e intervalo em minutos. Padrão: 7h às 17h com 1h de almoço, sexta até as 16h.
+export const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TURNO_PADRAO = { 0: ['07:00', '11:00', 0], 1: ['07:00', '17:00', 60], 2: ['07:00', '17:00', 60], 3: ['07:00', '17:00', 60],
+  4: ['07:00', '17:00', 60], 5: ['07:00', '16:00', 60], 6: ['07:00', '11:00', 0] };
+const minutos = (h) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+export function horasDoTurno(t) {
+  if (!t || !HORA_VALIDA.test(t.inicio) || !HORA_VALIDA.test(t.fim)) return 0;
+  let duracao = minutos(t.fim) - minutos(t.inicio);
+  if (duracao <= 0) duracao += 1440;
+  return Math.max(0, (duracao - (Number(t.intervalo) || 0)) / 60);
+}
+function turnoDe(entrada, dia) {
+  const t = entrada && typeof entrada === 'object' ? entrada : null;
+  const [inicio, fim, intervalo] = TURNO_PADRAO[dia];
+  const r = t && HORA_VALIDA.test(t.inicio) && HORA_VALIDA.test(t.fim)
+    ? { inicio: t.inicio, fim: t.fim, intervalo: Math.max(0, Math.min(720, Math.round(Number(t.intervalo) || 0))) } : { inicio, fim, intervalo };
+  return horasDoTurno(r) > 0 ? r : { inicio, fim, intervalo };
+}
+
 /* ---------- calendário ---------- */
 // Configuração completa com os valores padrão (registro novo ou campos faltando)
 export function normalizar(c) {
   c = c || {};
   return {
     diasSemana: Array.isArray(c.diasSemana) && c.diasSemana.length ? c.diasSemana.slice().sort() : [1, 2, 3, 4, 5],
+    // turno de todos os dias (os sem trabalho ficam guardados para dia trabalhado por exceção)
+    jornada: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [d, turnoDe(c.jornada && c.jornada[d], d)])),
     uf: c.uf || '', municipioCodigo: c.municipioCodigo || null, municipioNome: c.municipioNome || '',
     nacionais: c.nacionais !== false, estaduais: c.estaduais !== false, municipais: c.municipais !== false,
     facultativos: Array.isArray(c.facultativos) ? c.facultativos : [],
@@ -144,7 +167,13 @@ export function resolver(cal, anoInicio, anoFim) {
   const c = normalizar(cal);
   const folgas = [];
   for (let ano = anoInicio; ano <= anoFim; ano++) for (const f of folgasDoAno(c, ano)) folgas.push(f.data);
-  return { diasSemana: c.diasSemana, feriados: folgas, trabalhados: c.dias.filter((d) => d && d.tipo === 'trabalhado' && ehData(d.data)).map((d) => d.data) };
+  return { diasSemana: c.diasSemana, feriados: folgas, trabalhados: c.dias.filter((d) => d && d.tipo === 'trabalhado' && ehData(d.data)).map((d) => d.data),
+    horasPorDia: Object.fromEntries(Object.entries(c.jornada).map(([d, t]) => [d, horasDoTurno(t)])) };
+}
+// Horas de trabalho na semana (dias marcados)
+export function horasDaSemana(cal) {
+  const c = normalizar(cal);
+  return c.diasSemana.reduce((s, d) => s + horasDoTurno(c.jornada[d]), 0);
 }
 
 // Configuração do cronograma com o calendário aplicado: semana, feriados (os do calendário mais os
@@ -153,7 +182,8 @@ export function aplicarCalendario(config, cal) {
   if (!cal) return config;
   const ano = Number(String(config.dataInicio || '').slice(0, 4)) || new Date().getUTCFullYear();
   const r = resolver(cal, ano - 1, ano + 10);
-  return { ...config, diasSemana: r.diasSemana, trabalhados: r.trabalhados, feriados: Array.from(new Set([...(config.feriados || []), ...r.feriados])) };
+  return { ...config, diasSemana: r.diasSemana, trabalhados: r.trabalhados, horasPorDia: r.horasPorDia,
+    feriados: Array.from(new Set([...(config.feriados || []), ...r.feriados])) };
 }
 
 // Pontes: dia de trabalho com folga dos dois lados (feriado colado no fim de semana ou entre dois

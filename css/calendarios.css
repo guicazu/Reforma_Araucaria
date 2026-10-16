@@ -73,3 +73,11 @@
 .cal-novo-dia input,.cal-novo-dia select{height:30px}
 .cal-novo-dia label{white-space:nowrap}
 .cal-novo-dia .supr-dica{display:inline;font-weight:400}
+.cal-jornada{border-collapse:collapse;font-size:12px}
+.cal-jornada th{padding:4px 10px 6px 0;color:var(--suave);font-size:10.5px;font-weight:500;text-align:left;white-space:nowrap}
+.cal-jornada th.num,.cal-jornada td.num{text-align:right;font-variant-numeric:tabular-nums}
+.cal-jornada td{padding:3px 10px 3px 0}
+.cal-jornada input[type=time]{width:108px;height:30px}
+.cal-jornada input[type=number]{width:90px;height:30px;text-align:right}
+.cal-jornada tr.inativo td{color:var(--fraco)}
+.cal-jornada .cal-dia{min-width:110px}

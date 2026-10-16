@@ -13,6 +13,7 @@ export const DURACAO_PADRAO = 5;
 export const CALENDARIOS = { uteis: 'Dias úteis (segunda a sexta)', corridos: 'Dias corridos' };
 export const LIMITE_DURACAO = 3650;
 export const LIMITE_ESPERA = 365;
+export const LIMITE_EQUIPE = 500;
 
 const DIA = 86400000;
 const tempo = (iso) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
@@ -26,7 +27,8 @@ export const diaDaSemana = (data) => new Date(tempo(data)).getUTCDay();
 // Dias de trabalho numerados a partir do início da obra: 0 é o primeiro dia de trabalho na data de
 // início ou depois dela. tipo 'uteis' pula sábado e domingo; feriados valem nos dois tipos. Com um
 // calendário da tela Calendários (js/feriados.js), opcoes traz os dias da semana trabalhados e os
-// dias trabalhados por exceção (ex.: sábado de compensação).
+// dias trabalhados por exceção (ex.: sábado de compensação) e as horas de trabalho de cada dia da
+// semana (sem calendário: opcoes.horasDia, 8 por padrão).
 export function criarCalendario(inicio, tipo, feriados, opcoes) {
   const folgas = new Set((feriados || []).filter(ehData));
   const corridos = tipo === 'corridos';
@@ -34,13 +36,18 @@ export function criarCalendario(inicio, tipo, feriados, opcoes) {
     : corridos ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]);
   const extras = new Set(((opcoes && opcoes.trabalhados) || []).filter(ehData));
   const trabalha = (d) => extras.has(d) || (!folgas.has(d) && semana.has(diaDaSemana(d)));
+  const horasFixas = Number(opcoes && opcoes.horasDia) > 0 ? Number(opcoes.horasDia) : 8;
+  const porDia = opcoes && opcoes.horasPorDia ? opcoes.horasPorDia : null;
+  const horasDe = (d) => { const h = porDia ? Number(porDia[diaDaSemana(d)]) : horasFixas; return h > 0 ? h : horasFixas; };
   const datas = [];
+  const acumulado = [0]; // horas antes do i-ésimo dia de trabalho
   let cursor = ehData(inicio) ? inicio : iso(Date.now());
   let voltas = 0;
   function avancar() {
     // proteção contra calendário sem nenhum dia de trabalho (lista de feriados absurda)
     while (!trabalha(cursor)) { cursor = somarDias(cursor, 1); if (++voltas > 200000) throw new Error('Calendário sem dias de trabalho.'); }
     datas.push(cursor);
+    acumulado.push(acumulado[acumulado.length - 1] + horasDe(cursor));
     cursor = somarDias(cursor, 1);
   }
   const garantirIndice = (i) => { while (datas.length <= i) avancar(); };
@@ -60,7 +67,14 @@ export function criarCalendario(inicio, tipo, feriados, opcoes) {
     // índice do último dia de trabalho até a data (−1 se for antes do primeiro)
     indiceAte(d) { if (!ehData(d)) return -1; garantirData(d); return ultimoAte(d); },
     // índice do primeiro dia de trabalho na data ou depois dela
-    indiceDesde(d) { if (!ehData(d)) return 0; garantirData(d); const i = ultimoAte(d); return i >= 0 && datas[i] === d ? i : i + 1; }
+    indiceDesde(d) { if (!ehData(d)) return 0; garantirData(d); const i = ultimoAte(d); return i >= 0 && datas[i] === d ? i : i + 1; },
+    // horas de trabalho do i-ésimo dia
+    horas(i) { garantirIndice(i + 1); return acumulado[i + 1] - acumulado[i]; },
+    // último dia de uma tarefa de h horas que começa no dia es (dias inteiros: a seguinte começa no outro dia)
+    fimPorHoras(es, h) {
+      let e = es;
+      for (;;) { garantirIndice(e + 1); if (acumulado[e + 1] - acumulado[es] >= h - 1e-9) return e; e++; }
+    }
   };
 }
 
@@ -111,15 +125,29 @@ const inteiro = (v, min, max, padrao) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : padrao;
 };
 
-// Configuração completa de uma tarefa (a salva ou a padrão para serviço sem configuração)
+// Configuração completa de uma tarefa (a salva ou a padrão para serviço sem configuração). Modo
+// "equipe": a duração sai das horas de mão de obra do serviço no orçamento (config.mao) divididas
+// pela equipe — as horas do oficial principal pelo número de oficiais; sem oficial, as do ajudante
+// pelo de ajudantes. Modo manual: a duração digitada, em dias.
 export function tarefaDe(config, servicoId, padrao) {
   const c = config && config.tarefas ? config.tarefas[servicoId] : null;
-  return {
+  const mao = config && config.mao ? config.mao[servicoId] : null;
+  const temMao = Boolean(mao && (mao.oficial > 0 || mao.ajudante > 0));
+  // serviço novo com mão de obra no orçamento já entra calculado pela equipe padrão
+  const modo = c ? (c.modo === 'equipe' && temMao ? 'equipe' : 'manual') : (temMao ? 'equipe' : 'manual');
+  const t = {
     duracao: c ? inteiro(c.duracao, 0, LIMITE_DURACAO, DURACAO_PADRAO) : inteiro(config && config.duracaoPadrao, 0, LIMITE_DURACAO, DURACAO_PADRAO),
     predecessoras: (c ? c.predecessoras : padrao.get(servicoId)) || [],
     inicioMinimo: c && ehData(c.inicioMinimo) ? c.inicioMinimo : null,
-    novo: !c
+    novo: !c, modo,
+    oficiais: inteiro(c && c.oficiais, 1, LIMITE_EQUIPE, 1), ajudantes: inteiro(c && c.ajudantes, 1, LIMITE_EQUIPE, 1),
+    mao: temMao ? { oficial: mao.oficial || 0, ajudante: mao.ajudante || 0 } : null
   };
+  if (modo === 'equipe') {
+    t.base = mao.oficial > 0 ? 'oficial' : 'ajudante';
+    t.horas = t.base === 'oficial' ? mao.oficial / t.oficiais : mao.ajudante / t.ajudantes;
+  }
+  return t;
 }
 
 /* ---------- cálculo (CPM) ---------- */
@@ -170,7 +198,8 @@ function emCiclo(ids, saidas) {
 // pesos (valor orçado; duração quando o orçamento não tem valores) e os erros (ciclos).
 export function calcular(nos, config) {
   const { porId, folhas } = estrutura(nos);
-  const cal = criarCalendario(config.dataInicio, config.calendario, config.feriados, { diasSemana: config.diasSemana, trabalhados: config.trabalhados });
+  const cal = criarCalendario(config.dataInicio, config.calendario, config.feriados,
+    { diasSemana: config.diasSemana, trabalhados: config.trabalhados, horasPorDia: config.horasPorDia, horasDia: config.horasDia });
   const servicos = nos.filter((n) => n.tipo === 'servico');
   const padrao = predecessorasPadrao(nos);
   const tarefas = new Map();
@@ -217,7 +246,11 @@ export function calcular(nos, config) {
     let es = t.minimo;
     for (const a of entradas.get(id)) if (usar(a.de, id)) es = Math.max(es, tarefas.get(a.de).ef + 1 + a.espera);
     t.es = Math.max(0, es);
-    t.ef = t.es + t.duracao - 1;
+    if (t.horas > 0) {
+      // pela equipe: os dias que as horas ocupam a partir do início (sexta mais curta conta menos)
+      t.ef = cal.fimPorHoras(t.es, t.horas);
+      t.duracao = t.ef - t.es + 1;
+    } else t.ef = t.es + t.duracao - 1;
   }
   // último dia de trabalho da obra (marco, de duração zero, acontece no início do dia: não estica)
   const fim = tarefas.size ? Math.max(...Array.from(tarefas.values()).map((t) => t.ef)) : 0;

@@ -3,9 +3,10 @@
 // são do js/cronograma-motor.js, o mesmo arquivo da tela.
 import { json, falha, agora, hoje, uuid, arred, lerJson, historico, lerHistorico } from '../suprimentos/base.js';
 import { estruturaEap } from '../suprimentos/orcado.js';
-import { calcular, avancoEm, indexarAvancos, ehData, CALENDARIOS, LIMITE_DURACAO, LIMITE_ESPERA } from '../../../js/cronograma-motor.js';
+import { calcular, avancoEm, indexarAvancos, ehData, CALENDARIOS, LIMITE_DURACAO, LIMITE_ESPERA, LIMITE_EQUIPE } from '../../../js/cronograma-motor.js';
 import { aplicarCalendario } from '../../../js/feriados.js';
 import { calendariosPorId } from './calendarios.js';
+import { maoDeObraDaObra, horasParaMotor } from './maoDeObra.js';
 
 const COLUNAS = `orcamentoId, dataInicio, calendario, calendarioId, feriados, duracaoPadrao, tarefas, revisao, criadoEm, criadoPorNome,
   atualizadoEm, atualizadoPorEmail, atualizadoPorNome`;
@@ -18,9 +19,10 @@ export function configDe(linha) {
     duracaoPadrao: linha.duracaoPadrao, tarefas: lerJson(linha.tarefas, {}) };
 }
 
-// Previsto e realizado de hoje, datas e avisos de um cronograma (com o calendário de trabalho dele)
-export function resumoDoCronograma(nos, config, avancos, dia, calendario) {
-  const res = calcular(nos, aplicarCalendario(config, calendario));
+// Previsto e realizado de hoje, datas e avisos de um cronograma (com o calendário de trabalho dele e
+// as horas de mão de obra de cada serviço)
+export function resumoDoCronograma(nos, config, avancos, dia, calendario, mao) {
+  const res = calcular(nos, { ...aplicarCalendario(config, calendario), mao: horasParaMotor(mao) });
   const a = avancoEm(res, indexarAvancos(avancos), dia);
   return {
     res, inicio: res.inicio, termino: res.termino, duracao: res.duracao,
@@ -67,12 +69,13 @@ export async function listar({ env }) {
     ultimosAvancos(env, dia, '')
   ]);
   const calendarios = await calendariosPorId(env, obras.results.map((o) => o.calendarioId));
+  const maos = new Map(await Promise.all(obras.results.filter((o) => o.dataInicio).map(async (o) => [o.id, await maoDeObraDaObra(env, o.id)])));
   return json({
     hoje: dia,
     obras: obras.results.map((o) => {
       const base = { id: o.id, codigo: o.codigo || '', nome: o.nome || '', versao: o.versaoNumero, temCronograma: Boolean(o.dataInicio) };
       if (!o.dataInicio) return base;
-      const r = resumoDoCronograma(estruturaEap(lerJson(o.conteudo, [])), configDe(o), avancos.get(o.id) || [], dia, calendarios.get(o.calendarioId));
+      const r = resumoDoCronograma(estruturaEap(lerJson(o.conteudo, [])), configDe(o), avancos.get(o.id) || [], dia, calendarios.get(o.calendarioId), maos.get(o.id));
       return { ...base, inicio: r.inicio, termino: r.termino, duracao: r.duracao, previsto: r.previsto, realizado: r.realizado,
         novos: r.novos, erros: r.erros, atualizadoEm: o.atualizadoEm, atualizadoPorNome: o.atualizadoPorNome };
     })
@@ -88,6 +91,7 @@ export async function obter({ env, params }) {
   ]);
   const linha = c.results[0] || null;
   const calendario = linha && linha.calendarioId ? (await calendariosPorId(env, [linha.calendarioId])).get(linha.calendarioId) || null : null;
+  const maoDeObra = await maoDeObraDaObra(env, v.id);
   return json({
     hoje: hoje(),
     obra: { id: v.id, codigo: v.codigo || '', nome: v.nome || '', versao: v.versaoNumero },
@@ -96,6 +100,7 @@ export async function obter({ env, params }) {
     cronograma: linha ? { ...configDe(linha), revisao: linha.revisao, criadoEm: linha.criadoEm, criadoPorNome: linha.criadoPorNome,
       atualizadoEm: linha.atualizadoEm, atualizadoPorNome: linha.atualizadoPorNome } : null,
     calendario,
+    maoDeObra,
     avancos: av.results
   });
 }
@@ -128,7 +133,14 @@ function validarConfig(corpo, nos) {
       if (!predecessoras.some((x) => x.id === p.id)) predecessoras.push({ id: p.id, espera });
     }
     if (t.inicioMinimo && !ehData(t.inicioMinimo)) falha(400, 'inicio_minimo', `Data inválida em "não iniciar antes de" no serviço ${s.eap}.`);
-    tarefas[id] = { duracao, predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}) };
+    const equipe = {};
+    for (const k of ['oficiais', 'ajudantes']) {
+      if (t[k] == null) continue;
+      const n = Number(t[k]);
+      if (!Number.isInteger(n) || n < 1 || n > LIMITE_EQUIPE) falha(400, 'equipe', `Equipe inválida no serviço ${s.eap}: de 1 a ${LIMITE_EQUIPE} ${k}.`);
+      equipe[k] = n;
+    }
+    tarefas[id] = { duracao, predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}), modo: t.modo === 'equipe' ? 'equipe' : 'manual', ...equipe };
   }
   const calendarioId = corpo.calendarioId ? String(corpo.calendarioId) : null;
   return { dataInicio: corpo.dataInicio, calendario: corpo.calendario, calendarioId, feriados: Array.from(new Set(feriados)).sort(), duracaoPadrao, tarefas };
@@ -141,7 +153,7 @@ export async function salvar({ env, ctx, params, corpo }) {
   const config = validarConfig(corpo, nos);
   const calendario = config.calendarioId ? (await calendariosPorId(env, [config.calendarioId])).get(config.calendarioId) : null;
   if (config.calendarioId && !calendario) falha(400, 'calendario', 'O calendário escolhido não existe mais. Escolha outro em Configurar.');
-  const res = calcular(nos, aplicarCalendario(config, calendario));
+  const res = calcular(nos, { ...aplicarCalendario(config, calendario), mao: horasParaMotor(await maoDeObraDaObra(env, v.id)) });
   if (res.erros.length) falha(400, 'ciclo', res.erros[0].mensagem + ' Ajuste as predecessoras antes de salvar.');
   const revisao = Number(corpo.revisao) || 0;
   const ts = agora();

@@ -11,7 +11,7 @@ const G = window.Graficos;
 const api = (metodo, caminho, corpo) => S.api(metodo, caminho, corpo, { base: '/api/planejamento/' });
 const ESCALAS = [['auto', 'Ajustar'], ['dia', 'Dias'], ['semana', 'Semanas'], ['mes', 'Meses']];
 const PX_DIA = { dia: 24, semana: 7, mes: 2.4 };
-const COLUNAS_ESQUERDA = 770; // largura das colunas antes do Gantt (css/planejamento.css)
+const COLUNAS_ESQUERDA = 910; // largura das colunas antes do Gantt (css/planejamento.css)
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 const estado = {
@@ -86,10 +86,35 @@ function reiniciarAvanco() {
   estado.dataApont = estado.dados.hoje;
   estado.indice = M.indexarAvancos(estado.dados.avancos);
 }
-function recalcular() {
-  estado.res = estado.config ? M.calcular(estado.dados.eap, F.aplicarCalendario(estado.config, estado.calendario)) : null;
-  estado.indice = M.indexarAvancos(estado.dados.avancos);
+// Horas de mão de obra de cada serviço no orçamento (oficial principal e ajudante), como o motor usa
+function maoParaMotor() {
+  return Object.fromEntries(Object.entries(estado.dados.maoDeObra || {}).map(([sid, m]) =>
+    [sid, { oficial: m.oficial ? m.oficial.horas : 0, ajudante: m.ajudante ? m.ajudante.horas : 0 }]));
 }
+function recalcular() {
+  estado.res = estado.config ? M.calcular(estado.dados.eap, { ...F.aplicarCalendario(estado.config, estado.calendario), mao: maoParaMotor() }) : null;
+  estado.indice = M.indexarAvancos(estado.dados.avancos);
+  numerarLinhas();
+}
+// Nº de cada linha (grupos com serviço e serviços, na ordem da EAP): é por ele que se indicam as predecessoras
+function numerarLinhas() {
+  estado.linha = new Map();
+  estado.porLinha = new Map();
+  if (!estado.res) return;
+  let n = 0;
+  for (const no of estado.dados.eap) {
+    if (no.tipo !== 'servico' && !estado.res.grupos.get(no.id)) continue;
+    n++;
+    estado.linha.set(no.id, n);
+    estado.porLinha.set(n, no.id);
+  }
+}
+const linhaDe = (id) => (estado.linha && estado.linha.get(id)) || '';
+const escreverPred = (lista) => (lista || []).map((p) => {
+  const l = linhaDe(p.id);
+  return l ? l + (p.espera ? (p.espera > 0 ? '+' : '') + p.espera : '') : '';
+}).filter(Boolean).join('; ');
+const horasTxt = (h) => (Math.round(h * 10) / 10).toLocaleString('pt-BR') + ' h';
 
 async function abrirObra(id, op) {
   estado.tela = 'obra';
@@ -262,6 +287,37 @@ function barraHtml(n, lt) {
   return '<span class="plan-barra' + (t.critico ? ' critico' : '') + '" data-dica-plan="' + esc(n.id) + '" style="left:' + x.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px">' +
     '<span class="plan-exec" style="width:' + (exec * 100).toFixed(1) + '%"></span></span>';
 }
+// Equipe da atividade: oficiais e ajudantes (só os papéis que a composição tem)
+function equipeHtml(n, t, editar) {
+  const m = (estado.dados.maoDeObra || {})[n.id] || {};
+  const campo = (k, papel, rotulo) => {
+    if (!t.mao || !(t.mao[papel] > 0)) return '<span class="plan-eq-vazio" title="Sem ' + papel + ' na composição">–</span>';
+    const dica = rotulo + ' (' + (m[papel] ? m[papel].nome : papel) + ')' + (t.modo === 'equipe' && t.base === papel ? ' — define a duração' : '');
+    return editar ? '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" step="1" inputmode="numeric" data-campo="' + k + '" value="' + t[k] + '" title="' + esc(dica) +
+      '" aria-label="' + esc(rotulo + ' em ' + n.eap) + '"' + (t.modo === 'equipe' && t.base === papel ? ' class="base"' : '') + '>'
+      : '<span title="' + esc(dica) + '">' + t[k] + '</span>';
+  };
+  if (!t.mao) return '<span class="plan-eq-vazio" title="Sem mão de obra na composição do orçamento: a duração é digitada">—</span>';
+  return '<span class="plan-equipe">' + campo('oficiais', 'oficial', 'Oficiais') + campo('ajudantes', 'ajudante', 'Ajudantes') + '</span>';
+}
+// Horas de mão de obra do serviço no orçamento (a que decide a duração em destaque)
+function maoHtml(n, t) {
+  const m = (estado.dados.maoDeObra || {})[n.id];
+  if (!m || (!m.oficial && !m.ajudante)) return '<span class="plan-eq-vazio">—</span>';
+  const principal = m.oficial || m.ajudante;
+  const partes = [m.oficial ? 'Oficial: ' + m.oficial.nome + ' ' + horasTxt(m.oficial.horas) : '', m.ajudante ? 'Ajudante: ' + m.ajudante.nome + ' ' + horasTxt(m.ajudante.horas) : '',
+    ...(m.apoio || []).map((a) => 'Apoio: ' + a.nome + ' ' + horasTxt(a.horas))].filter(Boolean);
+  return '<span class="plan-mao" title="' + esc(partes.join('\n')) + '"><b>' + horasTxt(principal.horas) + '</b> ' + esc(principal.nome) + '</span>';
+}
+// Duração: calculada pela equipe (texto claro) ou digitada; com mão de obra, ↺ volta ao cálculo
+function duracaoHtml(n, t, editar) {
+  const dica = t.modo === 'equipe' ? horasTxt(t.horas) + ' (' + t.base + ') ÷ horas de cada dia de trabalho' : 'Duração digitada (dias de trabalho)';
+  if (!editar) return '<span title="' + esc(dica) + '"' + (t.modo === 'equipe' ? ' class="plan-auto"' : '') + '>' + t.duracao + '</span>';
+  return '<input type="number" min="0" max="' + M.LIMITE_DURACAO + '" step="1" inputmode="numeric" data-campo="duracao" value="' + t.duracao + '"' +
+    (t.modo === 'equipe' ? ' class="plan-auto"' : '') + ' title="' + esc(dica + (t.modo === 'equipe' ? '. Digitar uma duração deixa o serviço manual.' : '')) +
+    '" aria-label="Duração de ' + esc(n.eap) + ' em dias">' +
+    (t.mao && t.modo !== 'equipe' ? '<button type="button" class="plan-recalc" data-acao="auto" data-id="' + esc(n.id) + '" title="Calcular pela equipe e horas de mão de obra">↺</button>' : '');
+}
 function folgaHtml(t) {
   if (t.critico) return '<span class="st st-vermelho" title="Folga zero: atrasar este serviço atrasa a obra">Crítico</span>';
   return t.folga + (t.folga === 1 ? ' dia' : ' dias');
@@ -276,36 +332,43 @@ function htmlCronograma() {
   const xHoje = ((M.diasEntre(lt.inicio, estado.dados.hoje) + 0.5) * lt.px).toFixed(1);
   const linhas = linhasVisiveis().map((n) => {
     const tl = '<td class="c-tl"><div class="plan-tl" style="width:' + lt.largura + 'px;' + fundo + '"><span class="plan-hoje" style="left:' + xHoje + 'px"></span>' + barraHtml(n, lt) + '</div></td>';
+    const lin = '<td class="c-lin">' + linhaDe(n.id) + '</td>';
     if (n.tipo !== 'servico') {
       const g = r.grupos.get(n.id);
-      return '<tr class="plan-linha ' + nivelClasse(n) + '" data-id="' + esc(n.id) + '"><td class="c-eap">' + botaoRecolher(n) + esc(n.eap) + '</td>' +
-        '<td class="c-nome">' + esc(n.nome) + '</td><td class="c-num" data-col="duracao">' + g.duracao + '</td>' +
+      return '<tr class="plan-linha ' + nivelClasse(n) + '" data-id="' + esc(n.id) + '">' + lin + '<td class="c-eap">' + botaoRecolher(n) + esc(n.eap) + '</td>' +
+        '<td class="c-nome">' + esc(n.nome) + '</td><td class="c-equipe"></td><td class="c-mao"></td><td class="c-num" data-col="duracao">' + g.duracao + '</td>' +
         '<td class="c-data" data-col="inicio">' + dataCurta(g.inicio) + '</td><td class="c-data" data-col="termino">' + dataCurta(g.termino) + '</td>' +
         '<td class="c-pred"></td><td class="c-folga"></td>' + tl + '</tr>';
     }
     const t = r.tarefas.get(n.id);
-    const pred = M.escreverPredecessoras(t.predecessoras, codigo);
+    const pred = escreverPred(t.predecessoras);
     const nome = esc(n.nome) + (t.novo ? ' <span class="st st-amarelo">novo</span>' : '') + (t.inicioMinimo ? ' <span class="plan-restricao" title="Não iniciar antes de ' + S.data(t.inicioMinimo) + '">' + S.ic('cadeado', 'ic-sm') + '</span>' : '');
-    return '<tr class="plan-linha servico' + (t.critico ? ' critico' : '') + '" data-id="' + esc(n.id) + '"><td class="c-eap">' + esc(n.eap) + '</td>' +
-      '<td class="c-nome">' + (editar ? '<button type="button" class="plan-nome" data-acao="tarefa" data-id="' + esc(n.id) + '" title="Duração, predecessoras e restrição de início">' + nome + '</button>' : '<span class="plan-nome">' + nome + '</span>') + '</td>' +
-      '<td class="c-num">' + (editar ? '<input type="number" min="0" max="' + M.LIMITE_DURACAO + '" step="1" inputmode="numeric" data-campo="duracao" value="' + t.duracao + '" aria-label="Duração de ' + esc(n.eap) + ' em dias">' : t.duracao) + '</td>' +
+    return '<tr class="plan-linha servico' + (t.critico ? ' critico' : '') + '" data-id="' + esc(n.id) + '">' + lin + '<td class="c-eap">' + esc(n.eap) + '</td>' +
+      '<td class="c-nome">' + (editar ? '<button type="button" class="plan-nome" data-acao="tarefa" data-id="' + esc(n.id) + '" title="' + esc(n.nome) + ' — equipe, duração, predecessoras e restrição de início">' + nome + '</button>' : '<span class="plan-nome" title="' + esc(n.nome) + '">' + nome + '</span>') + '</td>' +
+      '<td class="c-equipe">' + equipeHtml(n, t, editar) + '</td><td class="c-mao">' + maoHtml(n, t) + '</td>' +
+      '<td class="c-num" data-col="dur">' + duracaoHtml(n, t, editar) + '</td>' +
       '<td class="c-data" data-col="inicio">' + dataCurta(t.inicio) + '</td><td class="c-data" data-col="termino">' + dataCurta(t.termino) + '</td>' +
-      '<td class="c-pred">' + (editar ? '<input type="text" data-campo="pred" value="' + esc(pred) + '" placeholder="—" aria-label="Predecessoras de ' + esc(n.eap) + '" spellcheck="false">' : esc(pred || '—')) + '</td>' +
+      '<td class="c-pred">' + (editar ? '<input type="text" data-campo="pred" value="' + esc(pred) + '" placeholder="—" aria-label="Predecessoras da linha ' + linhaDe(n.id) + '" spellcheck="false" inputmode="numeric">' : esc(pred || '—')) + '</td>' +
       '<td class="c-folga" data-col="folga">' + folgaHtml(t) + '</td>' + tl + '</tr>';
   }).join('');
+  const manuaisComMao = Array.from(r.tarefas.values()).filter((t) => t.mao && t.modo !== 'equipe').length;
   return '<div class="supr-barra">' + S.chips(ESCALAS, estado.escala, 'escala') +
     '<label class="plan-check"><input type="checkbox" data-campo="so-criticos"' + (estado.soCriticos ? ' checked' : '') + '>Só caminho crítico</label>' +
-    S.botao('expandir', 'Expandir tudo') + S.botao('recolher-tudo', 'Recolher etapas') + '<span class="espaco"></span>' +
+    S.botao('expandir', 'Expandir tudo') + S.botao('recolher-tudo', 'Recolher etapas') +
+    (editar && manuaisComMao ? S.botao('tudo-auto', 'Durações pela equipe (' + manuaisComMao + ')', { titulo: 'Calcular pela equipe e horas de mão de obra todos os serviços com duração digitada' }) : '') +
+    '<span class="espaco"></span>' +
     (editar ? '<span class="plan-sujo" data-sujo' + (estado.sujo ? '' : ' hidden') + '>Alterações não salvas</span>' +
       S.botao('descartar', 'Descartar', { desabilitado: !estado.sujo, dados: 'data-sujo-botao' }) +
       S.botao('salvar', 'Salvar cronograma', { primario: true, icone: 'salvar', desabilitado: !estado.sujo || r.erros.length > 0, dados: 'data-sujo-botao' }) : '') + '</div>' +
     '<ul class="plan-legenda"><li><span class="k planejado"></span>Planejado</li><li><span class="k executado"></span>Executado até hoje</li>' +
     '<li><span class="k critico"></span>Caminho crítico</li><li><span class="k resumo"></span>Etapa</li><li><span class="k hoje"></span>Hoje</li></ul>' +
-    (editar ? '<p class="plan-dica-uso">Predecessoras: códigos da EAP separados por vírgula; “+2” espera 2 dias depois do término, “-1” começa 1 dia antes. Um grupo (ex.: 1.2) vale para todos os serviços dele.</p>' : '') +
-    '<div class="plan-gantt"><table class="plan-tabela"><thead><tr><th class="c-eap">EAP</th><th class="c-nome">Serviço</th><th class="c-num">Duração</th>' +
+    (editar ? '<p class="plan-dica-uso"><b>Predecessoras</b>: números das linhas (Nº) separados por vírgula ou ponto e vírgula; “12+2” espera 2 dias depois do término e “12-1” começa 1 dia antes. A linha de uma etapa vale para todos os serviços dela. ' +
+      '<b>Duração</b>: com mão de obra no orçamento, horas do oficial principal ÷ oficiais (sem oficial, do ajudante ÷ ajudantes), convertidas pelas horas de cada dia do calendário; digitar a duração deixa o serviço manual.</p>' : '') +
+    '<div class="plan-gantt"><table class="plan-tabela"><thead><tr><th class="c-lin">Nº</th><th class="c-eap">EAP</th><th class="c-nome">Serviço</th>' +
+    '<th class="c-equipe" title="Oficiais e ajudantes na atividade">Equipe <span class="plan-eq-rot">ofic. · ajud.</span></th><th class="c-mao" title="Horas de mão de obra do serviço no orçamento">Mão de obra</th><th class="c-num">Duração</th>' +
     '<th class="c-data">Início</th><th class="c-data">Término</th><th class="c-pred">Predecessoras</th><th class="c-folga">Folga</th>' +
     '<th class="c-tl"><div class="plan-tl-cab" style="width:' + lt.largura + 'px">' + cabecalhoTempo(lt) + '</div></th></tr></thead><tbody>' +
-    (linhas || '<tr><td colspan="8" class="plan-vazio">Nenhum serviço ' + (estado.soCriticos ? 'no caminho crítico' : 'no orçamento') + '.</td></tr>') + '</tbody></table></div>';
+    (linhas || '<tr><td colspan="11" class="plan-vazio">Nenhum serviço ' + (estado.soCriticos ? 'no caminho crítico' : 'no orçamento') + '.</td></tr>') + '</tbody></table></div>';
 }
 
 // Depois de uma edição: datas, folgas e barras no lugar (sem perder o foco); se a obra passou do
@@ -334,6 +397,9 @@ function atualizarCronograma() {
       if (n.tipo === 'servico') {
         tr.querySelector('[data-col="folga"]').innerHTML = folgaHtml(info);
         tr.classList.toggle('critico', info.critico);
+        const dur = tr.querySelector('[data-col="dur"]');
+        if (!dur.contains(document.activeElement)) dur.innerHTML = duracaoHtml(n, info, podeEditar());
+        tr.querySelectorAll('.plan-equipe input').forEach((i) => i.classList.toggle('base', info.modo === 'equipe' && i.dataset.campo === (info.base === 'oficial' ? 'oficiais' : 'ajudantes')));
       } else tr.querySelector('[data-col="duracao"]').textContent = info.duracao;
       const tl = tr.querySelector('.plan-tl');
       const antiga = tl.querySelector('.plan-barra, .plan-marco, .plan-resumo');
@@ -371,7 +437,7 @@ function atualizarCartoes() {
 function tarefaEditavel(id) {
   if (!estado.config.tarefas[id]) {
     const t = estado.res.tarefas.get(id);
-    estado.config.tarefas[id] = { duracao: t.duracao, predecessoras: t.predecessoras.map((p) => ({ ...p })) };
+    estado.config.tarefas[id] = { duracao: t.duracao, predecessoras: t.predecessoras.map((p) => ({ ...p })), modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes };
   }
   return estado.config.tarefas[id];
 }
@@ -379,18 +445,23 @@ function marcarSujo() {
   estado.sujo = true;
   recalcular();
 }
-// Predecessoras digitadas: códigos válidos, sem o próprio serviço nem um grupo que o contém
+// Predecessoras digitadas: números de linha (com espera opcional "+2" / "-1") separados por vírgula
+// ou ponto e vírgula; não vale o próprio serviço nem o grupo que o contém
 function lerPredecessorasDe(texto, id) {
-  const porCodigo = new Map(estado.dados.eap.map((n) => [n.eap, n.id]));
-  const lido = M.lerPredecessoras(texto, (c) => porCodigo.get(c));
+  const lista = [], erros = [];
   const n = noDe(id);
   const ancestrais = new Set();
   for (let p = noDe(n.paiId); p; p = noDe(p.paiId)) ancestrais.add(p.id);
-  for (const p of lido.lista.slice()) {
-    if (p.id === id || ancestrais.has(p.id)) { lido.erros.push(noDe(p.id).eap + ' (o próprio serviço ou o grupo dele)'); lido.lista.splice(lido.lista.indexOf(p), 1); }
-    else if (Math.abs(p.espera) > M.LIMITE_ESPERA) { lido.erros.push(noDe(p.id).eap + ' (espera acima de ' + M.LIMITE_ESPERA + ' dias)'); lido.lista.splice(lido.lista.indexOf(p), 1); }
+  for (const parte of String(texto || '').split(/[;,\s]+/).filter(Boolean)) {
+    const m = parte.match(/^(\d+)([+-]\d+)?$/);
+    const alvo = m ? estado.porLinha.get(Number(m[1])) : null;
+    if (!alvo) { erros.push(parte + ' (linha não existe)'); continue; }
+    const espera = m[2] ? Number(m[2]) : 0;
+    if (alvo === id || ancestrais.has(alvo)) { erros.push(m[1] + ' (o próprio serviço ou o grupo dele)'); continue; }
+    if (Math.abs(espera) > M.LIMITE_ESPERA) { erros.push(parte + ' (espera acima de ' + M.LIMITE_ESPERA + ' dias)'); continue; }
+    if (!lista.some((p) => p.id === alvo)) lista.push({ id: alvo, espera });
   }
-  return lido;
+  return { lista, erros };
 }
 
 async function configurar(criar) {
@@ -437,7 +508,14 @@ async function configurar(criar) {
         const usar = f('antigas') && f('antigas').checked;
         const pad = M.predecessorasPadrao(d.eap);
         const tarefas = {};
-        for (const s of servicos()) tarefas[s.id] = { duracao: usar && antigas.has(s.id) ? antigas.get(s.id) : padrao, predecessoras: pad.get(s.id) || [] };
+        // com mão de obra no orçamento, a duração sai da equipe (1 oficial e 1 ajudante para começar)
+        const mao = d.maoDeObra || {};
+        for (const s of servicos()) {
+          const temMao = mao[s.id] && (mao[s.id].oficial || mao[s.id].ajudante);
+          const antiga = usar && antigas.has(s.id);
+          tarefas[s.id] = { duracao: antiga ? antigas.get(s.id) : padrao, predecessoras: pad.get(s.id) || [],
+            modo: temMao && !antiga ? 'equipe' : 'manual', oficiais: 1, ajudantes: 1 };
+        }
         estado.dados = await api('PUT', 'obras/' + encodeURIComponent(d.obra.id), { ...base, tarefas, revisao: 0 });
         reiniciarCronograma();
         reiniciarAvanco();
@@ -495,39 +573,48 @@ function duracoesAntigas() {
 function editarTarefa(id) {
   const n = noDe(id);
   const t = estado.res.tarefas.get(id);
-  const codigo = (x) => { const k = noDe(x); return k ? k.eap : ''; };
+  const m = (estado.dados.maoDeObra || {})[id];
+  const linhasMao = m ? [m.oficial ? ['Oficial', m.oficial.nome + ' — ' + horasTxt(m.oficial.horas)] : null, m.ajudante ? ['Ajudante', m.ajudante.nome + ' — ' + horasTxt(m.ajudante.horas)] : null,
+    ...(m.apoio || []).map((a) => ['Apoio (não conta)', a.nome + ' — ' + horasTxt(a.horas)])].filter(Boolean) : [];
+  const campoEquipe = (k, papel, rotulo) => (t.mao && t.mao[papel] > 0
+    ? '<label class="campo">' + rotulo + '<input type="number" min="1" max="' + M.LIMITE_EQUIPE + '" data-f="' + k + '" value="' + t[k] + '"></label>' : '');
   S.dialogo({
-    titulo: n.eap + ' ' + n.nome, tamanho: 'md', botao: 'Aplicar',
+    titulo: 'Linha ' + linhaDe(id) + ' · ' + n.eap + ' ' + n.nome, tamanho: 'md', botao: 'Aplicar',
     corpo: S.ficha([['Início', S.data(t.inicio)], ['Término', S.data(t.termino)], ['Folga', t.critico ? 'nenhuma (caminho crítico)' : esc(dias(t.folga))],
-      ['Valor orçado', S.moeda(n.valor)]]) +
+      ['Valor orçado', S.moeda(n.valor)], ...linhasMao.map(([a, b]) => [a, esc(b)])]) +
       '<div class="supr-form" style="margin-top:12px">' +
-      '<label class="campo">Duração (dias de trabalho)<input type="number" min="0" max="' + M.LIMITE_DURACAO + '" data-f="duracao" value="' + t.duracao + '"></label>' +
+      (t.mao ? '<label class="campo largo plan-check"><input type="checkbox" data-f="auto"' + (t.modo === 'equipe' ? ' checked' : '') + '>Calcular a duração pela equipe e pelas horas de mão de obra</label>' +
+        campoEquipe('oficiais', 'oficial', 'Oficiais') + campoEquipe('ajudantes', 'ajudante', 'Ajudantes') : '') +
+      '<label class="campo">Duração (dias de trabalho)<input type="number" min="0" max="' + M.LIMITE_DURACAO + '" data-f="duracao" value="' + t.duracao + '"' + (t.modo === 'equipe' ? ' disabled' : '') + '></label>' +
       '<label class="campo">Não iniciar antes de <span class="supr-dica">(opcional)</span><input type="date" data-f="minimo" value="' + esc(t.inicioMinimo || '') + '"></label>' +
-      '<label class="campo largo">Predecessoras <span class="supr-dica">(ex.: 1.2, 1.3.1+2)</span><input type="text" data-f="pred" value="' +
-      esc(M.escreverPredecessoras(t.predecessoras, codigo)) + '" spellcheck="false"></label>' +
+      '<label class="campo largo">Predecessoras <span class="supr-dica">(números das linhas, ex.: 3; 5+2)</span><input type="text" data-f="pred" value="' +
+      esc(escreverPred(t.predecessoras)) + '" spellcheck="false"></label>' +
       '<p class="campo largo supr-dica">Duração zero vira um marco. “+2” espera 2 dias depois do término da predecessora; “-1” começa 1 dia antes.</p></div>',
+    aoAbrir: (corpo) => {
+      const auto = corpo.querySelector('[data-f="auto"]');
+      if (auto) auto.addEventListener('change', () => { corpo.querySelector('[data-f="duracao"]').disabled = auto.checked; });
+    },
     aoConfirmar: (corpo) => {
       const f = (k) => corpo.querySelector('[data-f="' + k + '"]');
+      const auto = f('auto') && f('auto').checked;
       const duracao = Number(f('duracao').value);
-      if (!Number.isInteger(duracao) || duracao < 0 || duracao > M.LIMITE_DURACAO) { f('duracao').classList.add('invalido'); S.aviso('Duração de 0 a ' + M.LIMITE_DURACAO + ' dias.', 'erro'); return false; }
+      if (!auto && (!Number.isInteger(duracao) || duracao < 0 || duracao > M.LIMITE_DURACAO)) { f('duracao').classList.add('invalido'); S.aviso('Duração de 0 a ' + M.LIMITE_DURACAO + ' dias.', 'erro'); return false; }
+      const equipe = {};
+      for (const k of ['oficiais', 'ajudantes']) {
+        if (!f(k)) continue;
+        const v = Number(f(k).value);
+        if (!Number.isInteger(v) || v < 1 || v > M.LIMITE_EQUIPE) { f(k).classList.add('invalido'); S.aviso('Equipe de 1 a ' + M.LIMITE_EQUIPE + '.', 'erro'); return false; }
+        equipe[k] = v;
+      }
       const lido = lerPredecessorasDe(f('pred').value, id);
       if (lido.erros.length) { f('pred').classList.add('invalido'); S.aviso('Predecessoras inválidas: ' + lido.erros.join(', '), 'erro'); return false; }
       const minimo = f('minimo').value;
       const tarefa = tarefaEditavel(id);
-      tarefa.duracao = duracao;
-      tarefa.predecessoras = lido.lista;
+      Object.assign(tarefa, equipe, { modo: auto ? 'equipe' : 'manual', predecessoras: lido.lista });
+      if (!auto) tarefa.duracao = duracao;
       if (minimo) tarefa.inicioMinimo = minimo; else delete tarefa.inicioMinimo;
       marcarSujo();
-      atualizarCronograma();
-      const tr = area.querySelector('tr[data-id="' + CSS.escape(id) + '"]');
-      if (tr) {
-        const d = tr.querySelector('[data-campo="duracao"]');
-        if (d) d.value = duracao;
-        const p = tr.querySelector('[data-campo="pred"]');
-        if (p) { p.value = M.escreverPredecessoras(lido.lista, codigo); p.classList.remove('invalido'); }
-        const nome = tr.querySelector('.plan-nome');
-        if (nome) nome.innerHTML = esc(n.nome) + (minimo ? ' <span class="plan-restricao" title="Não iniciar antes de ' + S.data(minimo) + '">' + S.ic('cadeado', 'ic-sm') + '</span>' : '');
-      }
+      renderModo();
       return true;
     }
   });
@@ -540,7 +627,8 @@ async function salvarCronograma() {
   const tarefas = {};
   for (const s of servicos()) {
     const t = estado.res.tarefas.get(s.id);
-    tarefas[s.id] = { duracao: t.duracao, predecessoras: t.predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}) };
+    tarefas[s.id] = { duracao: t.duracao, predecessoras: t.predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}),
+      modo: t.modo, oficiais: t.oficiais, ajudantes: t.ajudantes };
   }
   const botao = area.querySelector('[data-acao="salvar"]');
   if (botao) botao.disabled = true;
@@ -588,14 +676,14 @@ function htmlAvanco() {
   const linhas = linhasVisiveis().map((n) => {
     if (n.tipo !== 'servico') {
       const g = avancoDoGrupo(n.id, data);
-      return '<tr class="plan-linha ' + nivelClasse(n) + '" data-id="' + esc(n.id) + '"><td class="c-eap">' + botaoRecolher(n) + esc(n.eap) + '</td><td class="c-nome">' + esc(n.nome) + '</td>' +
+      return '<tr class="plan-linha ' + nivelClasse(n) + '" data-id="' + esc(n.id) + '"><td class="c-lin">' + linhaDe(n.id) + '</td><td class="c-eap">' + botaoRecolher(n) + esc(n.eap) + '</td><td class="c-nome">' + esc(n.nome) + '</td>' +
         '<td class="c-data"></td><td class="c-num" data-col="previsto">' + pct(g.previsto * 100) + '</td><td class="c-num" data-col="executado">' + pct(g.executado * 100) + '</td><td></td><td></td></tr>';
     }
     const t = estado.res.tarefas.get(n.id);
     const exec = executadoEm(n.id, data) * 100;
     const u = ultimoApontamento(n.id);
     const alterado = estado.apont.has(n.id);
-    return '<tr class="plan-linha servico' + (alterado ? ' alterado' : '') + '" data-id="' + esc(n.id) + '"><td class="c-eap">' + esc(n.eap) + '</td>' +
+    return '<tr class="plan-linha servico' + (alterado ? ' alterado' : '') + '" data-id="' + esc(n.id) + '"><td class="c-lin">' + linhaDe(n.id) + '</td><td class="c-eap">' + esc(n.eap) + '</td>' +
       '<td class="c-nome"><span class="plan-nome">' + esc(n.nome) + '</span></td>' +
       '<td class="c-data">' + dataCurta(t.inicio) + ' a ' + dataCurta(t.termino) + '</td>' +
       '<td class="c-num">' + pct(M.previstoDaTarefa(t, ate) * 100) + '</td>' +
@@ -609,9 +697,9 @@ function htmlAvanco() {
     '<span class="supr-dica">' + (editar ? 'Informe o % executado acumulado de cada serviço até a data; os grupos somam pelo valor orçado.' : 'Previsto e executado acumulados até a data.') + '</span>' +
     '<span class="espaco"></span>' + (editar ? S.botao('descartar-avanco', 'Descartar', { desabilitado: !qtd }) +
       S.botao('salvar-avanco', qtd ? 'Salvar avanço (' + qtd + ')' : 'Salvar avanço', { primario: true, icone: 'salvar', desabilitado: !qtd }) : '') + '</div>' +
-    '<div class="plan-gantt"><table class="plan-tabela avanco"><thead><tr><th class="c-eap">EAP</th><th class="c-nome">Serviço</th><th class="c-data">Planejado</th>' +
+    '<div class="plan-gantt"><table class="plan-tabela avanco"><thead><tr><th class="c-lin">Nº</th><th class="c-eap">EAP</th><th class="c-nome">Serviço</th><th class="c-data">Planejado</th>' +
     '<th class="c-num">Previsto até a data</th><th class="c-num">Executado até a data</th><th class="c-ultimo">Último apontamento</th><th class="acoes"></th></tr></thead><tbody>' +
-    (linhas || '<tr><td colspan="7" class="plan-vazio">Nenhum serviço.</td></tr>') + '</tbody></table></div>';
+    (linhas || '<tr><td colspan="8" class="plan-vazio">Nenhum serviço.</td></tr>') + '</tbody></table></div>';
 }
 function atualizarGruposDoAvanco() {
   area.querySelectorAll('.plan-tabela.avanco tr.grupo[data-id]').forEach((tr) => {
@@ -702,19 +790,23 @@ async function historico() {
 }
 function exportarCsv() {
   const d = estado.dados, r = estado.res;
-  const codigo = (id) => { const n = noDe(id); return n ? n.eap : ''; };
   const ate = r.calendario.indiceAte(d.hoje);
-  const linhas = [['EAP', 'Serviço / grupo', 'Duração (dias)', 'Início', 'Término', 'Predecessoras', 'Folga (dias)', 'Crítico', 'Previsto hoje (%)', 'Executado (%)', 'Valor orçado']];
+  const linhas = [['Nº', 'EAP', 'Serviço / grupo', 'Oficiais', 'Ajudantes', 'Mão de obra (h)', 'Duração (dias)', 'Duração calculada pela equipe', 'Início', 'Término',
+    'Predecessoras (Nº)', 'Folga (dias)', 'Crítico', 'Previsto hoje (%)', 'Executado (%)', 'Valor orçado']];
   for (const n of d.eap) {
     if (n.tipo === 'servico') {
       const t = r.tarefas.get(n.id);
-      linhas.push([n.eap, n.nome, t.duracao, S.data(t.inicio), S.data(t.termino), M.escreverPredecessoras(t.predecessoras, codigo), t.folga, t.critico ? 'sim' : '',
+      const m = (d.maoDeObra || {})[n.id];
+      const principal = m && (m.oficial || m.ajudante);
+      linhas.push([linhaDe(n.id), n.eap, n.nome, t.mao && t.mao.oficial ? t.oficiais : '', t.mao && t.mao.ajudante ? t.ajudantes : '',
+        principal ? principal.nome + ' ' + S.arred(principal.horas, 1) : '', t.duracao, t.modo === 'equipe' ? 'sim' : '', S.data(t.inicio), S.data(t.termino),
+        escreverPred(t.predecessoras), t.folga, t.critico ? 'sim' : '',
         S.arred(M.previstoDaTarefa(t, ate) * 100, 1), S.arred(M.realizadoDaTarefa(estado.indice, n.id, d.hoje) * 100, 1), S.arred(n.valor)]);
     } else {
       const g = r.grupos.get(n.id);
       if (!g) continue;
       const av = M.avancoEm(r, estado.indice, d.hoje, n.id);
-      linhas.push([n.eap, n.nome.toUpperCase(), g.duracao, S.data(g.inicio), S.data(g.termino), '', '', '', S.arred(av.previsto * 100, 1), S.arred(av.realizado * 100, 1), '']);
+      linhas.push([linhaDe(n.id), n.eap, n.nome.toUpperCase(), '', '', '', g.duracao, '', S.data(g.inicio), S.data(g.termino), '', '', '', S.arred(av.previsto * 100, 1), S.arred(av.realizado * 100, 1), '']);
     }
   }
   S.baixar('Cronograma - ' + (d.obra.codigo ? d.obra.codigo + ' ' : '') + d.obra.nome + '.csv', S.csv(linhas));
@@ -755,6 +847,12 @@ function ligarEventos() {
     } else if (acao === 'expandir') { estado.recolhidos = new Set(); renderModo(); }
     else if (acao === 'recolher-tudo') { estado.recolhidos = new Set(estado.dados.eap.filter((n) => n.tipo === 'etapa').map((n) => n.id)); renderModo(); }
     else if (acao === 'tarefa') editarTarefa(b.dataset.id);
+    else if (acao === 'auto') { b.blur(); tarefaEditavel(b.dataset.id).modo = 'equipe'; marcarSujo(); atualizarCronograma(); }
+    else if (acao === 'tudo-auto') {
+      for (const [id, t] of estado.res.tarefas) if (t.mao && t.modo !== 'equipe') tarefaEditavel(id).modo = 'equipe';
+      marcarSujo();
+      renderModo();
+    }
     else if (acao === 'salvar-avanco') salvarAvanco();
     else if (acao === 'descartar-avanco') { estado.apont = new Map(); renderModo(); }
     else if (acao === 'hist-servico') historicoDoServico(b.dataset.id);
@@ -775,8 +873,18 @@ function ligarEventos() {
     if (campo === 'duracao' && tr) {
       const v = Number(el.value);
       if (!Number.isInteger(v) || v < 0 || v > M.LIMITE_DURACAO) { el.classList.add('invalido'); el.title = 'Duração de 0 a ' + M.LIMITE_DURACAO + ' dias'; return; }
-      el.classList.remove('invalido'); el.title = '';
-      tarefaEditavel(tr.dataset.id).duracao = v;
+      el.classList.remove('invalido');
+      // duração digitada: o serviço passa a manual
+      Object.assign(tarefaEditavel(tr.dataset.id), { duracao: v, modo: 'manual' });
+      marcarSujo();
+      el.blur();
+      atualizarCronograma();
+    } else if ((campo === 'oficiais' || campo === 'ajudantes') && tr) {
+      const v = Number(el.value);
+      if (!Number.isInteger(v) || v < 1 || v > M.LIMITE_EQUIPE) { el.classList.add('invalido'); el.title = 'De 1 a ' + M.LIMITE_EQUIPE; return; }
+      el.classList.remove('invalido');
+      // mexer na equipe volta o serviço ao cálculo pelas horas
+      Object.assign(tarefaEditavel(tr.dataset.id), { [campo]: v, modo: 'equipe' });
       marcarSujo();
       atualizarCronograma();
     } else if (campo === 'pred' && tr) {
@@ -822,7 +930,8 @@ function ligarEventos() {
     const ate = estado.res.calendario.indiceAte(estado.dados.hoje);
     G.dica.mostrar({ titulo: n.eap + ' ' + n.nome, linhas: [
       { valor: S.data(t.inicio) + ' a ' + S.data(t.termino), nome: '' },
-      { valor: dias(t.duracao), nome: t.critico ? 'caminho crítico' : 'folga de ' + dias(t.folga) },
+      { valor: dias(t.duracao), nome: (t.critico ? 'caminho crítico' : 'folga de ' + dias(t.folga)) },
+      ...(t.modo === 'equipe' ? [{ valor: horasTxt(t.horas), nome: 'de ' + (t.base === 'oficial' ? t.oficiais + ' oficial(is)' : t.ajudantes + ' ajudante(s)') + ' trabalhando' }] : []),
       { valor: pct(M.previstoDaTarefa(t, ate) * 100), nome: 'previsto até hoje' },
       { valor: pct(M.realizadoDaTarefa(estado.indice, id, estado.dados.hoje) * 100), nome: 'executado', classe: 'realizado' }
     ] }, ev.clientX, ev.clientY);

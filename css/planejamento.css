@@ -30,12 +30,26 @@
 .plan-tabela{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
 .plan-tabela th{position:sticky;top:0;z-index:3;height:32px;padding:0 8px;background:var(--superficie);border-bottom:1px solid var(--borda);color:var(--suave);font-size:10.5px;font-weight:500;text-align:left;white-space:nowrap}
 .plan-tabela td{height:34px;padding:0 8px;border-bottom:1px solid var(--linha);color:var(--texto);white-space:nowrap;background:var(--superficie)}
-.plan-tabela .c-eap{position:sticky;left:0;z-index:2;width:76px;min-width:76px;max-width:76px;color:var(--suave);font-variant-numeric:tabular-nums}
-.plan-tabela .c-nome{position:sticky;left:76px;z-index:2;width:250px;min-width:250px;max-width:250px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--borda)}
-.plan-tabela th.c-eap,.plan-tabela th.c-nome{z-index:4}
-.plan-tabela .c-num{width:66px;min-width:66px;text-align:right;font-variant-numeric:tabular-nums}
+.plan-tabela .c-lin{position:sticky;left:0;z-index:2;width:42px;min-width:42px;max-width:42px;padding:0 6px;color:var(--suave);text-align:right;font-variant-numeric:tabular-nums}
+.plan-tabela .c-eap{position:sticky;left:42px;z-index:2;width:70px;min-width:70px;max-width:70px;color:var(--suave);font-variant-numeric:tabular-nums}
+.plan-tabela .c-nome{position:sticky;left:112px;z-index:2;width:220px;min-width:220px;max-width:220px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--borda)}
+.plan-tabela th.c-lin,.plan-tabela th.c-eap,.plan-tabela th.c-nome{z-index:4}
+.plan-tabela .c-equipe{width:96px;min-width:96px}
+.plan-tabela .c-mao{width:130px;min-width:130px;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+.plan-eq-rot{display:block;font-size:9.5px;font-weight:400;color:var(--fraco)}
+.plan-equipe{display:inline-flex;gap:4px}
+.plan-tabela .plan-equipe input{width:40px;padding:0 4px;text-align:right}
+.plan-tabela .plan-equipe input.base{border-color:var(--tinta)}
+.plan-eq-vazio{color:var(--fraco)}
+.plan-mao{display:block;overflow:hidden;text-overflow:ellipsis;color:var(--suave)}
+.plan-mao b{font-weight:500;color:var(--texto);font-variant-numeric:tabular-nums}
+.plan-tabela input.plan-auto{color:var(--suave);background:#fafafa}
+.plan-auto{color:var(--suave)}
+.plan-recalc{margin-left:3px;padding:0 4px;border:0;border-radius:4px;background:transparent;color:var(--suave);font:inherit;font-size:13px;cursor:pointer}
+.plan-recalc:hover{background:var(--hover);color:var(--tinta)}
+.plan-tabela .c-num{width:66px;min-width:66px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .plan-tabela .c-data{width:72px;min-width:72px;font-variant-numeric:tabular-nums}
-.plan-tabela .c-pred{width:118px;min-width:118px}
+.plan-tabela .c-pred{width:100px;min-width:100px}
 .plan-tabela .c-folga{width:70px;min-width:70px}
 .plan-tabela .c-ultimo{min-width:150px}
 .plan-tabela .c-ultimo small{display:block;font-size:10.5px;color:var(--suave);line-height:1.2}
@@ -50,7 +64,7 @@
 .plan-tabela tr.alterado input{border-color:var(--st-amarelo)}
 .plan-tabela input{height:26px;padding:0 6px;font:inherit;font-size:12px}
 .plan-tabela input[type=number]{width:52px;text-align:right}
-.plan-tabela .c-pred input{width:104px}
+.plan-tabela .c-pred input{width:86px}
 .plan-tabela input.invalido{border-color:var(--st-vermelho);background:#fef2f2}
 .plan-pct{display:inline-flex;align-items:center;gap:3px;color:var(--suave)}
 .plan-pct input{width:58px!important}
@@ -84,8 +98,9 @@ button.plan-nome:hover{color:var(--tinta);text-decoration:underline;text-underli
 .plan-curva [data-curva]{min-height:240px}
 
 @media (max-width:760px){
-  .plan-tabela .c-nome{width:150px;min-width:150px;max-width:150px}
-  .plan-tabela .c-eap{width:58px;min-width:58px;max-width:58px}
-  .plan-tabela .c-nome{left:58px}
+  .plan-tabela .c-lin{width:34px;min-width:34px;max-width:34px}
+  .plan-tabela .c-eap{left:34px;width:54px;min-width:54px;max-width:54px}
+  .plan-tabela .c-nome{left:88px;width:140px;min-width:140px;max-width:140px}
   .plan-gantt{max-height:calc(100vh - 160px)}
 }
+.supr-dlg label.campo.plan-check{flex-direction:row;align-items:center;gap:8px;font-size:12px;color:var(--texto)}

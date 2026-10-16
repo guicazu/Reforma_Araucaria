@@ -53,15 +53,22 @@ O cronograma de cada obra fica no servidor e usa a EAP da versão atual do orça
 uma tarefa. Serviço novo no orçamento entra sozinho no cronograma (com a duração padrão, depois da
 etapa anterior) e fica marcado como “novo” até alguém revisar e salvar.
 
-- **Cronograma**: duração em dias úteis (segunda a sexta) ou corridos, feriados, predecessoras
-  término-início com espera (`1.2, 1.3.1+2`; um grupo vale para todos os serviços dele), “não iniciar
-  antes de”, caminho crítico e folga de cada serviço, Gantt com zoom e exportação CSV. Predecessoras
-  em círculo são apontadas e impedem salvar; duas pessoas gravando ao mesmo tempo não se sobrescrevem.
+- **Cronograma**: cada linha tem um Nº; as predecessoras são indicadas pelo Nº da linha, separadas por
+  vírgula ou ponto e vírgula, com espera opcional (`4; 7+2`; a linha de uma etapa vale para todos os
+  serviços dela). “Não iniciar antes de”, caminho crítico e folga de cada serviço, Gantt com zoom e
+  exportação CSV. Predecessoras em círculo são apontadas e impedem salvar; duas pessoas gravando ao
+  mesmo tempo não se sobrescrevem.
+- **Duração pela equipe**: as horas de mão de obra de cada serviço vêm da composição no orçamento. Se
+  o serviço tem oficial, a duração é horas do oficial principal ÷ número de oficiais; só com ajudante,
+  horas do ajudante ÷ número de ajudantes (encarregado, engenheiro e afins não contam). As horas viram
+  dias pelo horário de cada dia do calendário (ex.: sexta mais curta). Digitar a duração deixa o
+  serviço manual; ↺ volta ao cálculo. Serviço sem mão de obra no orçamento tem duração digitada.
 - **Avanço físico**: o % executado acumulado de cada serviço numa data (até hoje); etapas e obra
   somam pelo valor orçado. Cada apontamento fica no histórico e pode ser excluído.
 - **Curva S**: previsto pelo cronograma × realizado pelos apontamentos, com tabela.
 
-- **Calendários** (menu Engenharia): dias da semana de trabalho, feriados nacionais (calculados,
+- **Calendários** (menu Engenharia): dias da semana e horário de trabalho de cada um (início, fim e
+  intervalo; o turno pode passar da meia-noite), feriados nacionais (calculados,
   com Sexta-feira Santa pela Páscoa), estaduais e municipais (escolhendo o município), pontos
   facultativos (Carnaval, Cinzas, Corpus Christi, vésperas de Natal e Ano Novo), dias específicos
   parados (ex.: recesso) ou trabalhados (ex.: sábado de compensação) e **pontes sugeridas**: o dia

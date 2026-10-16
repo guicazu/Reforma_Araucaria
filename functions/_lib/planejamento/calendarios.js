@@ -1,7 +1,7 @@
 // Calendários de trabalho das obras (tela Calendários): semana, feriados e dias de exceção. As
 // regras de feriado e a sugestão de pontes estão em js/feriados.js, o mesmo arquivo da tela.
 import { json, falha, agora, uuid, lerJson, historico } from '../suprimentos/base.js';
-import { normalizar, REGRA_VALIDA, UFS, FACULTATIVOS, dataDaRegra } from '../../../js/feriados.js';
+import { normalizar, REGRA_VALIDA, UFS, FACULTATIVOS, DIAS_SEMANA, HORA_VALIDA, dataDaRegra, horasDoTurno } from '../../../js/feriados.js';
 
 const ehData = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(v + 'T00:00:00Z').toISOString().slice(0, 10) === v;
 
@@ -50,6 +50,15 @@ function validar(corpo) {
   if (nome.length > 80) falha(400, 'nome', 'Nome com até 80 caracteres.');
   const dias = Array.isArray(corpo.diasSemana) ? Array.from(new Set(corpo.diasSemana.map(Number))) : [];
   if (!dias.length || dias.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) falha(400, 'dias_semana', 'Marque pelo menos um dia da semana de trabalho.');
+  const jornada = corpo.jornada && typeof corpo.jornada === 'object' ? corpo.jornada : {};
+  for (const d of dias) {
+    const t = jornada[d];
+    if (!t) continue;
+    if (!HORA_VALIDA.test(t.inicio) || !HORA_VALIDA.test(t.fim)) falha(400, 'jornada', `Horário inválido na ${DIAS_SEMANA[d].toLowerCase()}: use hh:mm.`);
+    const intervalo = Number(t.intervalo || 0);
+    if (!Number.isFinite(intervalo) || intervalo < 0 || intervalo > 720) falha(400, 'jornada', `Intervalo inválido na ${DIAS_SEMANA[d].toLowerCase()} (0 a 720 minutos).`);
+    if (!(horasDoTurno(t) > 0)) falha(400, 'jornada', `Na ${DIAS_SEMANA[d].toLowerCase()} o intervalo é maior que o turno.`);
+  }
   const uf = corpo.uf || '';
   if (uf && !UFS.some((u) => u[0] === uf)) falha(400, 'uf', 'Estado inválido.');
   const codigo = corpo.municipioCodigo == null || corpo.municipioCodigo === '' ? null : Number(corpo.municipioCodigo);
@@ -70,7 +79,7 @@ function validar(corpo) {
   }
   return {
     nome, padrao: Boolean(corpo.padrao),
-    config: { diasSemana: dias.sort(), uf, municipioCodigo: codigo, municipioNome: codigo ? String(corpo.municipioNome || '').trim().slice(0, 80) : '',
+    config: { diasSemana: dias.sort(), jornada: normalizar({ jornada }).jornada, uf, municipioCodigo: codigo, municipioNome: codigo ? String(corpo.municipioNome || '').trim().slice(0, 80) : '',
       nacionais: corpo.nacionais !== false, estaduais: corpo.estaduais !== false, municipais: corpo.municipais !== false,
       facultativos, desativados, feriadosMunicipais: municipais, dias: Array.from(porData.values()).sort((a, b) => (a.data < b.data ? -1 : 1)) }
   };

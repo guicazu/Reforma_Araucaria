@@ -26,6 +26,10 @@ function titulo(t, sub) {
   document.getElementById('calTitulo').textContent = t;
   document.getElementById('calSubtitulo').textContent = sub || '';
 }
+const textoHoras = (h) => (Math.round(h * 100) / 100).toLocaleString('pt-BR') + ' h';
+function textoHorasSemana() {
+  return textoHoras(F.horasDaSemana(estado.cal)) + ' por semana';
+}
 function textoSemana(dias) {
   const d = (dias || []).slice().sort();
   if (d.join() === '1,2,3,4,5') return 'Segunda a sexta';
@@ -61,7 +65,7 @@ async function abrirLista() {
     S.tabela([
       { t: 'Calendário', v: (c) => esc(c.nome) + (c.padrao ? ' ' + S.tag('padrão', 'azul', 'Sugerido ao criar um cronograma') : '') },
       { t: 'Local', v: (c) => esc(c.municipioNome ? c.municipioNome + ' / ' + c.uf : c.uf || '—') },
-      { t: 'Semana', v: (c) => esc(textoSemana(c.diasSemana)) },
+      { t: 'Semana', v: (c) => esc(textoSemana(c.diasSemana)) + '<small>' + esc(textoHoras(F.horasDaSemana(c)) + ' por semana') + '</small>' },
       { t: 'Feriados em ' + ano, v: (c) => { const x = resumoDoAno(c, ano); return x.folgas + '<small>' + x.uteis + ' dias de trabalho no ano</small>'; }, c: 'num' },
       { t: 'Cronogramas', v: (c) => String(c.uso || 0), c: 'num' },
       { t: 'Atualizado', v: (c) => esc(S.dataHora(c.atualizadoEm)) + '<small>' + esc(c.atualizadoPorNome || '') + '</small>', c: 'nowrap' }
@@ -136,8 +140,18 @@ function render() {
       (c.uf ? '' : ' disabled') + dis + ' placeholder="' + (c.uf ? 'Digite e escolha' : 'Escolha o estado') + '"><datalist id="calListaMunicipios">' +
       municipios.map((m) => '<option value="' + esc(m[1]) + '"></option>').join('') + '</datalist></label>' +
     '<label class="campo plan-check cal-padrao"><input type="checkbox" data-c="padrao"' + (c.padrao ? ' checked' : '') + dis + '>Padrão para novos cronogramas</label></div>';
-  h += '<section class="supr-secao"><h4>Dias da semana de trabalho</h4><div class="cal-semana">' + F.DIAS_SEMANA.map((nome, i) =>
-    '<label class="cal-dia"><input type="checkbox" data-semana="' + i + '"' + (c.diasSemana.includes(i) ? ' checked' : '') + dis + '><span>' + esc(nome) + '</span></label>').join('') + '</div></section>';
+  h += '<section class="supr-secao"><h4>Dias e horário de trabalho<span class="espaco"></span><span class="cal-resumo" data-horas-semana>' + textoHorasSemana() + '</span></h4>' +
+    '<p class="supr-dica">Um turno por dia. Se o fim for antes do início, o turno passa da meia-noite (turno da noite). As horas do dia convertem as horas de mão de obra dos serviços em dias no cronograma.</p>' +
+    '<table class="cal-jornada"><thead><tr><th>Dia</th><th>Início</th><th>Fim</th><th>Intervalo (min)</th><th class="num">Horas</th><th></th></tr></thead><tbody>' +
+    [1, 2, 3, 4, 5, 6, 0].map((i) => {
+      const t = c.jornada[i];
+      const ativo = c.diasSemana.includes(i);
+      const campo = (k, tipo, extra) => '<input type="' + tipo + '" data-jornada="' + i + '" data-campo-j="' + k + '" value="' + esc(t[k]) + '"' + extra + (ativo ? '' : ' disabled') + dis + '>';
+      return '<tr class="' + (ativo ? '' : 'inativo') + '"><td><label class="cal-dia"><input type="checkbox" data-semana="' + i + '"' + (ativo ? ' checked' : '') + dis + '><span>' + esc(F.DIAS_SEMANA[i]) + '</span></label></td>' +
+        '<td>' + campo('inicio', 'time', '') + '</td><td>' + campo('fim', 'time', '') + '</td><td>' + campo('intervalo', 'number', ' min="0" max="720" step="5"') + '</td>' +
+        '<td class="num" data-horas-dia="' + i + '">' + (ativo ? textoHoras(F.horasDoTurno(t)) : '—') + '</td>' +
+        '<td>' + (editar && ativo ? '<button type="button" class="btn btn-ghost btn-xs" data-copiar-jornada="' + i + '" title="Usar este horário em todos os dias marcados">Copiar para os outros</button>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table></section>';
   h += '<div class="cal-grade"><div data-regras>' + htmlRegras() + '</div><div><div data-ano>' + htmlAno() + '</div><div data-pontes>' + htmlPontes() + '</div></div></div>';
   h += '<div data-dias>' + htmlDias() + '</div>';
   area.innerHTML = h;
@@ -295,7 +309,7 @@ function adicionarDias() {
 }
 async function salvar() {
   const c = estado.cal;
-  const corpo = { nome: c.nome, padrao: c.padrao, revisao: c.revisao, diasSemana: c.diasSemana, uf: c.uf, municipioCodigo: c.municipioCodigo,
+  const corpo = { nome: c.nome, padrao: c.padrao, revisao: c.revisao, diasSemana: c.diasSemana, jornada: c.jornada, uf: c.uf, municipioCodigo: c.municipioCodigo,
     municipioNome: c.municipioNome, nacionais: c.nacionais, estaduais: c.estaduais, municipais: c.municipais, facultativos: c.facultativos,
     desativados: c.desativados, feriadosMunicipais: c.feriadosMunicipais, dias: c.dias };
   if (!c.nome.trim()) { area.querySelector('[data-c="nome"]').classList.add('invalido'); S.aviso('Dê um nome ao calendário.', 'erro'); return; }
@@ -325,6 +339,16 @@ function ligarEventos() {
     const c = estado.cal;
     const anoBotao = ev.target.closest('[data-ano]');
     if (anoBotao && estado.tela === 'editor') { estado.ano += Number(anoBotao.dataset.ano); atualizarDerivados(); return; }
+    const copiar = ev.target.closest('[data-copiar-jornada]');
+    if (copiar) {
+      const base = c.jornada[Number(copiar.dataset.copiarJornada)];
+      const jornada = { ...c.jornada };
+      for (const d of c.diasSemana) jornada[d] = { ...base };
+      c.jornada = jornada;
+      marcarSujo();
+      render();
+      return;
+    }
     const rem = ev.target.closest('[data-remover-municipal]');
     if (rem) { c.feriadosMunicipais = c.feriadosMunicipais.filter((m) => m.regra !== rem.dataset.removerMunicipal); marcarSujo(); atualizarDerivados(); return; }
     const remDia = ev.target.closest('[data-remover-dia]');
@@ -391,12 +415,26 @@ function ligarEventos() {
         : 'A base não tem feriados municipais de ' + m[1] + '. Cadastre os da prefeitura.');
       return;
     }
+    if (el.dataset.jornada != null) {
+      const d = Number(el.dataset.jornada);
+      const t = { ...c.jornada[d] };
+      if (el.dataset.campoJ === 'intervalo') t.intervalo = Math.max(0, Math.min(720, Math.round(Number(el.value) || 0)));
+      else if (F.HORA_VALIDA.test(el.value)) t[el.dataset.campoJ] = el.value;
+      else { el.classList.add('invalido'); S.aviso('Horário inválido.', 'erro'); return; }
+      if (!(F.horasDoTurno(t) > 0)) { el.classList.add('invalido'); S.aviso('O intervalo não pode ser maior que o turno.', 'erro'); return; }
+      el.classList.remove('invalido');
+      c.jornada = { ...c.jornada, [d]: t };
+      area.querySelector('[data-horas-dia="' + d + '"]').textContent = textoHoras(F.horasDoTurno(t));
+      area.querySelector('[data-horas-semana]').textContent = textoHorasSemana();
+      marcarSujo();
+      return;
+    }
     if (el.dataset.semana != null) {
       const i = Number(el.dataset.semana);
       c.diasSemana = el.checked ? Array.from(new Set(c.diasSemana.concat([i]))).sort() : c.diasSemana.filter((x) => x !== i);
       if (!c.diasSemana.length) { el.checked = true; c.diasSemana = [i]; S.aviso('Pelo menos um dia da semana precisa ser de trabalho.', 'erro'); return; }
       marcarSujo();
-      atualizarDerivados();
+      render();
       return;
     }
     if (el.dataset.grupo) {
