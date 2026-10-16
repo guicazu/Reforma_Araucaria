@@ -67,6 +67,7 @@ button.ini-tile:focus-visible{outline:2px solid var(--tinta);outline-offset:1px}
 .ini-chave.realizado{background:var(--realizado)}
 .ini-chave.comprometido{background:var(--comprometido)}
 .ini-chave.orcado{background:var(--trilha)}
+.ini-chave.marca{width:2px;height:12px;border-radius:0;background:var(--tinta)}
 
 /* ---------- colunas (SVG) ---------- */
 .ini-grafico{width:100%;min-height:196px}
@@ -91,7 +92,7 @@ button.ini-medidor{cursor:pointer}
 .ini-medidor:hover{background:#fafafa}
 .ini-medidor:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
 .ini-medidor-topo{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 12px}
-.ini-medidor-nome{min-width:0;font-size:12.5px;color:var(--tinta)}
+.ini-medidor-nome{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--tinta)}
 .ini-medidor-nome b{font-weight:600}
 .ini-medidor-nome small{margin-left:6px;font-size:11px;color:var(--suave)}
 .ini-medidor-valor{font-size:11.5px;color:var(--suave);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -102,6 +103,12 @@ button.ini-medidor{cursor:pointer}
 .ini-barra .comprometido{background:var(--comprometido)}
 .ini-barra .trilha{background:var(--trilha)}
 .ini-barra .marca{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--tinta)}
+
+/* ---------- avanço físico ---------- */
+.ini-curva{min-height:250px}
+.ini-aviso-card{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;color:var(--suave);font-size:12.5px}
+.ini-aviso-card>.ic{color:var(--fraco)}
+.ini-aviso-card span{flex:1 1 280px}
 
 /* ---------- barras horizontais com o valor na ponta ---------- */
 .ini-barras{margin:0;padding:0;list-style:none}
@@ -141,6 +148,7 @@ button.ini-medidor{cursor:pointer}
 .ini-dica-chave.comprometido{background:var(--comprometido)}
 .ini-dica-chave.orcado{background:var(--trilha);height:4px}
 .ini-dica-chave.outro{background:var(--outro)}
+.ini-dica-chave.marca{flex:0 0 2px;height:12px;margin:0 5px;background:var(--tinta)}
 
 @media (max-width:760px){
   .ini-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -31,6 +31,8 @@ Site da iBuild Construtora para orçamentos de obra, publicado em
 A tela de entrada reúne indicadores e gráficos das obras e dos setores, com filtro de período
 (3, 6 ou 12 meses) e de obra numa linha só. Cada seção aparece só para quem pode ver o módulo:
 
+- **Avanço físico** (Planejamento): previsto × realizado de hoje, desvio, obras atrasadas, avanço por
+  obra (ou curva S da obra escolhida) e os serviços mais atrasados.
 - **Custos das obras** (Acompanhamento): orçado, realizado, comprometido e saldo; medidores por obra
   (ou por etapa da EAP, com uma obra escolhida) com aviso de estouro; realizado por mês (notas e
   medições). Clicar numa obra abre o Acompanhamento dela.
@@ -44,6 +46,22 @@ A tela de entrada reúne indicadores e gráficos das obras e dos setores, com fi
 
 Os números vêm de `GET /api/suprimentos/inicio` (`functions/_lib/suprimentos/inicio.js`) e usam a
 mesma conta do Acompanhamento; cada gráfico tem a tabela equivalente.
+
+### Planejamento (cronograma e avanço físico)
+
+O cronograma de cada obra fica no servidor e usa a EAP da versão atual do orçamento: cada serviço é
+uma tarefa. Serviço novo no orçamento entra sozinho no cronograma (com a duração padrão, depois da
+etapa anterior) e fica marcado como “novo” até alguém revisar e salvar.
+
+- **Cronograma**: duração em dias úteis (segunda a sexta) ou corridos, feriados, predecessoras
+  término-início com espera (`1.2, 1.3.1+2`; um grupo vale para todos os serviços dele), “não iniciar
+  antes de”, caminho crítico e folga de cada serviço, Gantt com zoom e exportação CSV. Predecessoras
+  em círculo são apontadas e impedem salvar; duas pessoas gravando ao mesmo tempo não se sobrescrevem.
+- **Avanço físico**: o % executado acumulado de cada serviço numa data (até hoje); etapas e obra
+  somam pelo valor orçado. Cada apontamento fica no histórico e pode ser excluído.
+- **Curva S**: previsto pelo cronograma × realizado pelos apontamentos, com tabela.
+
+As contas ficam em `js/cronograma-motor.js`, o mesmo arquivo na tela, no servidor e no Início.
 
 ### Suprimentos (no padrão do SIENGE)
 
@@ -84,6 +102,10 @@ Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da vers
 css/                      estilos (suprimentos.css: telas de Suprimentos e Contas a pagar; inicio.css: painel de Início)
 js/                       app.js (lógica dos orçamentos e sincronização manual com o servidor)
 js/inicio.js              painel de Início (indicadores e gráficos das obras e dos setores)
+js/planejamento.js        Planejamento: cronograma com Gantt, avanço físico e curva S (módulo ES)
+js/cronograma-motor.js    contas do cronograma (calendário, caminho crítico, avanço, curva S), também
+                          usado pelo servidor
+js/graficos.js            curva S e dica flutuante usadas pelo Início e pelo Planejamento
 js/suprimentos/           telas de Suprimentos (nucleo.js: API, janelas, navegação, escolha de insumo)
 js/financeiro.js          Contas a pagar
 portal-fornecedor.html    página pública do fornecedor (responder cotação, confirmar pedido)
@@ -92,13 +114,16 @@ functions/
   _middleware.js          bloqueia todo o site pra quem não tem sessão aprovada
   _lib/
     session.js             cookie de sessão assinado (HMAC-SHA256)
+    roteador.js            tabela de rotas das APIs com a permissão de cada uma
     suprimentos/           regras de Suprimentos (orçado por insumo, SC, cotação, pedido, nota,
                            contrato, estoque, contas a pagar, portal e PDF); rotas em rotas.js
+    planejamento/          cronograma e apontamentos de avanço por obra; rotas em rotas.js
     usuarios.js             cria/aprova usuário no primeiro login
   api/
     orcamentos.js           GET/POST do snapshot de orçamentos (D1)
     bloqueios.js            aquisição e liberação de bloqueios de edição
     suprimentos/[[rota]].js /api/suprimentos/* (tabela de rotas em _lib/suprimentos/rotas.js)
+    planejamento/[[rota]].js /api/planejamento/* (tabela de rotas em _lib/planejamento/rotas.js)
     portal/[[rota]].js      /api/portal/<token> — rota pública do portal do fornecedor
     auth/
       google.js / google-callback.js         fluxo OAuth Google
@@ -171,6 +196,14 @@ Suprimentos usa as tabelas `supr_*` e `fin_titulos`, criadas por
 
 ```sh
 wrangler d1 execute ibuild-orcamentos --remote --file=db/migrations/20261017_suprimentos.sql
+```
+
+O Planejamento usa `plan_cronogramas` e `plan_avancos`, criadas por
+`db/migrations/20261019_planejamento.sql` (idempotente). Os cronogramas antigos ficavam só no
+navegador; ao criar o cronograma de uma obra, a tela oferece trazer as durações que encontrar ali.
+
+```sh
+wrangler d1 execute ibuild-orcamentos --remote --file=db/migrations/20261019_planejamento.sql
 ```
 
 As tabelas antigas do módulo de compras (`requisicoes`, `itens_requisicao`, `cotacoes`,

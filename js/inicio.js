@@ -1,6 +1,7 @@
 /* Início: indicadores e gráficos das obras e dos setores (GET /api/suprimentos/inicio).
    Cada seção só aparece para quem pode ver o módulo (o servidor decide em "secoes"): custos das
-   obras (Acompanhamento), Suprimentos, Financeiro (Contas a pagar) e Engenharia (Orçamento).
+   obras (Acompanhamento), avanço físico (Planejamento), Suprimentos, Financeiro (Contas a pagar) e
+   Engenharia (Orçamento).
    Os filtros ficam numa linha só, acima de tudo: período (3, 6 ou 12 meses) e obra. Gráficos
    desenhados aqui mesmo: medidores orçado × realizado × comprometido, colunas por mês (com
    legenda, dica por coluna e a tabela equivalente) e barras horizontais com o valor na ponta.
@@ -288,6 +289,83 @@
     return secao('custos', 'Custos das obras', obra ? nomeObra(obra) : 'Orçado × comprometido × realizado de todas as obras', cartoes, graficos);
   }
 
+  // Previsto × realizado em barras: trilha = 100%, preenchimento = realizado, marca = previsto para hoje
+  function progresso(itens, op) {
+    if (!itens.length) return vazio(op.vazio);
+    const sinal = (v) => (v > 0 ? '+' : '') + S.pct(v).replace('%', ' p.p.');
+    return '<ul class="ini-medidores">' + itens.map((i) => {
+      const desvio = i.realizado - i.previsto;
+      const k = novaDica({ titulo: i.titulo, linhas: [
+        { valor: S.pct(i.realizado), nome: 'Realizado', classe: 'realizado' },
+        { valor: S.pct(i.previsto), nome: 'Previsto para hoje', classe: 'marca' },
+        { valor: sinal(desvio), nome: 'Desvio', total: true }] });
+      const pecas = [];
+      if (i.realizado > 0) pecas.push('<span class="seg realizado" style="flex-basis:' + Math.min(100, i.realizado) + '%"></span>');
+      if (i.realizado < 100) pecas.push('<span class="seg trilha" style="flex-basis:' + (100 - Math.max(0, i.realizado)) + '%"></span>');
+      pecas[pecas.length - 1] = pecas[pecas.length - 1].replace('class="seg ', 'class="seg fim ');
+      const tag = op.ir ? 'button' : 'div';
+      return '<li><' + tag + (op.ir ? ' type="button" data-ir="' + op.ir + '"' : ' tabindex="0"') + ' class="ini-medidor" data-dica="' + k + '" aria-label="' +
+        S.esc(i.titulo + ': realizado ' + S.pct(i.realizado) + ', previsto ' + S.pct(i.previsto)) + '">' +
+        '<span class="ini-medidor-topo"><span class="ini-medidor-nome">' + i.rotulo + '</span>' +
+        '<span class="ini-medidor-valor">' + S.esc(S.pct(i.realizado) + ' de ' + S.pct(i.previsto) + ' previsto' + (i.extra ? ' · ' + i.extra : '')) + '</span></span>' +
+        '<span class="ini-barra" aria-hidden="true">' + pecas.join('') + '<span class="marca" style="left:' + Math.min(100, Math.max(0, i.previsto)) + '%"></span></span>' +
+        (desvio <= -5 && !op.semAlerta ? '<span class="ini-alerta">' + S.ic('alerta', 'ic-sm') + 'Atrasado ' + S.esc(sinal(-desvio).replace('+', '')) + '</span>' : '') +
+        '</' + tag + '></li>';
+    }).join('') + '</ul>';
+  }
+
+  function secaoPlanejamento(d) {
+    const p = d.planejamento;
+    const t = p.totais;
+    const obra = obraEscolhida(d);
+    const ir = podeVer('planejamento') ? 'view:planejamento' : '';
+    const sub = obra ? nomeObra(obra) : 'Previsto × realizado pelo cronograma de cada obra';
+    if (!t.comCronograma) {
+      return '<section class="ini-secao" data-secao="planejamento"><header class="ini-secao-topo"><h3>Avanço físico</h3><p>' + S.esc(sub) + '</p></header>' +
+        '<div class="ini-card ini-aviso-card">' + S.ic('planejamento') + '<span>' + (obra ? 'Esta obra ainda não tem cronograma.' : 'Nenhuma obra tem cronograma ainda.') +
+        ' Monte o cronograma no Planejamento para acompanhar o avanço físico previsto × realizado.</span>' +
+        (ir ? '<button type="button" class="btn btn-ghost btn-sm" data-ir="' + ir + '">Abrir o Planejamento</button>' : '') + '</div></section>';
+    }
+    const desvio = t.realizado - t.previsto;
+    const linha = obra ? p.obras[0] : null;
+    const semCronograma = t.obras - t.comCronograma;
+    const cartoes = [
+      cartaoNumero({ rotulo: 'Avanço previsto', valor: S.pct(t.previsto), ir, det: obra ? 'pelo cronograma, até hoje' : 'até hoje, média pelo valor orçado' }),
+      cartaoNumero({ rotulo: 'Avanço realizado', valor: S.pct(t.realizado), ir, det: 'pelos apontamentos de avanço' }),
+      cartaoNumero({ rotulo: 'Desvio', valor: (desvio > 0 ? '+' : '') + S.pct(desvio).replace('%', ' p.p.'), ir,
+        alerta: t.atrasadas ? (obra ? 'Obra atrasada' : plural(t.atrasadas, 'obra atrasada', 'obras atrasadas')) : '', det: 'realizado − previsto' }),
+      linha ? cartaoNumero({ rotulo: 'Término previsto', valor: S.data(linha.termino), ir, det: 'início ' + S.data(linha.inicio) + ' · ' + linha.duracao + ' dias de trabalho' })
+        : cartaoNumero({ rotulo: 'Obras com cronograma', valor: t.comCronograma + ' de ' + t.obras, ir,
+          det: semCronograma ? plural(semCronograma, 'obra sem cronograma', 'obras sem cronograma') : 'todas planejadas' })
+    ];
+    const atrasados = p.atrasados.map((a) => ({
+      titulo: (obra ? '' : a.obra + ' · ') + a.eap + ' ' + a.nome, previsto: a.previsto, realizado: a.realizado, extra: 'término ' + S.data(a.termino),
+      rotulo: (obra ? '' : '<b>' + S.esc(a.obra) + '</b> ') + S.esc(a.eap + ' ' + a.nome)
+    }));
+    const graficos = [];
+    if (linha && p.curva) {
+      graficos.push(cartao({
+        titulo: 'Curva S', sub: 'Avanço físico acumulado, ponderado pelo valor orçado',
+        corpo: '<div class="ini-curva" data-curva-ini></div>',
+        tabela: tabela(['Data', 'Previsto', 'Realizado'], p.curva.map((x) => [S.esc(S.data(x.data)), S.pct(x.previsto), x.realizado == null ? '—' : S.pct(x.realizado)]))
+      }));
+    } else {
+      graficos.push(cartao({
+        titulo: 'Avanço físico por obra', sub: 'Realizado até hoje e a marca do previsto',
+        legenda: legenda([{ nome: 'Realizado', classe: 'realizado' }, { nome: 'Previsto para hoje', classe: 'marca' }, { nome: 'A executar', classe: 'orcado' }]),
+        corpo: progresso(p.obras.filter((o) => o.temCronograma).map((o) => ({ titulo: nomeObra(o), previsto: o.previsto, realizado: o.realizado,
+          extra: 'término ' + S.data(o.termino), rotulo: (o.codigo ? '<b>' + S.esc(o.codigo) + '</b> ' : '') + S.esc(o.nome) })), { vazio: 'Nenhuma obra com cronograma.', ir })
+      }));
+    }
+    graficos.push(cartao({
+      titulo: 'Serviços mais atrasados', sub: p.totalAtrasados > atrasados.length ? atrasados.length + ' de ' + p.totalAtrasados + ' serviços abaixo do previsto' : 'Executado abaixo do previsto para hoje',
+      legenda: atrasados.length ? legenda([{ nome: 'Executado', classe: 'realizado' }, { nome: 'Previsto para hoje', classe: 'marca' }]) : '',
+      // todos aqui estão atrasados: o aviso em cada linha seria repetição
+      corpo: progresso(atrasados, { vazio: 'Nenhum serviço atrasado. O executado está em dia com o previsto.', ir, semAlerta: true })
+    }));
+    return secao('planejamento', 'Avanço físico', sub, cartoes, graficos);
+  }
+
   function secaoSuprimentos(d) {
     const s = d.suprimentos;
     const p = s.pendentes;
@@ -488,11 +566,12 @@
     estado.graficos = [];
     const secoes = [];
     if (d.secoes.custos) secoes.push(secaoCustos(d));
+    if (d.secoes.planejamento) secoes.push(secaoPlanejamento(d));
     if (d.secoes.suprimentos) secoes.push(secaoSuprimentos(d));
     if (d.secoes.financeiro) secoes.push(secaoFinanceiro(d));
     if (d.secoes.engenharia) secoes.push(secaoEngenharia(d));
     painel.querySelector('.ini-filtros').hidden = !secoes.length;
-    // o período só vale para custos, suprimentos e financeiro (a Engenharia mostra a versão atual)
+    // o período só vale para custos, suprimentos e financeiro (Engenharia e avanço físico mostram o hoje)
     const usaPeriodo = d.secoes.custos || d.secoes.suprimentos || d.secoes.financeiro;
     painel.querySelector('.ini-periodo').hidden = !usaPeriodo;
     painel.querySelector('[data-intervalo]').hidden = !usaPeriodo;
@@ -500,6 +579,9 @@
       '<strong>Nenhum painel liberado para você ainda</strong><p>Peça ao administrador para liberar os módulos em Usuários › Editar permissões.</p></div>';
     corpo.classList.remove('atualizando');
     desenharGraficos();
+    corpo.querySelectorAll('[data-curva-ini]').forEach((el) => {
+      if (window.Graficos && d.planejamento && d.planejamento.curva) window.Graficos.curvaS(el, { pontos: d.planejamento.curva, hoje: d.hoje, titulo: 'Curva S da obra' });
+    });
   }
 
   async function carregar() {

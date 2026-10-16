@@ -12,6 +12,8 @@
 <link rel="stylesheet" href="css/suprimentos.css" />
 <link rel="stylesheet" href="css/minimalista.css" />
 <link rel="stylesheet" href="css/inicio.css" />
+<link rel="stylesheet" href="css/graficos.css" />
+<link rel="stylesheet" href="css/planejamento.css" />
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
@@ -361,91 +363,17 @@
   </div>
 </section>
 
-<main class="layout hidden" id="viewPlanejamento" data-modo="lista">
-  <aside class="sidebar">
-    <div class="sidebar-head">
-      <h2>Planejamento</h2>
-      <button id="btnNovoPlanejamento" class="btn btn-primary btn-sm" title="Novo cronograma">+ Novo</button>
+<section class="content hidden supr plan" id="viewPlanejamento">
+  <div class="supr-topo">
+    <div class="supr-titulo">
+      <h2 id="planTitulo">Planejamento</h2>
+      <p id="planSubtitulo">Cronograma e avanço físico das obras</p>
     </div>
-    <ul class="planejamento-list" id="listaPlanejamentos"></ul>
-    <div id="listaStatusPlanejamento" class="lista-save-panel hidden">
-      <span id="statusListaPlanejamento" class="save-status" role="status" aria-live="polite"></span>
-      <button id="btnSalvarListaPlanejamento" class="btn btn-primary btn-sm"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
-    </div>
-  </aside>
-
-  <section class="content" id="contentVazioPlanejamento">
-    <div class="empty-state">
-      <div class="destaque"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-planejamento"/></svg></div>
-      <h2>Planejamento e Controle de Produção</h2>
-      <p>Crie cronogramas baseados no orçamento. A EAP define as atividades, os serviços ditam as durações.</p>
-      <button id="btnCriarCronogramaVazio" class="btn btn-primary">+ Criar cronograma</button>
-    </div>
-  </section>
-
-  <section class="content hidden" id="contentPlanejamento">
-    <div class="planejamento-head">
-      <div>
-        <button id="btnVoltarListaPlanejamento" class="btn btn-ghost btn-sm" style="margin-bottom:10px"><svg class="ic" aria-hidden="true"><use href="#i-voltar"/></svg>Voltar para a lista</button>
-        <h2 id="planejamentoNome">Novo Cronograma</h2>
-        <p id="planejamentoMeta">Baseado no orçamento vinculado</p>
-      </div>
-      <div class="planejamento-head-actions">
-        <button id="btnDuplicarPlanejamento" class="btn btn-ghost btn-sm" title="Duplicar" aria-label="Duplicar"><svg class="ic" aria-hidden="true"><use href="#i-copiar"/></svg></button>
-        <button id="btnVersoesPlanejamento" class="btn btn-ghost btn-sm" title="Versões" aria-label="Versões"><svg class="ic" aria-hidden="true"><use href="#i-versoes"/></svg></button>
-        <button id="btnExportarExcelPlanejamento" class="btn btn-ghost btn-sm" title="Excel" aria-label="Excel"><svg class="ic" aria-hidden="true"><use href="#i-planilha"/></svg></button>
-        <button id="btnExportarPdfPlanejamento" class="btn btn-ghost btn-sm" title="PDF" aria-label="PDF"><svg class="ic" aria-hidden="true"><use href="#i-imprimir"/></svg></button>
-        <button id="btnRenomearPlanejamento" class="btn btn-ghost btn-sm" title="Renomear" aria-label="Renomear"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg></button>
-        <button id="btnAddFase" class="btn btn-primary btn-sm">+ Fase</button>
-        <button id="btnImportarDoOrcamento" class="btn btn-primary btn-sm" title="Importar EAP"><svg class="ic" aria-hidden="true"><use href="#i-baixar"/></svg>Importar</button>
-        <button id="btnSalvarPlanejamento" class="btn btn-primary btn-sm" title="Salvar"><svg class="ic" aria-hidden="true"><use href="#i-salvar"/></svg>Salvar</button>
-        <button id="btnEntrarEdicaoPlanejamento" class="btn btn-ghost btn-sm hidden"><svg class="ic" aria-hidden="true"><use href="#i-editar"/></svg>Editar</button>
-        <span id="statusSalvamentoPlanejamento" class="save-status save-status-pending hidden" role="status" aria-live="polite"></span>
-      </div>
-    </div>
-
-    <div class="planejamento-resumo">
-      <div class="resumo-card">
-        <span>Duração Total</span>
-        <strong id="duracaoTotal">—</strong>
-      </div>
-      <div class="resumo-card">
-        <span>Início</span>
-        <strong id="dataInicioProjeto">—</strong>
-      </div>
-      <div class="resumo-card">
-        <span>Término</span>
-        <strong id="dataFimProjeto">—</strong>
-      </div>
-      <div class="resumo-card">
-        <span>Caminho Crítico</span>
-        <strong id="atividadesCriticas">0</strong>
-      </div>
-      <div class="resumo-card">
-        <span>Folga Total</span>
-        <strong id="folgaTotalProjeto">0d</strong>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table class="tabela" id="tabelaPlanejamento">
-        <thead>
-          <tr>
-            <th class="col-codigo">Código</th>
-            <th style="width:350px">Atividade / Serviço</th>
-            <th class="col-un">Un.</th>
-            <th class="col-num">Duração</th>
-            <th class="col-num">Início</th>
-            <th class="col-num">Término</th>
-            <th class="col-num">Folga</th>
-            <th class="col-acoes">Ações</th>
-          </tr>
-        </thead>
-        <tbody id="corpoTabelaPlanejamento"></tbody>
-      </table>
-    </div>
-  </section>
-</main>
+  </div>
+  <div class="supr-aviso-leitura hidden" id="planAvisoLeitura"><svg class="ic" aria-hidden="true"><use href="#i-cadeado"/></svg>Acesso somente para consulta no Planejamento. Para alterar o cronograma ou apontar avanço, peça permissão de edição ao administrador.</div>
+  <!-- lista de obras, cronograma com Gantt, avanço físico e curva S (js/planejamento.js) -->
+  <div id="planConteudo" class="supr-conteudo"></div>
+</section>
 
 
 <section class="content hidden" id="viewComposicoes">
@@ -729,7 +657,6 @@
 <script src="/js/referencia-orcamento.js"></script>
 <script src="/js/sinapi-base.js"></script>
 <script src="/js/bloqueio-ui.js"></script>
-<script src="/js/planejamento-ui.js"></script>
 <script src="/js/suprimentos/nucleo.js"></script>
 <script src="/js/suprimentos/painel.js"></script>
 <script src="/js/suprimentos/solicitacoes.js"></script>
@@ -742,7 +669,9 @@
 <script src="/js/suprimentos/acompanhamento.js"></script>
 <script src="/js/suprimentos/cadastros.js"></script>
 <script src="/js/financeiro.js"></script>
+<script src="/js/graficos.js"></script>
 <script src="/js/inicio.js"></script>
+<script type="module" src="/js/planejamento.js"></script>
 
 
 </body>

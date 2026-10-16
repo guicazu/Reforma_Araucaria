@@ -6,19 +6,8 @@
   const S = window.Supr;
   const filtro = { aba: 'servicos', nivel: 2, soMovimento: false, busca: '', tipo: '', soAcima: false };
 
-  function csv(linhas) {
-    const esc = (v) => { const s = v == null ? '' : typeof v === 'number' ? String(v).replace('.', ',') : String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-    return '﻿' + linhas.map((l) => l.map(esc).join(';')).join('\r\n');
-  }
-  function baixar(nome, conteudo) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([conteudo], { type: 'text/csv;charset=utf-8' }));
-    a.download = nome;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
+  const csv = S.csv;
+  const baixar = S.baixar;
 
   S.registrar('acompanhamento', {
     titulo: 'Acompanhamento de custos', subtitulo: 'Orçado × comprometido × realizado, por serviço e por insumo', lista: true,

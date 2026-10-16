@@ -1,6 +1,6 @@
 /* Aplica as permissões por módulo (Usuários › Editar permissões) na tela: esconde do menu o que a
    pessoa não pode visualizar (e os grupos que ficarem vazios) e marca o <body> para esconder os
-   botões de edição dos módulos sem controle próprio (Planejamento e Backup). O servidor confere
+   botões de edição do Backup (que não tem controle próprio). O servidor confere
    tudo de novo; aqui é só para não oferecer o que seria recusado. Window.Permissoes.pode(modulo,
    acao) serve às outras telas; '*suprimentos' = vê algum módulo de Suprimentos ou Financeiro. */
 (function () {
@@ -33,7 +33,6 @@
       });
       grupo.classList.toggle('sem-permissao', itens.length > 0 && !algum);
     });
-    document.body.classList.toggle('sem-editar-planejamento', !pode('planejamento', 'editar'));
     document.body.classList.toggle('sem-editar-backup', !pode('backup', 'editar'));
     // a tela aberta deixou de ser permitida: volta ao Início
     if (document.querySelector('.app-sidebar-item.ativo.sem-permissao') && window.ErpNav) window.ErpNav.abrir('dashboard');

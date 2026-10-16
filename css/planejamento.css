@@ -1,0 +1,90 @@
+/* ============================================================
+   Planejamento (js/planejamento.js): cronograma com Gantt, avanço
+   físico e curva S no tema minimalista (usa as peças .supr-*).
+   Barras: claro = planejado, escuro = executado; azul para os
+   serviços e laranja para o caminho crítico (também marcado com
+   "Crítico" na coluna Folga).
+   ============================================================ */
+.plan{--plan-planejado:#86b6ef;--plan-executado:#1c5cab;--plan-critico:#f2a07a;--plan-critico-exec:#b8461b;--plan-resumo:#52525b;--plan-hoje:#71717a}
+.plan .supr-card .plan-alerta{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:500;color:var(--st-vermelho)}
+.plan-check{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--texto);cursor:pointer}
+.plan-check input{margin:0}
+.plan-sujo{font-size:12px;font-weight:500;color:var(--st-amarelo)}
+.plan-sujo[hidden]{display:none}
+.plan-dica-uso{margin:0 0 8px;font-size:11.5px;color:var(--suave)}
+.plan-data{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--suave);white-space:nowrap}
+.plan-data input{height:30px}
+
+/* legenda: amostra no formato da marca */
+.plan-legenda{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 8px;padding:0;list-style:none;font-size:11.5px;color:var(--texto)}
+.plan-legenda li{display:inline-flex;align-items:center;gap:6px}
+.plan-legenda .k{display:inline-block;width:16px;height:10px;border-radius:0 3px 3px 0;background:var(--plan-planejado)}
+.plan-legenda .k.executado{background:var(--plan-executado)}
+.plan-legenda .k.critico{background:var(--plan-critico)}
+.plan-legenda .k.resumo{height:5px;border-radius:0;background:var(--plan-resumo)}
+.plan-legenda .k.hoje{width:1px;height:14px;border-radius:0;background:var(--plan-hoje)}
+
+/* ---------- tabela com Gantt: rola dentro da moldura, cabeçalho e EAP/serviço fixos ---------- */
+.plan-gantt{position:relative;max-height:calc(100vh - 230px);min-height:200px;overflow:auto;border:1px solid var(--borda);border-radius:8px;background:var(--superficie)}
+.plan-tabela{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content;min-width:100%}
+.plan-tabela th{position:sticky;top:0;z-index:3;height:32px;padding:0 8px;background:var(--superficie);border-bottom:1px solid var(--borda);color:var(--suave);font-size:10.5px;font-weight:500;text-align:left;white-space:nowrap}
+.plan-tabela td{height:34px;padding:0 8px;border-bottom:1px solid var(--linha);color:var(--texto);white-space:nowrap;background:var(--superficie)}
+.plan-tabela .c-eap{position:sticky;left:0;z-index:2;width:76px;min-width:76px;max-width:76px;color:var(--suave);font-variant-numeric:tabular-nums}
+.plan-tabela .c-nome{position:sticky;left:76px;z-index:2;width:250px;min-width:250px;max-width:250px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--borda)}
+.plan-tabela th.c-eap,.plan-tabela th.c-nome{z-index:4}
+.plan-tabela .c-num{width:66px;min-width:66px;text-align:right;font-variant-numeric:tabular-nums}
+.plan-tabela .c-data{width:72px;min-width:72px;font-variant-numeric:tabular-nums}
+.plan-tabela .c-pred{width:118px;min-width:118px}
+.plan-tabela .c-folga{width:70px;min-width:70px}
+.plan-tabela .c-ultimo{min-width:150px}
+.plan-tabela .c-ultimo small{display:block;font-size:10.5px;color:var(--suave);line-height:1.2}
+.plan-tabela.avanco .c-data{width:auto;min-width:140px}
+.plan-tabela.avanco .c-num{width:auto;min-width:110px}
+.plan-tabela .c-tl{padding:0;border-left:0}
+.plan-tabela .acoes{width:40px;text-align:right}
+.plan-tabela tr.grupo td{background:#fafafa;font-weight:500;color:var(--tinta)}
+.plan-tabela tr.grupo.n1 td{background:#f4f4f5;font-weight:600}
+.plan-tabela tr.servico:hover td{background:#fafafa}
+.plan-tabela tr.alterado td.c-eap{box-shadow:inset 2px 0 0 var(--st-amarelo)}
+.plan-tabela tr.alterado input{border-color:var(--st-amarelo)}
+.plan-tabela input{height:26px;padding:0 6px;font:inherit;font-size:12px}
+.plan-tabela input[type=number]{width:52px;text-align:right}
+.plan-tabela .c-pred input{width:104px}
+.plan-tabela input.invalido{border-color:var(--st-vermelho);background:#fef2f2}
+.plan-pct{display:inline-flex;align-items:center;gap:3px;color:var(--suave)}
+.plan-pct input{width:58px!important}
+.plan-abrir{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin:0 2px 0 -4px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--suave);cursor:pointer;vertical-align:-4px}
+.plan-abrir:hover{background:var(--hover);color:var(--tinta)}
+.plan-nome{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:default}
+button.plan-nome{cursor:pointer}
+button.plan-nome:hover{color:var(--tinta);text-decoration:underline;text-underline-offset:2px}
+.plan-nome .st{margin-left:4px;padding:0 5px;font-size:10px}
+.plan-restricao{color:var(--suave)}
+.plan-vazio{padding:18px!important;color:var(--suave);white-space:normal!important}
+
+/* linha do tempo */
+.plan-tl-cab{position:relative;height:32px}
+.plan-mes{position:absolute;top:0;bottom:0;padding-left:5px;border-left:1px solid var(--borda);line-height:32px;overflow:hidden;white-space:nowrap;text-transform:none}
+.plan-hoje-rotulo{position:absolute;bottom:1px;transform:translateX(-50%);padding:0 3px;border-radius:3px;background:var(--superficie);font-size:9.5px;line-height:12px;color:var(--plan-hoje)}
+.plan-tl{position:relative;height:34px}
+.plan-hoje{position:absolute;top:0;bottom:0;width:1px;background:var(--plan-hoje);opacity:.55;pointer-events:none}
+.plan-barra{position:absolute;top:11px;height:12px;border-radius:0 4px 4px 0;background:var(--plan-planejado);overflow:hidden}
+.plan-barra.critico{background:var(--plan-critico)}
+.plan-exec{display:block;height:100%;background:var(--plan-executado)}
+.plan-barra.critico .plan-exec{background:var(--plan-critico-exec)}
+.plan-barra:hover{filter:brightness(1.06)}
+.plan-marco{position:absolute;top:11px;width:11px;height:11px;margin-left:-5px;transform:rotate(45deg);background:var(--plan-resumo);border:2px solid var(--superficie)}
+.plan-marco.critico{background:var(--plan-critico-exec)}
+.plan-resumo{position:absolute;top:14px;height:6px;background:var(--plan-resumo)}
+.plan-resumo::before,.plan-resumo::after{content:"";position:absolute;bottom:-4px;width:2px;height:4px;background:var(--plan-resumo)}
+.plan-resumo::before{left:0}
+.plan-resumo::after{right:0}
+
+.plan-curva [data-curva]{min-height:240px}
+
+@media (max-width:760px){
+  .plan-tabela .c-nome{width:150px;min-width:150px;max-width:150px}
+  .plan-tabela .c-eap{width:58px;min-width:58px;max-width:58px}
+  .plan-tabela .c-nome{left:58px}
+  .plan-gantt{max-height:calc(100vh - 160px)}
+}

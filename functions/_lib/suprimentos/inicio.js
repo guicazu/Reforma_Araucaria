@@ -1,11 +1,13 @@
-// Painel de Início: indicadores das obras (orçado × comprometido × realizado), de Suprimentos, do
-// Financeiro e da Engenharia. Cada parte só vai para quem pode ver o módulo correspondente
+// Painel de Início: indicadores das obras (orçado × comprometido × realizado e avanço físico), de
+// Suprimentos, do Financeiro e da Engenharia. Cada parte só vai para quem pode ver o módulo correspondente
 // (Usuários › Editar permissões). Filtros: obra (vazio = todas) e período de 3, 6 ou 12 meses
 // (inclui o mês atual) para as séries mensais, fornecedores, economia e prazos.
 import { json, hoje, somarDias, arred, lerJson } from './base.js';
 import { estruturaEap } from './orcado.js';
 import { movimentosDaObra, movimentosPorObra, consolidar } from './saldos.js';
 import { pode } from '../permissoes.js';
+import { configDe, resumoDoCronograma, ultimosAvancos } from '../planejamento/cronogramas.js';
+import { curvaS, indexarAvancos, previstoDaTarefa, realizadoDaTarefa } from '../../../js/cronograma-motor.js';
 
 const MODULOS_COMPRAS = ['solicitacoes', 'cotacoes', 'pedidos', 'notas', 'contratos', 'estoque', 'cadastros'];
 const PERIODOS = [3, 6, 12];
@@ -70,6 +72,56 @@ function custosPorEtapa(nos, servicos) {
   return linhas.map(fechar).filter((l) => l.orcado || l.comprometido || l.realizado || l.emAprovacao);
 }
 
+// Avanço físico (Planejamento): previsto × realizado de hoje por obra, ponderado pelo valor orçado
+// no total; os serviços mais atrasados; e a curva S quando há uma obra escolhida
+async function avancoFisico(env, doFiltro, obra, dia) {
+  const [cronogramas, ultimos, todos] = await Promise.all([
+    env.DB.prepare(
+      `SELECT orcamentoId, dataInicio, calendario, feriados, duracaoPadrao, tarefas FROM plan_cronogramas WHERE (?1 = '' OR orcamentoId = ?1)`
+    ).bind(obra).all(),
+    ultimosAvancos(env, dia, obra),
+    obra ? env.DB.prepare('SELECT servicoId, data, percentual FROM plan_avancos WHERE orcamentoId = ? ORDER BY data').bind(obra).all() : null
+  ]);
+  const configs = new Map(cronogramas.results.map((c) => [c.orcamentoId, configDe(c)]));
+  const linhas = [];
+  const atrasados = [];
+  let curva = null;
+  for (const v of doFiltro) {
+    const base = { id: v.id, codigo: v.codigo || '', nome: v.nome || '' };
+    const config = configs.get(v.id);
+    if (!config) { linhas.push({ ...base, temCronograma: false }); continue; }
+    const apontados = ultimos.get(v.id) || [];
+    const r = resumoDoCronograma(v.nos, config, apontados, dia);
+    const servicos = v.nos.filter((n) => n.tipo === 'servico');
+    linhas.push({ ...base, temCronograma: true, inicio: r.inicio, termino: r.termino, duracao: r.duracao,
+      previsto: r.previsto, realizado: r.realizado, peso: servicos.reduce((s, n) => s + n.valor, 0) });
+    const indice = indexarAvancos(apontados);
+    const ate = r.res.calendario.indiceAte(dia);
+    for (const n of servicos) {
+      const t = r.res.tarefas.get(n.id);
+      const previsto = previstoDaTarefa(t, ate), realizado = realizadoDaTarefa(indice, n.id, dia);
+      if (previsto - realizado > 0.005) {
+        atrasados.push({ obraId: v.id, obra: v.codigo || v.nome || '', eap: n.eap, nome: n.nome, termino: t.termino, critico: t.critico,
+          previsto: arred(previsto * 100, 1), realizado: arred(realizado * 100, 1) });
+      }
+    }
+    if (obra) curva = curvaS(r.res, todos.results, dia).map((p) => ({ data: p.data, previsto: arred(p.previsto, 1), realizado: p.realizado == null ? null : arred(p.realizado, 1) }));
+  }
+  const com = linhas.filter((l) => l.temCronograma);
+  const somaValor = com.reduce((s, l) => s + l.peso, 0);
+  const peso = (l) => (somaValor > 0 ? l.peso : 1);
+  const total = com.reduce((s, l) => s + peso(l), 0);
+  const media = (k) => (total > 0 ? arred(com.reduce((s, l) => s + peso(l) * l[k], 0) / total, 1) : 0);
+  atrasados.sort((a, b) => (b.previsto - b.realizado) - (a.previsto - a.realizado) || String(a.termino).localeCompare(String(b.termino)));
+  return {
+    obras: linhas.map(({ peso: _, ...l }) => l),
+    totais: { previsto: media('previsto'), realizado: media('realizado'), comCronograma: com.length, obras: linhas.length,
+      atrasadas: com.filter((l) => l.realizado - l.previsto <= -5).length },
+    atrasados: atrasados.slice(0, 8), totalAtrasados: atrasados.length,
+    curva
+  };
+}
+
 async function contagensDoCatalogo(env) {
   try {
     return await env.DB.prepare(
@@ -86,6 +138,7 @@ export async function inicio({ env, ctx, url }) {
   const ve = (m) => pode(ctx.permissoes, m, 'visualizar');
   const secoes = {
     custos: ve('acompanhamento'),
+    planejamento: ve('planejamento'),
     suprimentos: MODULOS_COMPRAS.some(ve),
     financeiro: ve('financeiro'),
     engenharia: ve('orcamento')
@@ -98,7 +151,7 @@ export async function inicio({ env, ctx, url }) {
   if (!Object.values(secoes).some(Boolean)) return json(resposta);
 
   // versão atual de cada obra; o conteúdo (EAP) só das obras do filtro
-  const comConteudo = secoes.custos || secoes.engenharia;
+  const comConteudo = secoes.custos || secoes.engenharia || secoes.planejamento;
   const listar = async (filtro) => (await env.DB.prepare(
     `SELECT v.orcamentoId AS id, v.codigo, v.nome, v.versaoNumero, v.revisao, v.referencia, v.atualizadoEm,
             CASE WHEN ?1 = '' OR v.orcamentoId = ?1 THEN ${comConteudo ? 'v.conteudo' : 'NULL'} END AS conteudo
@@ -249,6 +302,8 @@ export async function inicio({ env, ctx, url }) {
       realizadoMensal: { notas: serie('notas'), medicoes: serie('medicoes') }
     };
   }
+
+  if (secoes.planejamento) resposta.planejamento = await avancoFisico(env, doFiltro, obra, dia);
 
   if (secoes.suprimentos) {
     const c = r.contagens[0];

@@ -240,6 +240,20 @@
     const alvo = S.normalizar(campos.filter((x) => x != null).join(' '));
     return palavras.every((p) => alvo.indexOf(p) >= 0);
   };
+  // CSV para o Excel em português (ponto e vírgula, vírgula decimal, BOM) e download de arquivo
+  S.csv = (linhas) => {
+    const esc = (v) => { const s = v == null ? '' : typeof v === 'number' ? String(v).replace('.', ',') : String(v); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    return '\ufeff' + linhas.map((l) => l.map(esc).join(';')).join('\r\n');
+  };
+  S.baixar = (nome, conteudo, tipo) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo || 'text/csv;charset=utf-8' }));
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
   S.copiar = async (texto, mensagem) => {
     try { await navigator.clipboard.writeText(texto); S.aviso(mensagem || 'Link copiado.'); }
     catch (e) { window.prompt('Copie o link:', texto); }

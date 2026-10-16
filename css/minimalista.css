@@ -74,12 +74,12 @@ b,strong{font-weight:600}
 /* ---------- botões ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--borda);border-radius:6px;background:var(--superficie);color:var(--texto);font-size:12.5px;font-weight:500;line-height:1;box-shadow:none;filter:none;white-space:nowrap}
 .btn:hover{background:var(--hover);filter:none}
-.btn-primary,.modal-import .btn-primary,#viewPlanejamento .btn-primary{background:var(--tinta);border-color:var(--tinta);color:#fff}
-.btn-primary:hover,.modal-import .btn-primary:hover,#viewPlanejamento .btn-primary:hover{background:#3f3f46;border-color:#3f3f46;color:#fff}
-.btn-ghost,.modal-import .btn-ghost,#viewPlanejamento .btn-ghost{background:transparent;border-color:var(--borda);color:var(--texto)}
-.btn-ghost:hover,.modal-import .btn-ghost:hover,#viewPlanejamento .btn-ghost:hover{background:var(--hover);color:var(--tinta)}
+.btn-primary{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.btn-primary:hover{background:#3f3f46;border-color:#3f3f46;color:#fff}
+.btn-ghost{background:transparent;border-color:var(--borda);color:var(--texto)}
+.btn-ghost:hover{background:var(--hover);color:var(--tinta)}
 .btn-danger{background:transparent;border-color:var(--borda);color:var(--vermelho)}
-.btn-sm,#viewPlanejamento .btn-sm{height:28px;padding:0 9px;font-size:12px}
+.btn-sm{height:28px;padding:0 9px;font-size:12px}
 .btn-xs{height:22px;padding:0 7px;gap:4px;border-radius:5px;font-size:11px}
 #viewOrcamento .orcamento-head-actions .btn{height:28px;padding:0 9px;font-size:12px}
 .btn-icon{display:inline-grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--fraco);font-size:0;cursor:pointer}
@@ -233,10 +233,9 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 .memo-botoes .btn:hover{background:var(--hover)}
 
 /* ---------- janelas ---------- */
-.modal,.modal-import{border:1px solid var(--borda);border-radius:10px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
-.modal::backdrop,.modal-import::backdrop{background:rgba(24,24,27,.28)}
+.modal{border:1px solid var(--borda);border-radius:10px;padding:20px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.modal::backdrop{background:rgba(24,24,27,.28)}
 .modal h3{font-size:15px;color:var(--tinta)}
-.modal-import h2{font-size:15px}
 .modal label{font-size:12px;font-weight:500;color:var(--suave)}
 .modal-actions{margin-top:16px}
 .dica{background:#fafafa;border-color:var(--borda);font-size:12px;color:var(--suave)}
@@ -383,35 +382,11 @@ button.tag-memo:hover,button.tag-memo[aria-expanded="true"]{border-color:#a1a1aa
 .componentes-tabela th,.componentes-tabela td,.unidades-tabela th,.unidades-tabela td{border-bottom-color:var(--linha)}
 .unidades-tabela td:first-child{font-weight:500}
 
-/* ---------- planejamento ---------- */
-#viewPlanejamento .sidebar{border-right-color:var(--borda)}
-#viewPlanejamento .sidebar-head{border-bottom-color:var(--linha)}
-#viewPlanejamento .sidebar-head h2{font-size:11px;font-weight:500;letter-spacing:.06em}
-#viewPlanejamento .empty-state{border-color:var(--borda);box-shadow:none}
-#viewPlanejamento .empty-state h2{font-size:15px}
-#viewPlanejamento .empty-state p{font-size:12.5px}
-#viewPlanejamento .empty-state .destaque{color:var(--fraco);font-size:0;opacity:1}
-#viewPlanejamento .planejamento-head{border-bottom-color:var(--borda)}
-#viewPlanejamento .planejamento-head h2{font-size:16px;font-weight:600}
-#viewPlanejamento .planejamento-resumo{background:var(--superficie);border-bottom-color:var(--borda)}
-#viewPlanejamento .resumo-card{background:var(--superficie);border-color:var(--borda)}
-#viewPlanejamento .resumo-card span{font-size:11px;font-weight:400;text-transform:none;letter-spacing:0}
-#viewPlanejamento .resumo-card strong{font-size:15px;font-weight:600}
-#viewPlanejamento .tabela thead th{background:var(--superficie);color:var(--suave);border-bottom:1px solid var(--borda);font-size:10.5px;font-weight:500}
-#viewPlanejamento .tabela tbody td{border-bottom-color:var(--linha);font-size:12.5px}
-#viewPlanejamento .tabela tbody tr:hover td{background:#fafafa}
-
 /* ---------- suprimentos e contas a pagar: ver css/suprimentos.css ---------- */
 
 /* ---------- usuários e liberação ---------- */
 /* permissões por módulo (js/permissoes-ui.js): o que a pessoa não pode ver some do menu */
 .app-sidebar-item.sem-permissao,.app-sidebar-group.sem-permissao{display:none!important}
-body.sem-editar-planejamento #btnNovoPlanejamento,body.sem-editar-planejamento #btnCriarCronogramaVazio,
-body.sem-editar-planejamento #btnDuplicarPlanejamento,body.sem-editar-planejamento #btnRenomearPlanejamento,
-body.sem-editar-planejamento #btnAddFase,body.sem-editar-planejamento #btnImportarDoOrcamento,
-body.sem-editar-planejamento #btnSalvarPlanejamento,body.sem-editar-planejamento #btnSalvarListaPlanejamento,
-body.sem-editar-planejamento #btnEntrarEdicaoPlanejamento,body.sem-editar-planejamento #viewPlanejamento [data-acao="editar"],
-body.sem-editar-planejamento #viewPlanejamento [data-acao="excluir"],body.sem-editar-planejamento #viewPlanejamento [data-acao="editar-duracao"],
 body.sem-editar-backup #viewBackup label:has(#inputImportar){display:none!important}
 .ua-permissoes{font-size:11.5px;color:var(--suave)}
 .modal-permissoes{width:min(620px,94vw)}
