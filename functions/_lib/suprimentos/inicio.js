@@ -7,6 +7,7 @@ import { estruturaEap } from './orcado.js';
 import { movimentosDaObra, movimentosPorObra, consolidar } from './saldos.js';
 import { pode } from '../permissoes.js';
 import { configDe, resumoDoCronograma, ultimosAvancos } from '../planejamento/cronogramas.js';
+import { calendariosPorId } from '../planejamento/calendarios.js';
 import { curvaS, indexarAvancos, previstoDaTarefa, realizadoDaTarefa } from '../../../js/cronograma-motor.js';
 
 const MODULOS_COMPRAS = ['solicitacoes', 'cotacoes', 'pedidos', 'notas', 'contratos', 'estoque', 'cadastros'];
@@ -77,12 +78,13 @@ function custosPorEtapa(nos, servicos) {
 async function avancoFisico(env, doFiltro, obra, dia) {
   const [cronogramas, ultimos, todos] = await Promise.all([
     env.DB.prepare(
-      `SELECT orcamentoId, dataInicio, calendario, feriados, duracaoPadrao, tarefas FROM plan_cronogramas WHERE (?1 = '' OR orcamentoId = ?1)`
+      `SELECT orcamentoId, dataInicio, calendario, calendarioId, feriados, duracaoPadrao, tarefas FROM plan_cronogramas WHERE (?1 = '' OR orcamentoId = ?1)`
     ).bind(obra).all(),
     ultimosAvancos(env, dia, obra),
     obra ? env.DB.prepare('SELECT servicoId, data, percentual FROM plan_avancos WHERE orcamentoId = ? ORDER BY data').bind(obra).all() : null
   ]);
   const configs = new Map(cronogramas.results.map((c) => [c.orcamentoId, configDe(c)]));
+  const calendarios = await calendariosPorId(env, cronogramas.results.map((c) => c.calendarioId));
   const linhas = [];
   const atrasados = [];
   let curva = null;
@@ -91,7 +93,7 @@ async function avancoFisico(env, doFiltro, obra, dia) {
     const config = configs.get(v.id);
     if (!config) { linhas.push({ ...base, temCronograma: false }); continue; }
     const apontados = ultimos.get(v.id) || [];
-    const r = resumoDoCronograma(v.nos, config, apontados, dia);
+    const r = resumoDoCronograma(v.nos, config, apontados, dia, calendarios.get(config.calendarioId));
     const servicos = v.nos.filter((n) => n.tipo === 'servico');
     linhas.push({ ...base, temCronograma: true, inicio: r.inicio, termino: r.termino, duracao: r.duracao,
       previsto: r.previsto, realizado: r.realizado, peso: servicos.reduce((s, n) => s + n.valor, 0) });

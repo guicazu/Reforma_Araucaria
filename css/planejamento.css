@@ -11,6 +11,7 @@
 .plan-check input{margin:0}
 .plan-sujo{font-size:12px;font-weight:500;color:var(--st-amarelo)}
 .plan-sujo[hidden]{display:none}
+.supr-dlg .campo[hidden],.plan [hidden]{display:none!important}
 .plan-dica-uso{margin:0 0 8px;font-size:11.5px;color:var(--suave)}
 .plan-data{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--suave);white-space:nowrap}
 .plan-data input{height:30px}

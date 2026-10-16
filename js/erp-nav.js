@@ -11,6 +11,7 @@
     dashboard: document.getElementById('viewDashboard'),
     orcamento: document.getElementById('viewOrcamento'),
     planejamento: document.getElementById('viewPlanejamento'),
+    calendarios: document.getElementById('viewCalendarios'),
     liberacao: document.getElementById('viewLiberacao'),
     usuarios: document.getElementById('viewUsuarios'),
     backup: document.getElementById('viewBackup'),

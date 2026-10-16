@@ -24,11 +24,16 @@ export const diaDaSemana = (data) => new Date(tempo(data)).getUTCDay();
 
 /* ---------- calendário ---------- */
 // Dias de trabalho numerados a partir do início da obra: 0 é o primeiro dia de trabalho na data de
-// início ou depois dela. tipo 'uteis' pula sábado e domingo; feriados valem nos dois tipos.
-export function criarCalendario(inicio, tipo, feriados) {
+// início ou depois dela. tipo 'uteis' pula sábado e domingo; feriados valem nos dois tipos. Com um
+// calendário da tela Calendários (js/feriados.js), opcoes traz os dias da semana trabalhados e os
+// dias trabalhados por exceção (ex.: sábado de compensação).
+export function criarCalendario(inicio, tipo, feriados, opcoes) {
   const folgas = new Set((feriados || []).filter(ehData));
   const corridos = tipo === 'corridos';
-  const trabalha = (d) => !folgas.has(d) && (corridos || (diaDaSemana(d) !== 0 && diaDaSemana(d) !== 6));
+  const semana = new Set(opcoes && Array.isArray(opcoes.diasSemana) && opcoes.diasSemana.length ? opcoes.diasSemana.map(Number)
+    : corridos ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5]);
+  const extras = new Set(((opcoes && opcoes.trabalhados) || []).filter(ehData));
+  const trabalha = (d) => extras.has(d) || (!folgas.has(d) && semana.has(diaDaSemana(d)));
   const datas = [];
   let cursor = ehData(inicio) ? inicio : iso(Date.now());
   let voltas = 0;
@@ -48,6 +53,7 @@ export function criarCalendario(inicio, tipo, feriados) {
   }
   return {
     tipo: corridos ? 'corridos' : 'uteis',
+    semana,
     trabalha,
     // data do i-ésimo dia de trabalho
     data(i) { const n = Math.max(0, Math.floor(i)); garantirIndice(n); return datas[n]; },
@@ -164,7 +170,7 @@ function emCiclo(ids, saidas) {
 // pesos (valor orçado; duração quando o orçamento não tem valores) e os erros (ciclos).
 export function calcular(nos, config) {
   const { porId, folhas } = estrutura(nos);
-  const cal = criarCalendario(config.dataInicio, config.calendario, config.feriados);
+  const cal = criarCalendario(config.dataInicio, config.calendario, config.feriados, { diasSemana: config.diasSemana, trabalhados: config.trabalhados });
   const servicos = nos.filter((n) => n.tipo === 'servico');
   const padrao = predecessorasPadrao(nos);
   const tarefas = new Map();

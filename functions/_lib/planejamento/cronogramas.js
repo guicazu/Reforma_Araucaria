@@ -4,21 +4,23 @@
 import { json, falha, agora, hoje, uuid, arred, lerJson, historico, lerHistorico } from '../suprimentos/base.js';
 import { estruturaEap } from '../suprimentos/orcado.js';
 import { calcular, avancoEm, indexarAvancos, ehData, CALENDARIOS, LIMITE_DURACAO, LIMITE_ESPERA } from '../../../js/cronograma-motor.js';
+import { aplicarCalendario } from '../../../js/feriados.js';
+import { calendariosPorId } from './calendarios.js';
 
-const COLUNAS = `orcamentoId, dataInicio, calendario, feriados, duracaoPadrao, tarefas, revisao, criadoEm, criadoPorNome,
+const COLUNAS = `orcamentoId, dataInicio, calendario, calendarioId, feriados, duracaoPadrao, tarefas, revisao, criadoEm, criadoPorNome,
   atualizadoEm, atualizadoPorEmail, atualizadoPorNome`;
 const dataBr = (iso) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '—');
 const dataHoraBr = (iso) => new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' });
 
 export function configDe(linha) {
   if (!linha) return null;
-  return { dataInicio: linha.dataInicio, calendario: linha.calendario, feriados: lerJson(linha.feriados, []),
+  return { dataInicio: linha.dataInicio, calendario: linha.calendario, calendarioId: linha.calendarioId || null, feriados: lerJson(linha.feriados, []),
     duracaoPadrao: linha.duracaoPadrao, tarefas: lerJson(linha.tarefas, {}) };
 }
 
-// Previsto e realizado de hoje, datas e avisos de um cronograma
-export function resumoDoCronograma(nos, config, avancos, dia) {
-  const res = calcular(nos, config);
+// Previsto e realizado de hoje, datas e avisos de um cronograma (com o calendário de trabalho dele)
+export function resumoDoCronograma(nos, config, avancos, dia, calendario) {
+  const res = calcular(nos, aplicarCalendario(config, calendario));
   const a = avancoEm(res, indexarAvancos(avancos), dia);
   return {
     res, inicio: res.inicio, termino: res.termino, duracao: res.duracao,
@@ -57,19 +59,20 @@ export async function listar({ env }) {
   const [obras, avancos] = await Promise.all([
     env.DB.prepare(
       `SELECT v.orcamentoId AS id, v.codigo, v.nome, v.versaoNumero, CASE WHEN c.orcamentoId IS NULL THEN NULL ELSE v.conteudo END AS conteudo,
-              c.dataInicio, c.calendario, c.feriados, c.duracaoPadrao, c.tarefas, c.atualizadoEm, c.atualizadoPorNome
+              c.dataInicio, c.calendario, c.calendarioId, c.feriados, c.duracaoPadrao, c.tarefas, c.atualizadoEm, c.atualizadoPorNome
          FROM orcamentos_versoes v LEFT JOIN plan_cronogramas c ON c.orcamentoId = v.orcamentoId
         WHERE v.versaoNumero = (SELECT MAX(x.versaoNumero) FROM orcamentos_versoes x WHERE x.orcamentoId = v.orcamentoId)
         ORDER BY v.codigo, v.nome`
     ).all(),
     ultimosAvancos(env, dia, '')
   ]);
+  const calendarios = await calendariosPorId(env, obras.results.map((o) => o.calendarioId));
   return json({
     hoje: dia,
     obras: obras.results.map((o) => {
       const base = { id: o.id, codigo: o.codigo || '', nome: o.nome || '', versao: o.versaoNumero, temCronograma: Boolean(o.dataInicio) };
       if (!o.dataInicio) return base;
-      const r = resumoDoCronograma(estruturaEap(lerJson(o.conteudo, [])), configDe(o), avancos.get(o.id) || [], dia);
+      const r = resumoDoCronograma(estruturaEap(lerJson(o.conteudo, [])), configDe(o), avancos.get(o.id) || [], dia, calendarios.get(o.calendarioId));
       return { ...base, inicio: r.inicio, termino: r.termino, duracao: r.duracao, previsto: r.previsto, realizado: r.realizado,
         novos: r.novos, erros: r.erros, atualizadoEm: o.atualizadoEm, atualizadoPorNome: o.atualizadoPorNome };
     })
@@ -84,6 +87,7 @@ export async function obter({ env, params }) {
     env.DB.prepare('SELECT servicoId, data, percentual, usuarioNome, criadoEm FROM plan_avancos WHERE orcamentoId = ? ORDER BY data, servicoId').bind(v.id)
   ]);
   const linha = c.results[0] || null;
+  const calendario = linha && linha.calendarioId ? (await calendariosPorId(env, [linha.calendarioId])).get(linha.calendarioId) || null : null;
   return json({
     hoje: hoje(),
     obra: { id: v.id, codigo: v.codigo || '', nome: v.nome || '', versao: v.versaoNumero },
@@ -91,6 +95,7 @@ export async function obter({ env, params }) {
       unidade: n.unidade || '', quantidade: n.quantidade || 0, valor: n.valor || 0 })),
     cronograma: linha ? { ...configDe(linha), revisao: linha.revisao, criadoEm: linha.criadoEm, criadoPorNome: linha.criadoPorNome,
       atualizadoEm: linha.atualizadoEm, atualizadoPorNome: linha.atualizadoPorNome } : null,
+    calendario,
     avancos: av.results
   });
 }
@@ -125,7 +130,8 @@ function validarConfig(corpo, nos) {
     if (t.inicioMinimo && !ehData(t.inicioMinimo)) falha(400, 'inicio_minimo', `Data inválida em "não iniciar antes de" no serviço ${s.eap}.`);
     tarefas[id] = { duracao, predecessoras, ...(t.inicioMinimo ? { inicioMinimo: t.inicioMinimo } : {}) };
   }
-  return { dataInicio: corpo.dataInicio, calendario: corpo.calendario, feriados: Array.from(new Set(feriados)).sort(), duracaoPadrao, tarefas };
+  const calendarioId = corpo.calendarioId ? String(corpo.calendarioId) : null;
+  return { dataInicio: corpo.dataInicio, calendario: corpo.calendario, calendarioId, feriados: Array.from(new Set(feriados)).sort(), duracaoPadrao, tarefas };
 }
 
 // Cria (revisao 0) ou grava o cronograma; quem salvou por último antes de mim faz a gravação voltar
@@ -133,21 +139,23 @@ export async function salvar({ env, ctx, params, corpo }) {
   const v = await versaoAtual(env, params.id);
   const nos = estruturaEap(lerJson(v.conteudo, []));
   const config = validarConfig(corpo, nos);
-  const res = calcular(nos, config);
+  const calendario = config.calendarioId ? (await calendariosPorId(env, [config.calendarioId])).get(config.calendarioId) : null;
+  if (config.calendarioId && !calendario) falha(400, 'calendario', 'O calendário escolhido não existe mais. Escolha outro em Configurar.');
+  const res = calcular(nos, aplicarCalendario(config, calendario));
   if (res.erros.length) falha(400, 'ciclo', res.erros[0].mensagem + ' Ajuste as predecessoras antes de salvar.');
   const revisao = Number(corpo.revisao) || 0;
   const ts = agora();
-  const valores = [config.dataInicio, config.calendario, JSON.stringify(config.feriados), config.duracaoPadrao, JSON.stringify(config.tarefas)];
+  const valores = [config.dataInicio, config.calendario, JSON.stringify(config.feriados), config.duracaoPadrao, JSON.stringify(config.tarefas), config.calendarioId];
   const r = revisao
     ? await env.DB.prepare(
-      `UPDATE plan_cronogramas SET dataInicio = ?2, calendario = ?3, feriados = ?4, duracaoPadrao = ?5, tarefas = ?6, revisao = revisao + 1,
-              atualizadoEm = ?7, atualizadoPorNome = ?8, atualizadoPorEmail = ?9
-        WHERE orcamentoId = ?1 AND revisao = ?10`
+      `UPDATE plan_cronogramas SET dataInicio = ?2, calendario = ?3, feriados = ?4, duracaoPadrao = ?5, tarefas = ?6, calendarioId = ?7,
+              revisao = revisao + 1, atualizadoEm = ?8, atualizadoPorNome = ?9, atualizadoPorEmail = ?10
+        WHERE orcamentoId = ?1 AND revisao = ?11`
     ).bind(v.id, ...valores, ts, ctx.nome, ctx.email, revisao).run()
     : await env.DB.prepare(
-      `INSERT INTO plan_cronogramas (orcamentoId, dataInicio, calendario, feriados, duracaoPadrao, tarefas, revisao,
+      `INSERT INTO plan_cronogramas (orcamentoId, dataInicio, calendario, feriados, duracaoPadrao, tarefas, calendarioId, revisao,
               criadoEm, criadoPorNome, atualizadoEm, atualizadoPorNome, atualizadoPorEmail)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7, ?8, ?7, ?8, ?9) ON CONFLICT(orcamentoId) DO NOTHING`
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 1, ?8, ?9, ?8, ?9, ?10) ON CONFLICT(orcamentoId) DO NOTHING`
     ).bind(v.id, ...valores, ts, ctx.nome, ctx.email).run();
   if (!r.meta.changes) {
     const atual = await env.DB.prepare('SELECT atualizadoEm, atualizadoPorNome FROM plan_cronogramas WHERE orcamentoId = ?').bind(v.id).first();

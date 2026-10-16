@@ -4,6 +4,7 @@
    js/cronograma-motor.js, as mesmas do servidor e do Início. Editar pede a permissão de editar
    Planejamento (Usuários › Editar permissões); o servidor confere de novo. */
 import * as M from './cronograma-motor.js';
+import * as F from './feriados.js';
 
 const S = window.Supr;
 const G = window.Graficos;
@@ -17,6 +18,7 @@ const estado = {
   tela: 'lista', lista: null, obraId: null,
   dados: null,                 // GET obras/:id (obra, eap, cronograma, avancos, hoje)
   config: null, sujo: false,   // cronograma em edição
+  calendario: null,            // calendário de trabalho escolhido (tela Calendários)
   res: null, indice: null,     // cálculo do motor e apontamentos indexados
   modo: 'cronograma', escala: 'auto', soCriticos: false, recolhidos: new Set(),
   dataApont: null, apont: new Map(), // avanço digitado e ainda não salvo (servicoId -> %)
@@ -27,7 +29,8 @@ const esc = S.esc;
 const podeEditar = () => (window.Permissoes ? window.Permissoes.pode('planejamento', 'editar') : false);
 const dataCurta = (iso) => (iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '—');
 const pct = (v) => S.pct(Math.round(v * 10) / 10);
-const dias = (n) => n + (estado.config && estado.config.calendario === 'corridos' ? (n === 1 ? ' dia' : ' dias') : (n === 1 ? ' dia útil' : ' dias úteis'));
+const dias = (n) => n + (estado.calendario ? (n === 1 ? ' dia de trabalho' : ' dias de trabalho')
+  : estado.config && estado.config.calendario === 'corridos' ? (n === 1 ? ' dia' : ' dias') : (n === 1 ? ' dia útil' : ' dias úteis'));
 
 function titulo(t, sub) {
   document.getElementById('planTitulo').textContent = t;
@@ -72,8 +75,9 @@ async function abrirLista() {
 /* ---------- uma obra ---------- */
 function reiniciarCronograma() {
   const c = estado.dados.cronograma;
-  estado.config = c ? JSON.parse(JSON.stringify({ dataInicio: c.dataInicio, calendario: c.calendario, feriados: c.feriados,
-    duracaoPadrao: c.duracaoPadrao, tarefas: c.tarefas })) : null;
+  estado.config = c ? JSON.parse(JSON.stringify({ dataInicio: c.dataInicio, calendario: c.calendario, calendarioId: c.calendarioId || null,
+    feriados: c.feriados, duracaoPadrao: c.duracaoPadrao, tarefas: c.tarefas })) : null;
+  estado.calendario = estado.dados.calendario || null;
   estado.sujo = false;
   recalcular();
 }
@@ -83,7 +87,7 @@ function reiniciarAvanco() {
   estado.indice = M.indexarAvancos(estado.dados.avancos);
 }
 function recalcular() {
-  estado.res = estado.config ? M.calcular(estado.dados.eap, estado.config) : null;
+  estado.res = estado.config ? M.calcular(estado.dados.eap, F.aplicarCalendario(estado.config, estado.calendario)) : null;
   estado.indice = M.indexarAvancos(estado.dados.avancos);
 }
 
@@ -131,8 +135,9 @@ function renderObra() {
   const a = M.avancoEm(r, estado.indice, d.hoje);
   const desvio = (a.realizado - a.previsto) * 100;
   const c = d.cronograma;
-  h += '<div class="supr-cab"><div><h3>Cronograma</h3><p>' + esc(M.CALENDARIOS[estado.config.calendario]) +
-    (estado.config.feriados.length ? ' · ' + estado.config.feriados.length + ' feriado(s)' : '') +
+  h += '<div class="supr-cab"><div><h3>Cronograma</h3><p>' + (estado.calendario ? 'Calendário ' + esc(estado.calendario.nome)
+      : esc(M.CALENDARIOS[estado.config.calendario])) +
+    (estado.config.feriados.length ? ' · ' + estado.config.feriados.length + (estado.calendario ? ' dia(s) parado(s) desta obra' : ' feriado(s)') : '') +
     (c ? ' · atualizado por ' + esc(c.atualizadoPorNome || '—') + ' em ' + esc(S.dataHora(c.atualizadoEm)) : '') + '</p></div>' +
     '<div class="supr-acoes">' + S.botao('historico', 'Histórico', { icone: 'relogio' }) + S.botao('csv', 'Exportar CSV', { icone: 'planilha' }) +
     (podeEditar() ? S.botao('configurar', 'Configurar', { icone: 'opcoes' }) + S.botao('excluir', 'Excluir', { icone: 'excluir', perigo: true }) : '') + '</div></div>';
@@ -259,7 +264,7 @@ function barraHtml(n, lt) {
 }
 function folgaHtml(t) {
   if (t.critico) return '<span class="st st-vermelho" title="Folga zero: atrasar este serviço atrasa a obra">Crítico</span>';
-  return esc(dias(t.folga).replace(' úteis', '').replace(' útil', ''));
+  return t.folga + (t.folga === 1 ? ' dia' : ' dias');
 }
 function htmlCronograma() {
   const r = estado.res;
@@ -388,18 +393,26 @@ function lerPredecessorasDe(texto, id) {
   return lido;
 }
 
-function configurar(criar) {
+async function configurar(criar) {
   const d = estado.dados;
-  const c = estado.config || { dataInicio: d.hoje, calendario: 'uteis', feriados: [], duracaoPadrao: M.DURACAO_PADRAO };
+  let calendarios = [];
+  try { calendarios = (await api('GET', 'calendarios')).calendarios; } catch (e) { S.falhou(e); return; }
+  const padraoCal = calendarios.find((x) => x.padrao);
+  const c = estado.config || { dataInicio: d.hoje, calendario: 'uteis', calendarioId: padraoCal ? padraoCal.id : null, feriados: [], duracaoPadrao: M.DURACAO_PADRAO };
   const antigas = criar ? duracoesAntigas() : new Map();
+  const comCalendario = (id) => Boolean(id);
   S.dialogo({
     titulo: criar ? 'Criar cronograma' : 'Configurar cronograma', tamanho: 'md', botao: criar ? 'Criar cronograma' : 'Aplicar',
     corpo: '<div class="supr-form">' +
       '<label class="campo">Início da obra<input type="date" data-f="inicio" value="' + esc(c.dataInicio) + '" required></label>' +
-      '<label class="campo">Calendário<select data-f="calendario">' + Object.entries(M.CALENDARIOS).map(([k, v]) =>
+      '<label class="campo">Calendário de trabalho<select data-f="calendarioId"><option value="">Sem calendário: definir aqui</option>' +
+        calendarios.map((x) => '<option value="' + esc(x.id) + '"' + (x.id === c.calendarioId ? ' selected' : '') + '>' + esc(x.nome) + (x.padrao ? ' (padrão)' : '') + '</option>').join('') +
+        '</select><span class="supr-dica">Feriados nacionais, estaduais e municipais e pontes: <a href="#" data-gerenciar-calendarios>tela Calendários</a></span></label>' +
+      '<label class="campo" data-so-proprio' + (comCalendario(c.calendarioId) ? ' hidden' : '') + '>Dias de trabalho<select data-f="calendario">' + Object.entries(M.CALENDARIOS).map(([k, v]) =>
         '<option value="' + k + '"' + (k === c.calendario ? ' selected' : '') + '>' + esc(v) + '</option>').join('') + '</select></label>' +
       '<label class="campo">Duração de serviço novo (dias)<input type="number" min="1" max="' + M.LIMITE_DURACAO + '" data-f="padrao" value="' + c.duracaoPadrao + '"></label>' +
-      '<label class="campo largo">Feriados e dias parados <span class="supr-dica">(uma data por linha, dd/mm/aaaa)</span>' +
+      '<label class="campo largo"><span data-rotulo-feriados>' + (comCalendario(c.calendarioId) ? 'Dias parados só desta obra' : 'Feriados e dias parados') + '</span>' +
+      ' <span class="supr-dica">(uma data por linha, dd/mm/aaaa)</span>' +
       '<textarea rows="4" data-f="feriados" placeholder="25/12/2026">' + esc(c.feriados.map((f) => S.data(f)).join('\n')) + '</textarea></label>' +
       (criar ? '<p class="campo largo supr-dica">O cronograma começa com as etapas de cada unidade uma depois da outra e os serviços da mesma etapa em paralelo. ' +
         'Depois, ajuste a duração e as predecessoras de cada serviço.</p>' : '') +
@@ -418,7 +431,8 @@ function configurar(criar) {
         if (iso) feriados.push(iso); else ruins.push(parte);
       }
       if (ruins.length) { f('feriados').classList.add('invalido'); S.aviso('Datas que não entendi: ' + ruins.join(', '), 'erro'); return false; }
-      const base = { dataInicio: inicio, calendario: f('calendario').value, feriados: Array.from(new Set(feriados)).sort(), duracaoPadrao: padrao };
+      const calendarioId = f('calendarioId').value || null;
+      const base = { dataInicio: inicio, calendario: f('calendario').value, calendarioId, feriados: Array.from(new Set(feriados)).sort(), duracaoPadrao: padrao };
       if (criar) {
         const usar = f('antigas') && f('antigas').checked;
         const pad = M.predecessorasPadrao(d.eap);
@@ -431,10 +445,23 @@ function configurar(criar) {
         S.aviso('Cronograma criado. Ajuste as durações e as predecessoras de cada serviço e salve.');
       } else {
         Object.assign(estado.config, base);
+        estado.calendario = calendarios.find((x) => x.id === calendarioId) || null;
         marcarSujo();
         renderObra();
       }
       return true;
+    },
+    aoAbrir: (corpo, dlg, fechar) => {
+      const sel = corpo.querySelector('[data-f="calendarioId"]');
+      sel.addEventListener('change', () => {
+        corpo.querySelector('[data-so-proprio]').hidden = Boolean(sel.value);
+        corpo.querySelector('[data-rotulo-feriados]').textContent = sel.value ? 'Dias parados só desta obra' : 'Feriados e dias parados';
+      });
+      corpo.querySelector('[data-gerenciar-calendarios]').addEventListener('click', (ev) => {
+        ev.preventDefault();
+        fechar(null);
+        if (window.ErpNav) window.ErpNav.abrir('calendarios');
+      });
     }
   });
 }

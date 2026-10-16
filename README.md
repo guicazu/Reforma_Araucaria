@@ -61,7 +61,17 @@ etapa anterior) e fica marcado como “novo” até alguém revisar e salvar.
   somam pelo valor orçado. Cada apontamento fica no histórico e pode ser excluído.
 - **Curva S**: previsto pelo cronograma × realizado pelos apontamentos, com tabela.
 
-As contas ficam em `js/cronograma-motor.js`, o mesmo arquivo na tela, no servidor e no Início.
+- **Calendários** (menu Engenharia): dias da semana de trabalho, feriados nacionais (calculados,
+  com Sexta-feira Santa pela Páscoa), estaduais e municipais (escolhendo o município), pontos
+  facultativos (Carnaval, Cinzas, Corpus Christi, vésperas de Natal e Ano Novo), dias específicos
+  parados (ex.: recesso) ou trabalhados (ex.: sábado de compensação) e **pontes sugeridas**: o dia
+  de trabalho entre um feriado e o fim de semana ou entre dois feriados (feriado na terça sugere a
+  segunda). Cada cronograma escolhe o seu calendário em Configurar; um deles é o padrão.
+
+As contas ficam em `js/cronograma-motor.js` e `js/feriados.js`, os mesmos arquivos na tela, no
+servidor e no Início. Os feriados estaduais e municipais vêm da base aberta
+[feriados-brasil](https://github.com/joaopbini/feriados-brasil) (MIT, 3.838 dos 5.570 municípios com
+feriados cadastrados), gerada por `dados/feriados/gerar.py`; a tela permite corrigir e completar.
 
 ### Suprimentos (no padrão do SIENGE)
 
@@ -106,6 +116,9 @@ js/planejamento.js        Planejamento: cronograma com Gantt, avanço físico e 
 js/cronograma-motor.js    contas do cronograma (calendário, caminho crítico, avanço, curva S), também
                           usado pelo servidor
 js/graficos.js            curva S e dica flutuante usadas pelo Início e pelo Planejamento
+js/calendarios.js         Calendários de trabalho (módulo ES)
+js/feriados.js            feriados nacionais, estaduais, facultativos, Páscoa e pontes (também no servidor)
+dados/feriados/           municipais/<UF>.json (municípios e feriados municipais) e o gerador
 js/suprimentos/           telas de Suprimentos (nucleo.js: API, janelas, navegação, escolha de insumo)
 js/financeiro.js          Contas a pagar
 portal-fornecedor.html    página pública do fornecedor (responder cotação, confirmar pedido)
@@ -204,6 +217,7 @@ navegador; ao criar o cronograma de uma obra, a tela oferece trazer as duraçõe
 
 ```sh
 wrangler d1 execute ibuild-orcamentos --remote --file=db/migrations/20261019_planejamento.sql
+wrangler d1 execute ibuild-orcamentos --remote --file=db/migrations/20261020_calendarios.sql
 ```
 
 As tabelas antigas do módulo de compras (`requisicoes`, `itens_requisicao`, `cotacoes`,

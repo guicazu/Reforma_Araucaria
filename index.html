@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/inicio.css" />
 <link rel="stylesheet" href="css/graficos.css" />
 <link rel="stylesheet" href="css/planejamento.css" />
+<link rel="stylesheet" href="css/calendarios.css" />
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
@@ -21,6 +22,7 @@
   <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6.5 10v9.5h11V10"/></symbol>
   <symbol id="i-orcamento" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4"/><path d="M10 12h5M10 15.5h5"/></symbol>
   <symbol id="i-planejamento" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><path d="M8 13.5h.01M12 13.5h.01M16 13.5h.01M8 16.5h.01M12 16.5h.01"/></symbol>
   <symbol id="i-composicoes" viewBox="0 0 24 24"><path d="M12 4.5 20 8.5l-8 4-8-4z"/><path d="M4 12.5l8 4 8-4"/><path d="M4 16.5l8 4 8-4"/></symbol>
   <symbol id="i-insumos" viewBox="0 0 24 24"><path d="M12 3.5 19.5 7.75v8.5L12 20.5l-7.5-4.25v-8.5z"/><path d="M4.5 7.75 12 12l7.5-4.25M12 12v8.5"/></symbol>
   <symbol id="i-unidades" viewBox="0 0 24 24"><rect x="3.5" y="8" width="17" height="8" rx="1.5"/><path d="M7.5 8v3M11 8v2M14.5 8v3M18 8v2"/></symbol>
@@ -87,6 +89,9 @@
       </button>
       <button class="app-sidebar-item" data-view="planejamento" data-modulo="planejamento" title="Planejamento">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-planejamento"/></svg></span><span class="rotulo">Planejamento</span>
+      </button>
+      <button class="app-sidebar-item" data-view="calendarios" data-modulo="planejamento" title="Calendários">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-calendario"/></svg></span><span class="rotulo">Calendários</span>
       </button>
       <button class="app-sidebar-item" data-view="composicoes" data-modulo="composicoes" title="Composições">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-composicoes"/></svg></span><span class="rotulo">Composições</span>
@@ -361,6 +366,18 @@
       <tbody id="sinapiReferencias"></tbody>
     </table>
   </div>
+</section>
+
+<section class="content hidden supr plan cal" id="viewCalendarios">
+  <div class="supr-topo">
+    <div class="supr-titulo">
+      <h2 id="calTitulo">Calendários</h2>
+      <p id="calSubtitulo">Dias de trabalho e feriados das obras</p>
+    </div>
+  </div>
+  <div class="supr-aviso-leitura hidden" id="calAvisoLeitura"><svg class="ic" aria-hidden="true"><use href="#i-cadeado"/></svg>Acesso somente para consulta. Para alterar calendários, peça permissão de edição do Planejamento ao administrador.</div>
+  <!-- semana, feriados nacionais, estaduais e municipais, pontes e dias específicos (js/calendarios.js) -->
+  <div id="calConteudo" class="supr-conteudo"></div>
 </section>
 
 <section class="content hidden supr plan" id="viewPlanejamento">
@@ -672,6 +689,7 @@
 <script src="/js/graficos.js"></script>
 <script src="/js/inicio.js"></script>
 <script type="module" src="/js/planejamento.js"></script>
+<script type="module" src="/js/calendarios.js"></script>
 
 
 </body>
