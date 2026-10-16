@@ -3,7 +3,7 @@
    texto pequeno, cinzas neutros, bordas finas; cores só nas
    situações dos documentos. Tudo escopado em .supr e .supr-dlg.
    ============================================================ */
-.supr{--st-amarelo:#a16207;--st-amarelo-bg:#fefce8;--st-azul:#1d4ed8;--st-azul-bg:#eff6ff;--st-verde:#15803d;--st-verde-bg:#f0fdf4;
+.supr,.supr-dlg{--st-amarelo:#a16207;--st-amarelo-bg:#fefce8;--st-azul:#1d4ed8;--st-azul-bg:#eff6ff;--st-verde:#15803d;--st-verde-bg:#f0fdf4;
   --st-vermelho:#b91c1c;--st-vermelho-bg:#fef2f2;--st-cinza:#52525b;--st-cinza-bg:#f4f4f5;--st-roxo:#6d28d9;--st-roxo-bg:#f5f3ff}
 
 /* ---------- topo ---------- */
@@ -225,3 +225,14 @@ dialog.supr-dlg::backdrop{background:rgba(24,24,27,.32)}
   .supr-tabela,.supr-mapa{font-size:10.5px}
   .supr-mapa input,.supr-mapa select{border:0;background:transparent;padding:0}
 }
+
+/* cadastro de fornecedor: retorno da consulta de CNPJ e CEP */
+.supr-dlg .forn-status{margin:-4px 0 2px;font-size:11.5px;line-height:1.5;color:var(--suave)}
+.supr-dlg .forn-status[hidden]{display:none}
+.supr-dlg .forn-status .ic{margin-right:4px;vertical-align:-2px}
+.supr-dlg .forn-status.ok{color:var(--suave)}
+.supr-dlg .forn-status.ok .ic{color:var(--st-verde)}
+.supr-dlg .forn-status.alerta{color:var(--st-amarelo)}
+.supr-dlg .forn-status.erro{color:var(--st-vermelho)}
+.supr-dlg .forn-status a{color:var(--tinta);font-weight:500}
+.supr-dlg .forn-preenchido{background:#f0fdf4}

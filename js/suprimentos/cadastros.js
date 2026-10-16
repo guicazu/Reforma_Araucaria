@@ -8,27 +8,133 @@
   const UFS = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
 
   /* ---------- fornecedor ---------- */
+  // CNPJ: ao digitar ou colar os 14 dígitos, busca os dados públicos da Receita (razão social,
+  // fantasia, inscrição estadual, endereço, telefone, e-mail) e preenche o que estiver vazio; o que já
+  // estava preenchido e for diferente pode ser trocado com "Usar os dados da Receita". CEP: preenche
+  // rua, bairro, cidade e UF e deixa o cursor no número.
+  const so = (v) => String(v || '').replace(/\D/g, '');
+  function ligarConsultas(corpo, f) {
+    const campo = (k) => corpo.querySelector('[data-c="' + k + '"]');
+    const status = (el, html, tipo) => { el.innerHTML = html; el.className = 'forn-status largo' + (tipo ? ' ' + tipo : ''); el.hidden = !html; };
+    const stCnpj = corpo.querySelector('[data-st="cnpj"]');
+    const stCep = corpo.querySelector('[data-st="cep"]');
+    let ultimoCnpj = '', ultimoCep = '';
+    const preencher = (dados, forcar) => {
+      const diferentes = [];
+      for (const k of ['nome', 'nomeFantasia', 'inscricaoEstadual', 'email', 'telefone', 'endereco', 'cidade', 'uf', 'cep']) {
+        const el = campo(k);
+        const novo = dados[k];
+        if (!el || !novo) continue;
+        if (!el.value.trim() || forcar) { el.value = novo; el.classList.add('forn-preenchido'); }
+        else if (el.value.trim() !== novo) diferentes.push(k);
+      }
+      return diferentes;
+    };
+    async function consultarCnpj() {
+      const n = so(campo('documento').value);
+      if (n.length !== 14 || n === ultimoCnpj) return;
+      ultimoCnpj = n;
+      status(stCnpj, S.ic('buscar', 'ic-sm') + 'Buscando os dados do CNPJ na Receita…');
+      try {
+        const d = await S.get('consultas/cnpj/' + n);
+        if (so(campo('documento').value) !== n) return;
+        campo('documento').value = S.documento(n);
+        const diferentes = preencher(d, false);
+        const situacao = d.situacao || '—';
+        const ok = situacao === 'ATIVA';
+        let html = (ok ? S.ic('check', 'ic-sm') : S.ic('alerta', 'ic-sm')) + '<b>' + S.esc(situacao) + '</b> na Receita' +
+          (d.abertura ? ' · aberta em ' + S.esc(S.data(d.abertura)) : '') + (d.atividade ? ' · ' + S.esc(d.atividade) : '');
+        if (d.jaCadastrado && (!f || d.jaCadastrado.id !== f.id)) html += '<br>' + S.ic('alerta', 'ic-sm') + 'Já cadastrado como <b>' + S.esc(d.jaCadastrado.nome.replace(/\.$/, '')) + '</b>.';
+        if (diferentes.length) html += '<br>Campos já preenchidos foram mantidos. <a href="#" data-usar-receita>Usar os dados da Receita</a>';
+        status(stCnpj, html, ok && !(d.jaCadastrado && (!f || d.jaCadastrado.id !== f.id)) ? 'ok' : 'alerta');
+        stCnpj.__dados = d;
+        if (!campo('categorias').value && d.atividade) campo('categorias').placeholder = 'Ex.: ' + d.atividade;
+      } catch (e) {
+        ultimoCnpj = '';
+        status(stCnpj, S.ic('alerta', 'ic-sm') + S.esc(e.message), 'erro');
+      }
+    }
+    async function consultarCep() {
+      const n = so(campo('cep').value);
+      if (n.length !== 8 || n === ultimoCep) return;
+      ultimoCep = n;
+      status(stCep, S.ic('buscar', 'ic-sm') + 'Buscando o CEP…');
+      try {
+        const d = await S.get('consultas/cep/' + n);
+        if (so(campo('cep').value) !== n) return;
+        campo('cep').value = d.cep;
+        if (!campo('cidade').value.trim() || campo('cidade').classList.contains('forn-preenchido')) campo('cidade').value = d.cidade;
+        if (!campo('uf').value || campo('uf').classList.contains('forn-preenchido')) campo('uf').value = d.uf;
+        const end = campo('endereco');
+        const rua = d.logradouro || '';
+        if (rua && (!end.value.trim() || end.classList.contains('forn-preenchido'))) {
+          // cursor depois de "Rua X, " para digitar o número
+          const antes = rua + ', ';
+          end.value = antes + (d.bairro ? ' – ' + d.bairro : '');
+          end.classList.remove('forn-preenchido');
+          end.focus();
+          end.setSelectionRange(antes.length, antes.length);
+          status(stCep, S.ic('check', 'ic-sm') + 'Endereço do CEP preenchido: digite o número e o complemento.', 'ok');
+        } else {
+          status(stCep, S.ic('check', 'ic-sm') + S.esc([rua, d.bairro, d.cidade + '/' + d.uf].filter(Boolean).join(' – ')) +
+            (rua && end.value.trim() ? ' · <a href="#" data-usar-cep>usar no endereço</a>' : ''), 'ok');
+          stCep.__dados = d;
+        }
+      } catch (e) {
+        ultimoCep = '';
+        status(stCep, S.ic('alerta', 'ic-sm') + S.esc(e.message), 'erro');
+      }
+    }
+    campo('documento').addEventListener('input', () => { if (so(campo('documento').value).length === 14) consultarCnpj(); });
+    campo('documento').addEventListener('change', consultarCnpj);
+    campo('cep').addEventListener('input', () => { if (so(campo('cep').value).length === 8) consultarCep(); });
+    campo('cep').addEventListener('change', consultarCep);
+    corpo.addEventListener('input', (ev) => { if (ev.target.classList) ev.target.classList.remove('forn-preenchido'); });
+    corpo.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-usar-receita]')) {
+        ev.preventDefault();
+        preencher(stCnpj.__dados, true);
+        ev.target.closest('[data-usar-receita]').remove();
+      }
+      if (ev.target.closest('[data-usar-cep]')) {
+        ev.preventDefault();
+        const d = stCep.__dados;
+        const antes = d.logradouro + ', ';
+        campo('endereco').value = antes + (d.bairro ? ' – ' + d.bairro : '');
+        campo('cidade').value = d.cidade;
+        campo('uf').value = d.uf;
+        campo('endereco').focus();
+        campo('endereco').setSelectionRange(antes.length, antes.length);
+      }
+    });
+  }
+
   S.formFornecedor = (f) => {
     const v = (k) => S.esc(f && f[k] != null ? f[k] : '');
     return S.dialogo({
       titulo: f ? 'Fornecedor' : 'Novo fornecedor', tamanho: 'md', botao: 'Salvar',
       corpo: '<div class="grade">' +
+        '<label class="campo">CNPJ ou CPF<input data-c="documento" inputmode="numeric" autocomplete="off" placeholder="Digite o CNPJ: os dados vêm da Receita" value="' + S.esc(f ? S.documento(f.documento) : '') + '"></label>' +
+        '<label class="campo">Inscrição estadual<input data-c="inscricaoEstadual" maxlength="30" value="' + v('inscricaoEstadual') + '"></label>' +
+        '<p class="forn-status largo" data-st="cnpj" hidden></p>' +
         '<label class="campo largo">Razão social / nome<input data-c="nome" maxlength="200" value="' + v('nome') + '"></label>' +
         '<label class="campo">Nome fantasia<input data-c="nomeFantasia" maxlength="200" value="' + v('nomeFantasia') + '"></label>' +
-        '<label class="campo">CNPJ ou CPF<input data-c="documento" inputmode="numeric" value="' + S.esc(f ? S.documento(f.documento) : '') + '"></label>' +
-        '<label class="campo">Inscrição estadual<input data-c="inscricaoEstadual" maxlength="30" value="' + v('inscricaoEstadual') + '"></label>' +
+        '<label class="campo">Contato<input data-c="contato" maxlength="120" value="' + v('contato') + '"></label>' +
         '<label class="campo">E-mail (pedidos e cotações)<input type="email" data-c="email" maxlength="200" value="' + v('email') + '"></label>' +
         '<label class="campo">Telefone / WhatsApp<input data-c="telefone" maxlength="40" value="' + v('telefone') + '"></label>' +
-        '<label class="campo">Contato<input data-c="contato" maxlength="120" value="' + v('contato') + '"></label>' +
-        '<label class="campo largo">Endereço<input data-c="endereco" maxlength="300" value="' + v('endereco') + '"></label>' +
+        '<label class="campo">CEP<input data-c="cep" inputmode="numeric" maxlength="10" autocomplete="off" value="' + S.esc(f && f.cep ? String(f.cep).replace(/^(\d{5})(\d{3})$/, '$1-$2') : '') + '"></label>' +
+        '<p class="forn-status largo" data-st="cep" hidden></p>' +
+        '<label class="campo largo">Endereço<input data-c="endereco" maxlength="300" value="' + v('endereco') + '" placeholder="Rua, número, complemento – bairro"></label>' +
         '<label class="campo">Cidade<input data-c="cidade" maxlength="120" value="' + v('cidade') + '"></label>' +
         '<label class="campo">UF<select data-c="uf"><option value=""></option>' + UFS.map((u) => '<option' + (f && f.uf === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></label>' +
-        '<label class="campo">CEP<input data-c="cep" inputmode="numeric" maxlength="10" value="' + v('cep') + '"></label>' +
         '<label class="campo largo">O que fornece<input data-c="categorias" maxlength="300" value="' + v('categorias') + '" placeholder="Ex.: concreto usinado, aço, agregados"></label>' +
         '<label class="campo largo">Dados bancários / PIX<input data-c="dadosBancarios" maxlength="500" value="' + v('dadosBancarios') + '"></label>' +
         '<label class="campo largo">Observações<textarea rows="2" data-c="observacoes" maxlength="1000">' + v('observacoes') + '</textarea></label>' +
         (f ? '<label class="check largo"><input type="checkbox" data-c="ativo"' + (f.ativo ? ' checked' : '') + '>Ativo (aparece nas cotações e pedidos)</label>' : '') + '</div>',
-      aoAbrir: (corpo) => setTimeout(() => corpo.querySelector('[data-c="nome"]').focus(), 30),
+      aoAbrir: (corpo) => {
+        ligarConsultas(corpo, f);
+        setTimeout(() => corpo.querySelector(f ? '[data-c="nome"]' : '[data-c="documento"]').focus(), 30);
+      },
       aoConfirmar: async (corpo) => {
         const d = {};
         corpo.querySelectorAll('[data-c]').forEach((x) => { d[x.dataset.c] = x.type === 'checkbox' ? x.checked : x.value; });

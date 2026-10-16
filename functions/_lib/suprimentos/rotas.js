@@ -12,6 +12,7 @@ import * as est from './estoque.js';
 import * as fin from './financeiro.js';
 import * as ges from './gestao.js';
 import * as ini from './inicio.js';
+import * as con from './consultas.js';
 
 // Permissão de cada rota: 'livre' (qualquer usuário aprovado), 'admin', '*' (vê algum módulo de
 // Suprimentos/Financeiro) ou 'modulo:ver' / 'modulo:editar' (Usuários › Editar permissões).
@@ -27,6 +28,9 @@ const ROTAS = [
   ['GET', 'fornecedores/:id', cad.obterFornecedor, '*'],
   ['PUT', 'fornecedores/:id', cad.atualizarFornecedor, 'cadastros:editar'],
   ['DELETE', 'fornecedores/:id', cad.excluirFornecedor, 'cadastros:editar'],
+  // CNPJ (Receita) e CEP para preencher o cadastro de fornecedor
+  ['GET', 'consultas/cnpj/:numero', con.cnpj, '*'],
+  ['GET', 'consultas/cep/:numero', con.cep, '*'],
   ['GET', 'condicoes', cad.listarCondicoes, '*'],
   ['POST', 'condicoes', cad.criarCondicao, 'cadastros:editar'],
   ['PUT', 'condicoes/:id', cad.atualizarCondicao, 'cadastros:editar'],

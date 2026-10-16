@@ -109,6 +109,10 @@ Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da vers
 - **Autorizações**, **Painel** (pendências, atrasos, entregas e pagamentos) e **Acompanhamento**
   (orçado × comprometido × realizado por serviço e por insumo, com CSV).
 - **Financeiro › Contas a pagar**: baixa, estorno e alteração de vencimento dos títulos.
+- **Cadastro de fornecedor**: digitar o CNPJ traz os dados públicos da Receita (razão social, nome
+  fantasia, inscrição estadual, endereço, telefone, e-mail, situação cadastral) e avisa se o
+  fornecedor já existe; digitar o CEP preenche rua, bairro, cidade e UF. Fontes gratuitas, com
+  reserva: BrasilAPI e CNPJ.ws (CNPJ), BrasilAPI e ViaCEP (CEP), em cache por alguns dias.
 
 ## Stack
 
