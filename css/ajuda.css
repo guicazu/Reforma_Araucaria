@@ -1,0 +1,131 @@
+/* ============================================================
+   Ajuda (js/ajuda.js): índice com busca à esquerda e um artigo por
+   vez à direita (passo a passo, fotos ampliáveis e vídeos), mais o
+   botão Ajuda do topo, que abre o artigo da tela atual.
+   ============================================================ */
+.topbar-ajuda{display:inline-flex;align-items:center;gap:6px;height:32px;margin-left:auto;padding:0 11px 0 9px;border:1px solid var(--borda);border-radius:999px;background:var(--superficie);color:var(--texto);font:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.topbar-ajuda:hover,.topbar-ajuda[aria-pressed="true"]{background:var(--hover);color:var(--tinta)}
+.topbar-ajuda:focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.topbar-ajuda + .topbar-user{margin-left:0}
+
+.ajuda-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;align-items:start;max-width:1200px}
+.ajuda-lateral{position:sticky;top:68px;max-height:calc(100vh - 88px);overflow:auto;padding:0 4px 16px 0}
+.ajuda-busca{display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid var(--borda);border-radius:8px;background:var(--superficie);color:var(--suave)}
+.ajuda-busca:focus-within{border-color:var(--tinta)}
+.ajuda-busca input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;font:inherit;font-size:12.5px;color:var(--texto)}
+.ajuda-topicos{display:none}
+.ajuda-grupo{margin-top:18px}
+.ajuda-grupo-nome{margin:0 0 4px;padding:0 10px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fraco)}
+.ajuda-grupo ul{margin:0;padding:0;list-style:none}
+.ajuda-grupo a{display:block;padding:5px 10px;border-radius:6px;color:var(--texto);font-size:12.5px;text-decoration:none}
+.ajuda-grupo a:hover{background:var(--hover);color:var(--tinta)}
+.ajuda-grupo a[aria-current]{background:var(--hover);color:var(--tinta);font-weight:600}
+.ajuda-sem-resultado{margin:14px 10px;color:var(--suave);font-size:12.5px}
+.ajuda-carregando{color:var(--suave)}
+
+/* ---------- artigo ---------- */
+.ajuda-artigo{min-width:0;max-width:840px;padding-bottom:40px}
+.ajuda-cab{margin-bottom:16px}
+.ajuda-eyebrow{margin:0 0 2px;font-size:11.5px;font-weight:500;color:var(--suave)}
+.ajuda-cab-linha{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ajuda-cab h2{margin:0;font-size:21px;line-height:1.3}
+.ajuda-cab .btn .ic{margin:0 0 0 4px}
+.ajuda-corpo{font-size:13.5px;line-height:1.65;color:var(--texto)}
+.ajuda-corpo h3{margin:28px 0 8px;font-size:15px}
+.ajuda-corpo p{margin:0 0 10px}
+.ajuda-corpo ul{margin:0 0 12px;padding-left:20px}
+.ajuda-corpo li{margin:4px 0}
+.ajuda-corpo a{color:var(--tinta);text-decoration:underline;text-decoration-color:var(--fraco);text-underline-offset:2px}
+.ajuda-corpo a:hover{text-decoration-color:var(--tinta)}
+.ajuda-corpo code{padding:1px 5px;border-radius:4px;background:var(--hover);font-size:12px;color:var(--tinta)}
+.ajuda-corpo .ajuda-lead{font-size:15px;line-height:1.6;color:var(--tinta)}
+.ajuda-corpo .ui{display:inline-block;padding:0 6px;border:1px solid var(--borda);border-radius:5px;background:var(--superficie);font-size:12px;font-weight:500;line-height:1.55;color:var(--tinta);white-space:nowrap}
+
+/* passo a passo numerado */
+.ajuda-passos{margin:0 0 14px;padding:0;list-style:none;counter-reset:passo}
+.ajuda-corpo .ajuda-passos li{position:relative;margin:0;padding:6px 0 6px 36px;counter-increment:passo}
+.ajuda-passos li::before{content:counter(passo);position:absolute;left:0;top:6px;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:#fff;font-size:12px;font-weight:600;line-height:24px;text-align:center}
+
+/* fluxo em etapas */
+.ajuda-fluxo{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0 20px;padding:0;list-style:none;counter-reset:fluxo}
+.ajuda-corpo .ajuda-fluxo li{position:relative;margin:0;padding:10px 12px 10px 40px;border:1px solid var(--borda);border-radius:8px;background:var(--superficie);counter-increment:fluxo}
+.ajuda-fluxo li::before{content:counter(fluxo);position:absolute;left:12px;top:11px;width:20px;height:20px;border-radius:50%;background:var(--hover);color:var(--tinta);font-size:11px;font-weight:600;line-height:20px;text-align:center}
+.ajuda-fluxo b{display:block;font-size:13px;color:var(--tinta)}
+.ajuda-fluxo span{display:block;font-size:11.5px;line-height:1.4;color:var(--suave)}
+
+/* fotos e vídeos */
+.ajuda-foto,.ajuda-video{margin:16px 0 20px}
+.ajuda-foto img{display:block;width:100%;height:auto;border:1px solid var(--borda);border-radius:8px;background:var(--hover);cursor:zoom-in}
+.ajuda-video video{display:block;width:100%;height:auto;aspect-ratio:16/10;border:1px solid var(--borda);border-radius:8px;background:#18181b}
+.ajuda-foto figcaption,.ajuda-video figcaption{margin-top:6px;font-size:12px;line-height:1.5;color:var(--suave)}
+.ajuda-video figcaption::before{content:"▶";display:inline-block;margin-right:6px;font-size:9px;color:var(--tinta);vertical-align:1px}
+
+/* destaques */
+.ajuda-corpo .ajuda-dica,.ajuda-corpo .ajuda-atencao{margin:14px 0;padding:10px 14px;border:1px solid var(--borda);border-radius:8px;background:var(--fundo)}
+.ajuda-corpo .ajuda-atencao{border-color:#fed7aa;background:#fff7ed}
+
+/* termos */
+.ajuda-termos{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px 18px;margin:4px 0 16px}
+.ajuda-termos dt{font-weight:600;color:var(--tinta)}
+.ajuda-termos dd{margin:0}
+
+/* dúvidas frequentes */
+.ajuda-faq{padding:11px 0;border-bottom:1px solid var(--linha)}
+.ajuda-faq summary{display:flex;gap:8px;font-weight:600;color:var(--tinta);cursor:pointer;list-style:none}
+.ajuda-faq summary::-webkit-details-marker{display:none}
+.ajuda-faq summary::before{content:"+";flex:0 0 14px;color:var(--suave);font-weight:500}
+.ajuda-faq[open] summary::before{content:"–"}
+.ajuda-corpo .ajuda-faq p{margin:8px 0 2px 22px}
+
+/* cartões da página inicial da ajuda */
+.ajuda-cartoes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:24px}
+.ajuda-cartao{padding:14px 16px;border:1px solid var(--borda);border-radius:10px;background:var(--superficie)}
+.ajuda-cartao h4{margin:0 0 10px;font-size:13px}
+.ajuda-corpo .ajuda-cartao ul{margin:0;padding:0;list-style:none}
+.ajuda-corpo .ajuda-cartao li{margin:0 0 9px}
+.ajuda-corpo .ajuda-cartao a{font-weight:500;text-decoration:none}
+.ajuda-corpo .ajuda-cartao a:hover{text-decoration:underline}
+.ajuda-cartao span{display:block;font-size:11.5px;line-height:1.45;color:var(--suave)}
+
+/* anterior / próximo */
+.ajuda-navegacao{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px;padding-top:18px;border-top:1px solid var(--borda)}
+.ajuda-navegacao a{display:block;padding:10px 14px;border:1px solid var(--borda);border-radius:8px;background:var(--superficie);color:var(--tinta);font-weight:500;text-decoration:none}
+.ajuda-navegacao a:hover{background:var(--hover)}
+.ajuda-navegacao .prox{text-align:right}
+.ajuda-navegacao small{display:block;font-size:11px;font-weight:400;color:var(--suave)}
+
+/* resultados da busca */
+.ajuda-resultados{margin:0;padding:0;list-style:none}
+.ajuda-resultados a{display:block;margin-bottom:8px;padding:12px 14px;border:1px solid var(--borda);border-radius:8px;background:var(--superficie);color:var(--texto);text-decoration:none}
+.ajuda-resultados a:hover{border-color:var(--fraco)}
+.ajuda-resultados small{display:block;font-size:11px;color:var(--suave)}
+.ajuda-resultados b{display:block;font-size:14px;color:var(--tinta)}
+.ajuda-resultados span{display:block;margin-top:4px;font-size:12.5px;line-height:1.5;color:var(--suave)}
+.ajuda-resultados mark{padding:0 1px;border-radius:2px;background:#fef08a;color:var(--tinta)}
+
+/* foto ampliada */
+.ajuda-zoom{max-width:96vw;max-height:96vh;padding:0;border:0;background:transparent;overflow:visible}
+.ajuda-zoom::backdrop{background:rgba(9,9,11,.84)}
+.ajuda-zoom img{display:block;max-width:94vw;max-height:88vh;border-radius:8px;cursor:zoom-out}
+.ajuda-zoom p{margin:8px 0 0;color:#e4e4e7;font-size:12.5px;text-align:center}
+.ajuda-zoom-fechar{position:fixed;top:14px;right:16px;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+
+@media (max-width:860px){
+  .ajuda-layout{grid-template-columns:minmax(0,1fr);gap:16px}
+  .ajuda-lateral{position:static;max-height:none;overflow:visible;padding:0}
+  .ajuda-topicos{display:inline-flex;margin-top:8px}
+  .ajuda-lateral #ajudaIndice{display:none}
+  .ajuda-lateral.aberta #ajudaIndice{display:block}
+  .ajuda-termos{grid-template-columns:minmax(0,1fr);gap:2px}
+  .ajuda-termos dd{margin-bottom:8px}
+  .ajuda-navegacao{grid-template-columns:minmax(0,1fr)}
+  .ajuda-navegacao .prox{text-align:left}
+}
+@media (max-width:640px){
+  .topbar-ajuda span{display:none}
+  .topbar-ajuda{padding:0 8px}
+}
+@media print{
+  .app-sidebar,.topbar,.ajuda-lateral,.ajuda-navegacao,.ajuda-video{display:none!important}
+  .ajuda-layout{display:block}
+}

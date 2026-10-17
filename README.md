@@ -114,6 +114,22 @@ Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da vers
   fornecedor já existe; digitar o CEP preenche rua, bairro, cidade e UF. Fontes gratuitas, com
   reserva: BrasilAPI e CNPJ.ws (CNPJ), BrasilAPI e ViaCEP (CEP), em cache por alguns dias.
 
+### Ajuda (manual do sistema)
+
+**Apoio › Ajuda** (para todos) reúne 23 tópicos em seis grupos — Primeiros passos, Engenharia,
+Suprimentos, Financeiro, Administração e Dúvidas frequentes — com passo a passo, fotos das telas
+(clique amplia) e vídeos curtos de demonstração. A busca procura em todos os textos sem diferenciar
+acentos; cada tópico tem anterior/próximo e o botão **Abrir a tela** (só quando a pessoa pode ver a
+tela). O botão **Ajuda** no topo abre o tópico da tela em que a pessoa está (no Suprimentos, pela
+tela interna: formulário de solicitação, mapa de cotação…), e o endereço `/#ajuda/<tópico>` abre um
+tópico direto, para mandar o link.
+
+Os textos ficam em `ajuda/artigos.html` (um `<article id data-titulo data-grupo data-tela data-resumo
+data-palavras>` por tópico, lido por `js/ajuda.js`); as fotos em `ajuda/img/*.webp` (1440×900) e os
+vídeos em `ajuda/video/*.mp4` (H.264, 1280 px, carregados só ao tocar). Para um tópico novo, basta
+acrescentar o `<article>` no grupo certo; o índice, a busca e os cartões da página inicial se montam
+sozinhos. Fotos e vídeos foram gravados com dados de demonstração no banco local.
+
 ## Stack
 
 - Front-end: HTML / CSS / JavaScript puro (sem build step)
@@ -136,6 +152,8 @@ js/feriados.js            feriados nacionais, estaduais, facultativos, Páscoa e
 dados/feriados/           municipais/<UF>.json (municípios e feriados municipais) e o gerador
 js/suprimentos/           telas de Suprimentos (nucleo.js: API, janelas, navegação, escolha de insumo)
 js/financeiro.js          Contas a pagar
+js/ajuda.js               Ajuda: índice, busca, artigos e o botão Ajuda do topo
+ajuda/                    artigos.html (textos da ajuda), img/ (fotos webp) e video/ (demonstrações mp4)
 portal-fornecedor.html    página pública do fornecedor (responder cotação, confirmar pedido)
 db/                       schema.sql dos orçamentos, schema-usuarios.sql dos usuários
 functions/

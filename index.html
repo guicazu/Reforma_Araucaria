@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/graficos.css" />
 <link rel="stylesheet" href="css/planejamento.css" />
 <link rel="stylesheet" href="css/calendarios.css" />
+<link rel="stylesheet" href="css/ajuda.css" />
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
@@ -56,6 +57,7 @@
   <symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4.5V15M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></symbol>
   <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M12 15V4.5M7.5 9 12 4.5 16.5 9M5 19.5h14"/></symbol>
   <symbol id="i-email" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M3.5 7.5 12 13l8.5-5.5"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.8c0 1.7-2.5 2.2-2.5 3.9"/><path d="M12 17.3h.01"/></symbol>
   <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/></symbol>
   <symbol id="i-prancheta" viewBox="0 0 24 24"><rect x="5.5" y="5" width="13" height="15.5" rx="2"/><path d="M9.5 3.5h5v3h-5zM9 11.5h6M9 15h4"/></symbol>
   <symbol id="i-sub-etapa" viewBox="0 0 24 24"><path d="M6.5 4.5v7a3 3 0 0 0 3 3H18"/><path d="M14.5 11 18 14.5 14.5 18"/></symbol>
@@ -144,6 +146,9 @@
     </div>
     <div class="app-sidebar-group">
       <span class="app-sidebar-group-label">Apoio</span>
+      <button class="app-sidebar-item" data-view="ajuda" title="Ajuda: como usar o sistema">
+        <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-ajuda"/></svg></span><span class="rotulo">Ajuda</span>
+      </button>
       <button class="app-sidebar-item admin-only hidden" id="navUsuarios" data-view="usuarios" title="Usuários">
         <span class="icone"><svg class="ic" aria-hidden="true"><use href="#i-usuarios"/></svg></span><span class="rotulo">Usuários</span>
       </button>
@@ -173,6 +178,7 @@
       <p>Orçamento e gestão de obras</p>
     </div>
   </div>
+  <button type="button" class="topbar-ajuda" id="btnAjudaContexto" title="Ajuda desta tela" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-ajuda"/></svg><span>Ajuda</span></button>
   <div class="topbar-user" id="topbarUser"></div>
   <div class="topbar-version" id="topbarVersion" title="Versão do código"></div>
 </header>
@@ -392,6 +398,24 @@
   <div id="planConteudo" class="supr-conteudo"></div>
 </section>
 
+
+<section class="content hidden" id="viewAjuda">
+  <div class="orcamento-head">
+    <div>
+      <h2>Ajuda</h2>
+      <p>Como usar o ERP: passo a passo, vídeos de demonstração e dúvidas frequentes.</p>
+    </div>
+  </div>
+  <!-- índice, busca e artigos de ajuda/artigos.html (js/ajuda.js) -->
+  <div class="ajuda-layout">
+    <aside class="ajuda-lateral" aria-label="Tópicos da ajuda">
+      <label class="ajuda-busca"><svg class="ic" aria-hidden="true"><use href="#i-buscar"/></svg><input type="search" id="ajudaBusca" placeholder="Buscar na ajuda" aria-label="Buscar na ajuda" autocomplete="off" /></label>
+      <button type="button" class="btn btn-ghost btn-sm ajuda-topicos" data-topicos>Tópicos da ajuda</button>
+      <nav id="ajudaIndice"></nav>
+    </aside>
+    <div class="ajuda-artigo" id="ajudaArtigo" aria-live="polite"></div>
+  </div>
+</section>
 
 <section class="content hidden" id="viewComposicoes">
   <div class="orcamento-head catalogo-page-head">
@@ -690,6 +714,7 @@
 <script src="/js/inicio.js"></script>
 <script type="module" src="/js/planejamento.js"></script>
 <script type="module" src="/js/calendarios.js"></script>
+<script src="/js/ajuda.js"></script>
 
 
 </body>

@@ -1,0 +1,512 @@
+<!--
+  Artigos da Ajuda (lidos por js/ajuda.js). Cada <article> vira um tópico:
+  id = endereço (#ajuda/<id>), data-grupo = seção do índice, data-tela = tela que o botão
+  "Abrir a tela" abre (view ou view:aba), data-resumo = linha dos cartões e da busca,
+  data-palavras = sinônimos para a busca. Fotos em ajuda/img (webp) e vídeos em ajuda/video (mp4),
+  gravados pelos roteiros de demonstração (Chrome sem janela + ffmpeg).
+-->
+
+<!-- ======================= PRIMEIROS PASSOS ======================= -->
+<article id="boas-vindas" data-titulo="Bem-vindo ao ERP" data-grupo="Primeiros passos"
+  data-resumo="O que o sistema faz, como entrar, o menu e como usar esta ajuda."
+  data-palavras="inicio começar login entrar acesso google microsoft menu lateral primeiro acesso aprovação">
+  <p class="ajuda-lead">O ERP da Cazú reúne o ciclo da obra num lugar só: o <b>orçamento</b> monta a EAP (a estrutura dos serviços), o <b>planejamento</b> transforma a EAP em cronograma, os <b>suprimentos</b> compram tudo apropriado nos serviços do orçamento e o <b>financeiro</b> paga o que foi comprado e medido.</p>
+
+  <ol class="ajuda-fluxo">
+    <li><b>Orçamento</b><span>EAP, serviços e preços SINAPI</span></li>
+    <li><b>Planejamento</b><span>Cronograma, avanço e Curva S</span></li>
+    <li><b>Suprimentos</b><span>Solicitação, cotação, pedido e nota</span></li>
+    <li><b>Financeiro</b><span>Contas a pagar</span></li>
+  </ol>
+
+  <h3>Entrar no sistema</h3>
+  <ol class="ajuda-passos">
+    <li>Acesse <b>araucaria.cazu.com.br</b> e entre com sua conta <b>Google</b> ou <b>Microsoft</b>.</li>
+    <li>No primeiro acesso aparece a tela <span class="ui">Aguardando aprovação</span>: o administrador recebe o seu pedido e libera o acesso.</li>
+    <li>Depois de aprovado, você vê os módulos que o administrador liberou para você. O que você não pode ver nem aparece no menu.</li>
+  </ol>
+
+  <h3>O menu</h3>
+  <p>O menu da esquerda é dividido em <b>Engenharia</b> (Orçamento, Planejamento, Calendários, Composições, Insumos e Unidades), <b>Suprimentos</b> (do Painel aos Cadastros), <b>Financeiro</b> (Contas a pagar) e <b>Apoio</b> (Ajuda e, para administradores, Usuários, Liberação, Base SINAPI e Backup). O botão <span class="ui">☰</span> no alto recolhe o menu para sobrar mais espaço.</p>
+  <p class="ajuda-dica"><b>Só consulta?</b> Quando a sua permissão num módulo é apenas de visualização, a tela mostra um aviso com cadeado e esconde os botões de alteração.</p>
+
+  <h3>Como usar esta ajuda</h3>
+  <ul>
+    <li>O botão <span class="ui">Ajuda</span> no alto de qualquer tela abre direto o tópico daquela tela.</li>
+    <li>Use a busca do índice: ela procura em todos os textos, sem diferenciar acentos.</li>
+    <li>Os vídeos mostram cada tarefa feita do começo ao fim; as fotos abrem em tamanho grande com um clique.</li>
+    <li>O botão <span class="ui">Abrir a tela</span>, no topo de cada tópico, leva você à tela explicada.</li>
+  </ul>
+
+  <div class="ajuda-cartoes" data-cartoes></div>
+</article>
+
+<article id="inicio" data-titulo="Painel de Início" data-grupo="Primeiros passos" data-tela="dashboard"
+  data-resumo="Indicadores de custo, avanço físico, compras e contas de todas as obras."
+  data-palavras="dashboard painel indicadores graficos resumo kpi visao geral periodo meses">
+  <p class="ajuda-lead">A primeira tela depois do login mostra como estão as obras: custos, avanço físico, compras e contas a pagar. Cada seção só aparece para quem pode ver o módulo correspondente.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/inicio-painel.webp"><source src="/ajuda/video/inicio.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (18 s): período, obra e leitura dos gráficos.</figcaption>
+  </figure>
+
+  <h3>Filtros</h3>
+  <p>No topo escolha o período (<span class="ui">3 meses</span>, <span class="ui">6 meses</span> ou <span class="ui">12 meses</span>) e a <span class="ui">Obra</span>. Com uma obra escolhida, os gráficos passam a mostrar as etapas dela e a Curva S.</p>
+
+  <h3>As seções</h3>
+  <dl class="ajuda-termos">
+    <dt>Custos das obras</dt><dd>Orçado, realizado (notas e medições), comprometido (pedidos e contratos a entregar) e saldo a comprar. Obra acima do orçado ganha aviso vermelho. Clicar numa obra abre o <a href="#" data-artigo="acompanhamento">Acompanhamento</a> dela.</dd>
+    <dt>Avanço físico</dt><dd>Previsto para hoje × realizado pelos apontamentos, desvio em pontos percentuais e os serviços mais atrasados. Veja <a href="#" data-artigo="avanco">Avanço físico e Curva S</a>.</dd>
+    <dt>Suprimentos</dt><dd>Autorizações pendentes, itens aguardando compra, cotações abertas, entregas atrasadas, economia sobre o orçado e maiores fornecedores.</dd>
+    <dt>Financeiro</dt><dd>Em aberto, vencido, a vencer em 7 dias, pago no mês e a pagar nas próximas semanas.</dd>
+    <dt>Engenharia</dt><dd>Orçamentos, valor orçado, base SINAPI, maiores serviços (curva ABC) e orçado por etapa.</dd>
+  </dl>
+  <figure class="ajuda-foto"><img src="/ajuda/img/inicio-painel.webp" alt="Painel de Início com cartões de custos e gráfico de realizado por mês" loading="lazy"><figcaption>Custos das obras: cartões, medidores por obra e realizado por mês.</figcaption></figure>
+  <figure class="ajuda-foto"><img src="/ajuda/img/inicio-avanco.webp" alt="Seção de avanço físico do painel de Início" loading="lazy"><figcaption>Avanço físico: realizado até hoje com a marca do previsto e os serviços mais atrasados.</figcaption></figure>
+  <p class="ajuda-dica"><b>Dica:</b> passe o mouse sobre barras e linhas para ver os valores. O botão <span class="ui">Tabela</span> mostra os mesmos números em tabela.</p>
+</article>
+
+<!-- ======================= ENGENHARIA ======================= -->
+<article id="orcamento" data-titulo="Orçamento: criar e editar" data-grupo="Engenharia" data-tela="orcamento"
+  data-resumo="Lista de orçamentos, EAP, serviços SINAPI ou próprios, quantidades e salvamento."
+  data-palavras="orcamento eap servico sinapi composicao quantidade memoria de calculo unidade construtiva etapa sub etapa bloqueio editar salvar lupa pesquisar codigo referencia">
+  <p class="ajuda-lead">Cada obra é um orçamento organizado em EAP: <b>Unidade construtiva → Etapa → Sub etapa (opcional) → Serviço</b>. Os serviços vêm do SINAPI (São Paulo, desonerado) ou das composições próprias da empresa.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/orcamento-editor.webp"><source src="/ajuda/video/orcamento.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (44 s): editar, abrir níveis, pesquisar um serviço SINAPI e informar a quantidade.</figcaption>
+  </figure>
+
+  <h3>A lista de orçamentos</h3>
+  <p>Cada orçamento tem os botões <span class="ui">Visualizar</span> (só leitura), <span class="ui">Exportar</span> (relatórios) e, para quem pode alterar, <span class="ui">Editar</span>, duplicar e excluir. <span class="ui">+ Novo</span> cria um orçamento em branco.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/orcamento-lista.webp" alt="Lista de orçamentos" loading="lazy"><figcaption>Lista de orçamentos com valor, versão e revisão.</figcaption></figure>
+
+  <h3>Editar sem atropelar ninguém</h3>
+  <p>Ao clicar em <span class="ui">Editar</span>, o orçamento fica <b>bloqueado</b> para os outros (eles veem “Em edição por …”). Quando terminar, clique em <span class="ui">Liberar</span>. O bloqueio não expira sozinho: se alguém esquecer o orçamento aberto, o administrador libera em <a href="#" data-artigo="liberacao-backup">Liberação</a>.</p>
+
+  <h3>Montar a estrutura</h3>
+  <ol class="ajuda-passos">
+    <li><span class="ui">+ Unidade construtiva</span> cria o primeiro nível (ex.: Térreo, Bloco B).</li>
+    <li>No menu <span class="ui">⋯</span> da unidade, <span class="ui">Adicionar etapa</span>; no menu da etapa, <span class="ui">Adicionar sub etapa</span> ou <span class="ui">Adicionar serviço</span> direto na etapa.</li>
+    <li>Na linha nova, digite o código do serviço (SINAPI, ex.: <code>103332</code>, ou próprio, ex.: <code>COMP-2026-1</code>) e tecle Enter — ou clique na lupa para pesquisar.</li>
+    <li>Digite a <b>quantidade orçada</b>. Se a quantidade sai de medições, use o menu do serviço › <span class="ui">Criar memória de cálculo</span>: as linhas são somadas sozinhas.</li>
+    <li>Clique em <span class="ui">Salvar</span>. Até salvar, as alterações ficam só no seu navegador (aviso “Alterações não salvas”).</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/orcamento-pesquisa.webp" alt="Janela de pesquisa de serviço com resultados SINAPI e próprios" loading="lazy"><figcaption>Pesquisa: palavras em qualquer ordem, filtro por base e exclusão de termos. <span class="ui">Ver composição</span> mostra os insumos; <span class="ui">Usar</span> inclui o serviço.</figcaption></figure>
+  <figure class="ajuda-foto"><img src="/ajuda/img/orcamento-editor.webp" alt="Orçamento em edição com o serviço incluído" loading="lazy"><figcaption>O serviço entra com código, base, unidade e preço; o total é recalculado na hora.</figcaption></figure>
+
+  <h3>Níveis da EAP</h3>
+  <p>Os botões <span class="ui">1</span> a <span class="ui">5</span> abrem a estrutura até unidades, etapas, sub etapas, serviços ou tudo com as memórias de cálculo. As setas de cada linha abrem e fecham um grupo só.</p>
+
+  <h3>Referência SINAPI</h3>
+  <p>Abaixo do nome aparece a referência da versão (ex.: <i>setembro/2026 · SP · desonerado</i>). Em edição, <span class="ui">Alterar</span> troca o mês: antes de aplicar, a janela mostra a diferença de preço de cada serviço e oferece guardar a versão atual com os preços antigos.</p>
+  <p class="ajuda-atencao"><b>Atenção:</b> não feche a aba com alterações não salvas. O sistema avisa, mas o que não foi salvo não chega aos outros usuários nem ao Planejamento e Suprimentos.</p>
+</article>
+
+<article id="versoes-relatorios" data-titulo="Versões e relatórios" data-grupo="Engenharia" data-tela="orcamento"
+  data-resumo="Congelar versões, comparar e exportar o orçamento e as curvas ABC em PDF ou Excel."
+  data-palavras="versao revisao comparar exportar relatorio pdf excel curva abc impressao imprimir">
+  <p class="ajuda-lead">Uma <b>versão</b> é uma fotografia do orçamento. A versão ativa é a que você edita; cada salvamento aumenta a revisão (Rev.).</p>
+  <h3>Versões</h3>
+  <ol class="ajuda-passos">
+    <li>No orçamento aberto, clique em <span class="ui">Versões</span>.</li>
+    <li><span class="ui">+ Gerar nova versão</span> congela uma cópia do estado atual e você continua editando a partir dela.</li>
+    <li>Para comparar, marque duas versões e clique em <span class="ui">Comparar selecionadas</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/orcamento-versoes.webp" alt="Janela de versões do orçamento" loading="lazy"><figcaption>Versões com data, valor e referência SINAPI; a última é a ativa.</figcaption></figure>
+  <p class="ajuda-dica"><b>Importante:</b> Planejamento e Suprimentos usam sempre a <b>versão ativa</b>. Compras já feitas continuam apropriadas nos serviços, mesmo que a versão mude.</p>
+
+  <h3>Relatórios</h3>
+  <p><span class="ui">Exportar</span> (na lista ou no orçamento aberto) gera, em <b>PDF</b> ou <b>Excel</b>:</p>
+  <ul>
+    <li><b>Orçamento</b> até o nível que você escolher (1 a 5, com memória de cálculo), com opção de separar material, mão de obra e equipamento de cada serviço;</li>
+    <li><b>Curva ABC de serviços</b> e <b>Curva ABC de insumos</b> (A até 80% do custo, B até 95%, C o restante).</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/orcamento-exportar.webp" alt="Janela de exportação de relatórios" loading="lazy"><figcaption>Escolha o relatório, a versão, o nível e o formato.</figcaption></figure>
+</article>
+
+<article id="catalogo" data-titulo="Composições, insumos e unidades" data-grupo="Engenharia" data-tela="composicoes"
+  data-resumo="Consultar o SINAPI e manter as composições e insumos próprios da empresa."
+  data-palavras="composicao propria insumo proprio catalogo unidade de medida coeficiente copiar sinapi tcpo">
+  <p class="ajuda-lead">O catálogo tem duas fontes: o <b>SINAPI</b> (consulta, referência São Paulo desonerado) e os itens <b>próprios</b> da empresa, que você cria e edita.</p>
+  <h3>Composições</h3>
+  <ul>
+    <li>Na fonte <span class="ui">SINAPI</span>, busque por código ou descrição para ver os insumos, coeficientes e preços. <span class="ui">Copiar composição</span> cria uma composição própria a partir dela, para você ajustar.</li>
+    <li>Na fonte <span class="ui">Próprias</span>, <span class="ui">+ Nova composição</span>: nome, unidade e os itens (insumos ou outras composições) com coeficiente. O preço é a soma de coeficiente × preço unitário.</li>
+    <li>As próprias ganham código <code>COMP-…</code> e aparecem na pesquisa do orçamento com a etiqueta <span class="ui">PRÓPRIA</span>.</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/composicoes.webp" alt="Tela de composições" loading="lazy"><figcaption>Composições: busca no SINAPI ou lista das próprias.</figcaption></figure>
+  <h3>Insumos</h3>
+  <p>Funciona igual: consulta no SINAPI, <span class="ui">Copiar insumo</span> e <span class="ui">+ Novo insumo</span> para materiais que o SINAPI não tem (com unidade, tipo e preço).</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/insumos.webp" alt="Tela de insumos" loading="lazy"><figcaption>Insumos SINAPI e próprios.</figcaption></figure>
+  <h3>Unidades</h3>
+  <p>Lista das unidades de medida (m², m³, kg, h…). <span class="ui">+ Nova unidade</span> cria uma unidade da empresa, disponível para todos.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/unidades.webp" alt="Tela de unidades de medida" loading="lazy"><figcaption>Unidades padrão e personalizadas.</figcaption></figure>
+</article>
+
+<article id="cronograma" data-titulo="Cronograma da obra" data-grupo="Engenharia" data-tela="planejamento"
+  data-resumo="Criar o cronograma pela EAP, duração pela equipe, predecessoras e caminho crítico."
+  data-palavras="planejamento cronograma gantt duracao equipe oficial ajudante horas homem mao de obra predecessora dependencia caminho critico folga prazo inicio termino csv">
+  <p class="ajuda-lead">O cronograma usa a EAP da versão ativa do orçamento: cada serviço vira uma tarefa. A duração sai das horas de mão de obra das composições e da equipe que você define.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/planejamento-cronograma.webp"><source src="/ajuda/video/cronograma.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (45 s): criar o cronograma, ajustar equipe e duração e indicar predecessoras.</figcaption>
+  </figure>
+
+  <h3>Criar</h3>
+  <ol class="ajuda-passos">
+    <li>Em <b>Planejamento</b>, clique na obra e em <span class="ui">Criar cronograma</span>.</li>
+    <li>Informe a <b>data de início</b> e o <b>calendário</b> (dias e horário de trabalho, feriados — veja <a href="#" data-artigo="calendarios">Calendários</a>). Depois, isso muda em <span class="ui">Configurar</span>.</li>
+    <li>O sistema monta as tarefas na ordem da EAP, cada etapa depois da anterior. Ajuste e clique em <span class="ui">Salvar</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/planejamento-lista.webp" alt="Lista de obras do planejamento" loading="lazy"><figcaption>Lista de obras com início, término e avanço.</figcaption></figure>
+
+  <h3>As colunas</h3>
+  <figure class="ajuda-foto"><img src="/ajuda/img/planejamento-cronograma.webp" alt="Cronograma com Gantt" loading="lazy"><figcaption>Nº da linha, EAP, equipe, mão de obra, duração, datas, predecessoras, folga e o Gantt.</figcaption></figure>
+  <dl class="ajuda-termos">
+    <dt>Equipe (ofic. · ajud.)</dt><dd>Quantos oficiais e ajudantes trabalham no serviço. Papel que a composição não tem fica 0.</dd>
+    <dt>Mão de obra</dt><dd>As horas do oficial e do ajudante principais, tiradas da composição no orçamento.</dd>
+    <dt>Duração</dt><dd>Em dias de trabalho do calendário.</dd>
+    <dt>Predecessoras</dt><dd>Nº das linhas que precisam terminar antes.</dd>
+    <dt>Folga</dt><dd>Quantos dias o serviço pode atrasar sem atrasar a obra. Sem folga = <b>Crítico</b> (barra laranja).</dd>
+  </dl>
+
+  <h3>Duração pela equipe</h3>
+  <ul>
+    <li>Se o serviço tem oficial: <b>duração = horas do oficial ÷ número de oficiais</b>. Só com ajudante: horas do ajudante ÷ ajudantes. Encarregado, engenheiro e afins não entram na conta.</li>
+    <li>As horas viram dias pelo horário de cada dia do calendário (sexta mais curta, sábado meio período…).</li>
+    <li>A equipe segue a proporção das horas: 8 h de oficial e 16 h de ajudante = <b>1 oficial para 2 ajudantes</b>; 16 h de oficial e 8 h de ajudante = 2 oficiais para 1 ajudante.</li>
+    <li>Mudar os oficiais leva os ajudantes junto. Ajudante digitado fica fixo, com aviso amarelo se ficar abaixo da proporção.</li>
+    <li><b>Digitar a duração ajusta a equipe</b> para caber naqueles dias (de 8 para 4 dias, a equipe dobra). Se nem uma pessoa precisa de tantos dias, o serviço passa a ter duração manual. O botão <span class="ui">↺</span> volta ao cálculo.</li>
+    <li>Serviço sem mão de obra no orçamento (ex.: verba, material) tem a duração digitada.</li>
+  </ul>
+
+  <h3>Predecessoras</h3>
+  <p>Escreva o Nº das linhas separado por vírgula ou ponto e vírgula: <code>4; 7</code>. Para esperar dias depois do término, use <code>7+2</code>. O Nº de uma etapa vale para todos os serviços dela. Dependências em círculo são apontadas em vermelho e impedem salvar.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/planejamento-tarefa.webp" alt="Janela de edição da tarefa" loading="lazy"><figcaption>Clique no nome do serviço para a janela completa da tarefa, com “Não iniciar antes de”.</figcaption></figure>
+  <p class="ajuda-dica"><b>Serviço novo no orçamento</b> entra sozinho no cronograma, depois da etapa anterior, marcado como “novo” até alguém revisar e salvar. Se duas pessoas salvarem ao mesmo tempo, a segunda é avisada para recarregar — ninguém sobrescreve o outro.</p>
+  <p><span class="ui">Exportar CSV</span> leva a tabela para o Excel e <span class="ui">Histórico</span> mostra quem alterou o quê.</p>
+</article>
+
+<article id="avanco" data-titulo="Avanço físico e Curva S" data-grupo="Engenharia" data-tela="planejamento"
+  data-resumo="Apontar o % executado de cada serviço e comparar previsto × realizado."
+  data-palavras="avanco fisico medicao percentual executado apontamento curva s previsto realizado desvio atraso atrasada">
+  <p class="ajuda-lead">O avanço físico registra quanto de cada serviço já foi executado. Etapas e obra somam o avanço pelo <b>valor orçado</b> de cada serviço.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/planejamento-avanco.webp"><source src="/ajuda/video/avanco.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (33 s): apontar o avanço e ver a Curva S.</figcaption>
+  </figure>
+  <h3>Apontar o avanço</h3>
+  <ol class="ajuda-passos">
+    <li>No cronograma da obra, escolha <span class="ui">Avanço físico</span>.</li>
+    <li>Confira a data em <span class="ui">Avanço até</span> (hoje, ou uma data passada — nunca futura).</li>
+    <li>Digite o <b>% executado acumulado</b> de cada serviço até essa data (0 a 100).</li>
+    <li>Clique em <span class="ui">Salvar avanço</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/planejamento-avanco.webp" alt="Tela de avanço físico com os campos numerados" loading="lazy"><figcaption>1 data do apontamento · 2 % executado de cada serviço · 3 salvar.</figcaption></figure>
+  <p>A coluna <b>Último apontamento</b> mostra a data, o % e quem lançou. O relógio abre o histórico do serviço, onde um apontamento errado pode ser excluído.</p>
+  <h3>Curva S e cartões</h3>
+  <p><span class="ui">Curva S</span> compara o previsto pelo cronograma com o realizado pelos apontamentos, ao longo da obra. Os cartões do topo mostram <b>Previsto para hoje</b>, <b>Realizado</b> e o <b>Desvio</b> em pontos percentuais (negativo = atrasada).</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/planejamento-curva.webp" alt="Curva S previsto e realizado" loading="lazy"><figcaption>Previsto (cinza) × realizado (azul). O botão <span class="ui">Tabela</span> mostra os números.</figcaption></figure>
+  <p class="ajuda-dica"><b>Exemplo:</b> previsto 89,2% e realizado 68,1% dão desvio de −21 p.p.: a obra está atrasada e aparece com alerta no <a href="#" data-artigo="inicio">Início</a>.</p>
+</article>
+
+<article id="calendarios" data-titulo="Calendários de trabalho" data-grupo="Engenharia" data-tela="calendarios"
+  data-resumo="Dias e horários de trabalho, feriados nacionais, estaduais e municipais e pontes."
+  data-palavras="calendario feriado nacional estadual municipal municipio ponte facultativo carnaval horario jornada turno noite sabado dias uteis recesso">
+  <p class="ajuda-lead">O calendário diz ao cronograma em que dias e por quantas horas se trabalha. Cada cronograma escolhe o seu em <span class="ui">Configurar</span>; o calendário marcado como <b>padrão</b> vem sugerido nos novos.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/calendario-editor.webp"><source src="/ajuda/video/calendario.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (37 s): criar um calendário com horário, município e pontes.</figcaption>
+  </figure>
+  <h3>Dias e horário</h3>
+  <p>Marque os dias trabalhados e, para cada um, o <b>início</b>, o <b>fim</b> e o <b>intervalo</b> (almoço). Exemplos: 7h às 17h com 1 h de almoço e sexta até 16h; 8h às 18h com 2 h; turno da noite (22h às 5h — o turno pode passar da meia-noite). Copie o horário de um dia para os outros.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/calendario-editor.webp" alt="Editor de calendário com a jornada da semana" loading="lazy"><figcaption>Jornada por dia da semana; as horas de cada dia convertem as horas de mão de obra em dias.</figcaption></figure>
+  <h3>Feriados</h3>
+  <ul>
+    <li><b>Nacionais</b>: calculados ano a ano, inclusive Sexta-feira Santa (pela Páscoa).</li>
+    <li><b>Estaduais e municipais</b>: escolha a UF e o município da obra. Feriado municipal que faltar pode ser incluído; qualquer feriado pode ser desmarcado.</li>
+    <li><b>Pontos facultativos</b>: Carnaval, Cinzas, Corpus Christi, vésperas de Natal e Ano Novo — marque os que a obra para.</li>
+    <li><b>Dias específicos</b>: períodos parados (recesso) ou dias trabalhados fora da regra (sábado de compensação).</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/calendario-feriados.webp" alt="Feriados e calendário anual" loading="lazy"><figcaption>Feriados por grupo e o ano inteiro em miniatura.</figcaption></figure>
+  <h3>Pontes sugeridas</h3>
+  <p>O sistema aponta o dia de trabalho que fica entre um feriado e o fim de semana, ou entre dois feriados. Feriado na terça sugere a segunda; clique em <span class="ui">Não trabalhar</span> para aceitar.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/calendario-lista.webp" alt="Lista de calendários" loading="lazy"><figcaption>Lista de calendários, com o padrão e as obras que usam cada um. Calendário em uso não pode ser excluído.</figcaption></figure>
+</article>
+
+<!-- ======================= SUPRIMENTOS ======================= -->
+<article id="suprimentos" data-titulo="Como funcionam as compras" data-grupo="Suprimentos" data-tela="suprimentos:painel"
+  data-resumo="O caminho da solicitação à nota fiscal e o Painel de Suprimentos."
+  data-palavras="suprimentos compras fluxo processo painel pendencias apropriacao saldo orcado obra sienge">
+  <p class="ajuda-lead">Toda compra nasce de um insumo do orçamento e fica <b>apropriada a um serviço da EAP</b>. Assim o sistema sabe, a cada passo, quanto do orçado já foi pedido, comprado e recebido.</p>
+  <ol class="ajuda-fluxo">
+    <li><b>Solicitação</b><span>a obra pede</span></li>
+    <li><b>Autorização</b><span>por alçada</span></li>
+    <li><b>Cotação</b><span>mapa de preços</span></li>
+    <li><b>Pedido</b><span>autorizado e enviado</span></li>
+    <li><b>Nota fiscal</b><span>entrega</span></li>
+    <li><b>Estoque e contas</b><span>custo e pagamento</span></li>
+  </ol>
+  <p>Serviços de empreiteiros seguem por <a href="#" data-artigo="contratos">Contratos e medições</a>. O resultado de tudo aparece no <a href="#" data-artigo="acompanhamento">Acompanhamento de custos</a>.</p>
+  <h3>Painel de Suprimentos</h3>
+  <p>Mostra o que precisa de ação: autorizações, itens aguardando compra, cotações abertas, entregas atrasadas e dos próximos 7 dias e contas a pagar. Os atalhos do topo abrem uma nova solicitação, cotação, nota ou contrato.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-painel.webp" alt="Painel de Suprimentos" loading="lazy"><figcaption>Pendências e entregas de todas as obras.</figcaption></figure>
+  <p class="ajuda-dica"><b>Dica:</b> o seletor <span class="ui">Obra</span> no alto das telas de Suprimentos filtra tudo por uma obra e fica lembrado até você trocar.</p>
+</article>
+
+<article id="fornecedores" data-titulo="Fornecedores e cadastros" data-grupo="Suprimentos" data-tela="suprimentos:cadastros"
+  data-resumo="Cadastro pelo CNPJ e CEP, condições de pagamento, parâmetros e alçadas."
+  data-palavras="fornecedor cnpj cpf receita cep endereco cadastro condicao de pagamento parcelas parametros alcada empresa">
+  <p class="ajuda-lead">Em <b>Suprimentos › Cadastros</b> ficam os fornecedores, as condições de pagamento e, para administradores, os parâmetros e as alçadas de autorização.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/supr-fornecedor.webp"><source src="/ajuda/video/fornecedor.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (20 s): cadastrar um fornecedor só com o CNPJ.</figcaption>
+  </figure>
+  <h3>Novo fornecedor</h3>
+  <ol class="ajuda-passos">
+    <li>Clique em <span class="ui">Novo fornecedor</span> e digite o <b>CNPJ</b>.</li>
+    <li>Os dados públicos da Receita preenchem razão social, nome fantasia, inscrição estadual, endereço, telefone e e-mail (em verde). Embaixo do CNPJ aparece a situação cadastral e a atividade.</li>
+    <li>Se o fornecedor já existe, o sistema avisa <b>Já cadastrado</b>.</li>
+    <li>Complete o que fornece (ajuda a achá-lo nas cotações), dados bancários/PIX e salve.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-fornecedor.webp" alt="Cadastro de fornecedor preenchido pela Receita" loading="lazy"><figcaption>Campos preenchidos pela Receita ficam em verde. Para pessoa física, digite o CPF e preencha à mão.</figcaption></figure>
+  <p>Digitar só o <b>CEP</b> preenche rua, bairro, cidade e UF; o cursor fica no lugar do número.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-cadastros.webp" alt="Lista de fornecedores" loading="lazy"><figcaption>Fornecedores com contato, quantidade de pedidos e total comprado.</figcaption></figure>
+  <h3>Condições de pagamento</h3>
+  <p>Cada condição tem parcelas em dias contados da emissão da nota e o percentual de cada uma (ex.: 30/60 dias = 50% + 50%). Elas são usadas nas cotações, pedidos e para gerar as parcelas das notas.</p>
+  <h3>Parâmetros e alçadas (administrador)</h3>
+  <ul>
+    <li><b>Parâmetros</b>: se solicitação, pedido, contrato e medição exigem autorização; se o sistema bloqueia (em vez de só avisar) compras acima do orçado; dados da empresa para o PDF do pedido e o local de entrega padrão.</li>
+    <li><b>Alçadas</b>: quem autoriza cada tipo de documento e até qual valor. Veja <a href="#" data-artigo="autorizacoes">Autorizações e alçadas</a>.</li>
+  </ul>
+</article>
+
+<article id="solicitacao" data-titulo="Solicitação de compra" data-grupo="Suprimentos" data-tela="suprimentos:solicitacoes"
+  data-resumo="Pedir insumos do orçamento, apropriados por serviço, com o saldo orçado à vista."
+  data-palavras="solicitacao sc requisicao pedir material insumo saldo orcado apropriacao servico necessidade fora do orcamento acima do saldo">
+  <p class="ajuda-lead">A solicitação é o pedido da obra. Cada item é um insumo do orçamento com a quantidade de cada serviço que vai recebê-lo — e o sistema mostra o saldo orçado de cada serviço.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/supr-solicitacao.webp"><source src="/ajuda/video/solicitacao.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (47 s): solicitar concreto e telhas e autorizar a solicitação.</figcaption>
+  </figure>
+  <ol class="ajuda-passos">
+    <li>Em <b>Solicitações</b>, clique em <span class="ui">Nova solicitação</span> e escolha a <b>obra</b>.</li>
+    <li><span class="ui">Incluir insumo</span>: busque pelo nome ou código. A lista mostra orçado, já solicitado e saldo de cada insumo.</li>
+    <li>Informe a quantidade em cada serviço (a <b>apropriação</b>). O botão <span class="ui">Saldo</span> pede tudo o que falta no serviço.</li>
+    <li>Informe a <b>data de necessidade</b> e, se quiser, uma observação (marca, cor, especificação).</li>
+    <li>Repita para os outros insumos, escreva as observações para o comprador e clique em <span class="ui">Enviar solicitação</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-insumo.webp" alt="Janela de inclusão de insumo com saldo por serviço" loading="lazy"><figcaption>Quantidade por serviço, com orçado, solicitado e saldo de cada um.</figcaption></figure>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-solicitacao.webp" alt="Formulário da solicitação de compra" loading="lazy"><figcaption>Cada item mostra se está dentro do saldo do orçamento.</figcaption></figure>
+  <h3>Dentro, acima ou fora do orçamento</h3>
+  <dl class="ajuda-termos">
+    <dt>Dentro do saldo</dt><dd>Segue o fluxo normal.</dd>
+    <dt>Acima do saldo</dt><dd>A quantidade passa do que falta comprar no serviço: sempre vai para autorização (ou é bloqueada, se o parâmetro mandar).</dd>
+    <dt>Fora do orçamento</dt><dd>Insumo buscado em <span class="ui">Buscar fora do orçamento</span> (SINAPI ou catálogo próprio). Escolha o serviço que recebe o custo; sempre vai para autorização.</dd>
+  </dl>
+  <p>Solicitação reprovada pode ser <span class="ui">Alterar e reenviar</span>. Itens sem pedido podem ser cancelados; item comprado em parte pode ter o saldo encerrado (o que falta volta para o saldo do orçamento).</p>
+</article>
+
+<article id="autorizacoes" data-titulo="Autorizações e alçadas" data-grupo="Suprimentos" data-tela="suprimentos:autorizacoes"
+  data-resumo="Quem aprova solicitações, pedidos, contratos e medições, e até qual valor."
+  data-palavras="autorizar aprovar aprovacao reprovar alcada limite valor pendente gestor">
+  <p class="ajuda-lead">Em <b>Autorizações</b> aparece tudo que espera a sua aprovação, conforme a sua <b>alçada</b>: tipo de documento e valor máximo. O número ao lado do menu mostra quantos documentos esperam por você.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-autorizacoes.webp" alt="Tela de autorizações pendentes" loading="lazy"><figcaption>Documentos aguardando aprovação, com a sua alçada no topo.</figcaption></figure>
+  <ul>
+    <li><b>Solicitação</b>: a autorização é por item — desmarque o que não deve ser comprado e informe o motivo; os desmarcados são reprovados.</li>
+    <li><b>Pedido, contrato, aditivo e medição</b>: <span class="ui">Autorizar</span> ou <span class="ui">Reprovar</span> (com motivo obrigatório).</li>
+    <li>Clicar na linha abre o documento completo antes de decidir.</li>
+  </ul>
+  <p>As alçadas são definidas pelo administrador em <b>Cadastros › Alçadas</b> (pessoa, tipo de documento, valor limite). Administradores autorizam sem limite. Se o documento passar da sua alçada, ele continua pendente para alguém com alçada maior.</p>
+</article>
+
+<article id="cotacao" data-titulo="Cotação e mapa comparativo" data-grupo="Suprimentos" data-tela="suprimentos:cotacoes"
+  data-resumo="Convidar fornecedores, comparar preços e condições e escolher os vencedores."
+  data-palavras="cotacao mapa comparativo preco orcamento fornecedor portal link convite vencedor rodada negociacao frete cif fob prazo">
+  <p class="ajuda-lead">A cotação reúne itens autorizados de uma obra e os fornecedores convidados. O <b>mapa</b> compara preço, pagamento, prazo, frete e validade de cada proposta.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/supr-mapa.webp"><source src="/ajuda/video/cotacao.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (40 s): gerar a cotação, preencher o mapa, escolher vencedores e gerar os pedidos.</figcaption>
+  </figure>
+  <h3>Criar</h3>
+  <ol class="ajuda-passos">
+    <li>Na solicitação autorizada, clique em <span class="ui">Gerar cotação</span> (ou em Cotações › <span class="ui">Nova cotação</span>).</li>
+    <li>Os itens com saldo já vêm marcados; ajuste as quantidades se quiser cotar só uma parte.</li>
+    <li>Marque os fornecedores (a busca encontra pelo nome, CNPJ ou o que fornece) e o prazo para resposta.</li>
+    <li>Clique em <span class="ui">Criar cotação</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-cotacao-form.webp" alt="Formulário de nova cotação" loading="lazy"><figcaption>Itens autorizados e fornecedores convidados.</figcaption></figure>
+  <h3>Respostas dos fornecedores</h3>
+  <p><span class="ui">Convites e links</span> envia o convite por e-mail ou copia o link de cada fornecedor (para mandar por WhatsApp). Pelo link, o fornecedor preenche os preços e as condições sem precisar de login — ou clica em <span class="ui">Não vamos cotar</span>. Ele não vê o preço orçado.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/portal-fornecedor.webp" alt="Portal do fornecedor para responder a cotação" loading="lazy"><figcaption>O portal do fornecedor: preço por item, pagamento, prazo, frete e validade.</figcaption></figure>
+  <p>Proposta recebida por telefone ou e-mail? Digite os preços direto no mapa.</p>
+  <h3>Escolher e gerar os pedidos</h3>
+  <ul>
+    <li>O menor preço de cada item fica em destaque. Marque <span class="ui">Vencedor</span> por item, ou use <span class="ui">Menor preço por item</span> / <span class="ui">Menor total por fornecedor</span>.</li>
+    <li><span class="ui">Dividir item entre fornecedores</span> permite comprar parte de um e parte de outro.</li>
+    <li><span class="ui">Nova rodada</span> abre a negociação partindo dos preços atuais; as rodadas anteriores ficam guardadas.</li>
+    <li>O resumo embaixo compara o total escolhido com o orçado.</li>
+    <li><span class="ui">Gerar pedidos</span> cria um pedido por fornecedor vencedor, com o local e a data de entrega.</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-mapa.webp" alt="Mapa comparativo de cotação" loading="lazy"><figcaption>Mapa com condições, preços, vencedores e o total selecionado × orçado.</figcaption></figure>
+</article>
+
+<article id="pedido" data-titulo="Pedido de compra" data-grupo="Suprimentos" data-tela="suprimentos:pedidos"
+  data-resumo="Autorizar, enviar ao fornecedor, acompanhar a entrega e encerrar o saldo."
+  data-palavras="pedido de compra oc ordem compra direta pdf enviar email confirmar fornecedor entrega encerrar saldo cancelar">
+  <p class="ajuda-lead">O pedido nasce da cotação ou de uma <b>compra direta</b> (sem cotação, a partir dos itens autorizados). Depois de autorizado, vai para o fornecedor.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-pedidos.webp" alt="Lista de pedidos de compra" loading="lazy"><figcaption>Pedidos com entrega prevista, % entregue e situação.</figcaption></figure>
+  <h3>No documento do pedido</h3>
+  <ul>
+    <li><span class="ui">Autorizar</span> / <span class="ui">Reprovar</span>, para quem tem alçada.</li>
+    <li><span class="ui">PDF</span> gera o pedido com os dados da empresa para imprimir ou anexar.</li>
+    <li><span class="ui">Enviar ao fornecedor</span> manda por e-mail com o PDF; <span class="ui">Copiar link</span> gera o link em que o fornecedor <b>confirma</b> o pedido.</li>
+    <li><span class="ui">Lançar nota fiscal</span> abre a entrada já com este pedido.</li>
+    <li><span class="ui">Encerrar saldo</span> quando o fornecedor não vai entregar o restante; <span class="ui">Cancelar</span> enquanto nada foi entregue.</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-pedido.webp" alt="Documento do pedido de compra" loading="lazy"><figcaption>Pedido autorizado com fornecedor, entrega, pagamento, itens e histórico.</figcaption></figure>
+</article>
+
+<article id="nota-fiscal" data-titulo="Nota fiscal de entrada" data-grupo="Suprimentos" data-tela="suprimentos:notas"
+  data-resumo="Lançar a entrega pelo XML da NF-e: pedido, estoque e contas a pagar de uma vez."
+  data-palavras="nota fiscal nf nfe xml entrada recebimento entrega parcial duplicata parcela imposto frete ipi icms estoque chave de acesso">
+  <p class="ajuda-lead">Quando o material chega, lance a nota. Com o <b>XML da NF-e</b>, o sistema preenche fornecedor, número, chave, itens, impostos e parcelas.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/supr-nota.webp"><source src="/ajuda/video/nota.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (36 s): autorizar os pedidos, abrir o pedido e lançar a nota pelo XML.</figcaption>
+  </figure>
+  <ol class="ajuda-passos">
+    <li>Em <b>Notas fiscais</b>, clique em <span class="ui">Lançar nota fiscal</span> e escolha a obra.</li>
+    <li><span class="ui">Importar XML da NF-e</span>: o fornecedor é encontrado pelo CNPJ (se não existir, o sistema oferece cadastrá-lo com os dados do XML).</li>
+    <li>Os itens da nota são casados com os itens dos pedidos com saldo a entregar. Confira a coluna <b>Recebido nesta nota</b> — a entrega pode ser parcial.</li>
+    <li>Confira os valores (frete, IPI, ICMS-ST, outras despesas, desconto) e as <b>parcelas</b>, que vêm das duplicatas do XML.</li>
+    <li>Deixe marcado <b>Dar entrada dos materiais no estoque</b> e clique em <span class="ui">Lançar nota</span>.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-nota.webp" alt="Lançamento de nota fiscal a partir do XML" loading="lazy"><figcaption>Nota lida do XML: dados, pedido e quantidade recebida.</figcaption></figure>
+  <p>Sem XML, preencha à mão: escolha obra e fornecedor, use <span class="ui">Receber tudo</span> ou digite as quantidades. Material que chegou sem pedido entra em <span class="ui">Incluir item sem pedido</span>, apropriado direto no serviço.</p>
+  <p class="ajuda-atencao"><b>O sistema barra</b> nota repetida (mesmo número, série e fornecedor) e entrega acima do saldo do pedido. Cancelar a nota estorna estoque e parcelas — exceto se o material já foi consumido.</p>
+</article>
+
+<article id="contratos" data-titulo="Contratos e medições" data-grupo="Suprimentos" data-tela="suprimentos:contratos"
+  data-resumo="Empreiteiros e serviços: contrato por serviço da EAP, aditivos, medições e retenções."
+  data-palavras="contrato empreiteiro empreitada medicao aditivo caucao retencao inss iss ir pis cofins csll locacao servico terceirizado">
+  <p class="ajuda-lead">Para empreiteiros, serviços e locações. Os itens do contrato são <b>serviços do orçamento</b>, e cada medição autorizada vira um título no contas a pagar pelo valor líquido.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-contratos.webp" alt="Lista de contratos" loading="lazy"><figcaption>Contratos com vigência, valor, medido e saldo.</figcaption></figure>
+  <h3>Novo contrato</h3>
+  <ol class="ajuda-passos">
+    <li><span class="ui">Novo contrato</span>: obra, fornecedor (contratado), objeto, tipo, assinatura, início e término.</li>
+    <li><span class="ui">Incluir serviço do orçamento</span> para cada item, com quantidade e preço contratado.</li>
+    <li>Informe a <b>retenção contratual / caução</b> (%), os impostos retidos (INSS, ISS, IR, PIS/COFINS/CSLL) e o prazo de pagamento após a medição.</li>
+    <li>Salve: o contrato vai para autorização, conforme a alçada.</li>
+  </ol>
+  <h3>Aditivos e medições</h3>
+  <ul>
+    <li><span class="ui">Aditivo</span>: acréscimo, supressão, item novo ou prazo. Também passa por autorização.</li>
+    <li><span class="ui">Nova medição</span>: quanto de cada item foi executado no período. O sistema calcula bruto, caução, impostos retidos e descontos; depois de autorizada, o <b>líquido</b> vai para Contas a pagar.</li>
+    <li><span class="ui">Encerrar contrato</span> libera a caução retida (que também vira título a pagar).</li>
+  </ul>
+</article>
+
+<article id="estoque" data-titulo="Estoque da obra" data-grupo="Suprimentos" data-tela="suprimentos:estoque"
+  data-resumo="Saldo e custo médio, saídas para serviços, transferências e inventário."
+  data-palavras="estoque almoxarifado saldo custo medio saida requisicao material transferencia inventario contagem ajuste entrada avulsa estorno">
+  <p class="ajuda-lead">Cada obra tem o seu estoque. As notas lançadas dão entrada com frete e impostos rateados no custo; o saldo é valorizado pelo <b>custo médio</b>.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-estoque.webp" alt="Estoque da obra" loading="lazy"><figcaption>Saldos por insumo, custo médio e movimentações.</figcaption></figure>
+  <dl class="ajuda-termos">
+    <dt>Saída para serviço</dt><dd>A requisição de material: insumo, quantidade e o serviço da EAP que consumiu. Saída acima do saldo é barrada.</dd>
+    <dt>Transferir</dt><dd>Leva material para outra obra, com o custo.</dd>
+    <dt>Entrada avulsa</dt><dd>Material que chegou sem nota (doação, sobra de outra obra) com preço informado.</dd>
+    <dt>Inventário</dt><dd>Digite a contagem física; as diferenças viram ajustes.</dd>
+  </dl>
+  <p>Movimentos manuais podem ser estornados na lista de movimentações.</p>
+</article>
+
+<article id="acompanhamento" data-titulo="Acompanhamento de custos" data-grupo="Suprimentos" data-tela="suprimentos:acompanhamento"
+  data-resumo="Orçado × comprometido × realizado por serviço da EAP e por insumo."
+  data-palavras="acompanhamento custo orcado comprometido realizado saldo estouro acima do orcado por insumo por servico csv excel">
+  <p class="ajuda-lead">Mostra, para a obra escolhida, quanto do orçado já foi gasto e quanto está comprometido — por serviço da EAP ou por insumo.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-acompanhamento.webp" alt="Acompanhamento de custos por serviço" loading="lazy"><figcaption>Cartões, barra de consumo e a EAP com orçado, comprometido, realizado e saldo.</figcaption></figure>
+  <dl class="ajuda-termos">
+    <dt>Realizado</dt><dd>Notas fiscais lançadas e medições autorizadas.</dd>
+    <dt>Comprometido</dt><dd>Pedidos autorizados ainda não entregues e saldo dos contratos.</dd>
+    <dt>Em aprovação</dt><dd>Pedidos e contratos aguardando autorização.</dd>
+    <dt>Saldo</dt><dd>Orçado − realizado − comprometido. Negativo (em vermelho) = acima do orçado.</dd>
+  </dl>
+  <p>Na aba <span class="ui">Por insumo</span>, veja as quantidades orçada, solicitada, comprada e recebida. <span class="ui">Exportar CSV</span> abre no Excel e <span class="ui">Imprimir</span> gera a versão em papel.</p>
+</article>
+
+<!-- ======================= FINANCEIRO ======================= -->
+<article id="contas-pagar" data-titulo="Contas a pagar" data-grupo="Financeiro" data-tela="financeiro"
+  data-resumo="Títulos das notas e medições: pagar, estornar e mudar o vencimento."
+  data-palavras="financeiro contas a pagar titulo boleto parcela vencimento pagamento baixa pagar estornar vencido caucao">
+  <p class="ajuda-lead">Os títulos nascem sozinhos: parcelas das notas fiscais, valor líquido das medições e liberação de caução dos contratos.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/financeiro.webp" alt="Contas a pagar" loading="lazy"><figcaption>Cartões de em aberto, vencido e próximos dias; lista filtrável por situação e vencimento.</figcaption></figure>
+  <ul>
+    <li><span class="ui">Pagar</span> registra o pagamento (data e valor pago).</li>
+    <li><span class="ui">Vencimento</span> altera a data de vencimento de um título em aberto.</li>
+    <li><span class="ui">Estornar</span> desfaz um pagamento lançado por engano.</li>
+    <li>Filtre por situação (em aberto, vencidos, pagos), período de vencimento, fornecedor ou documento.</li>
+  </ul>
+  <p class="ajuda-dica"><b>Dica:</b> para corrigir o valor de uma parcela, corrija a origem (cancele e relance a nota, por exemplo) — o título acompanha o documento que o gerou.</p>
+</article>
+
+<!-- ======================= ADMINISTRAÇÃO ======================= -->
+<article id="usuarios-permissoes" data-titulo="Usuários e permissões" data-grupo="Administração" data-tela="usuarios"
+  data-resumo="Aprovar acessos e definir o que cada pessoa vê e altera em cada módulo."
+  data-palavras="usuario permissao acesso aprovar bloquear administrador admin modulo visualizar editar perfil">
+  <p class="ajuda-lead">Só administradores veem esta tela. Aqui se aprova quem pediu acesso e se define, módulo a módulo, o que cada pessoa pode ver e alterar.</p>
+  <figure class="ajuda-video">
+    <video controls preload="none" playsinline poster="/ajuda/img/permissoes.webp"><source src="/ajuda/video/permissoes.mp4" type="video/mp4"></video>
+    <figcaption>Vídeo (19 s): o comprador consulta a Engenharia, mas não altera.</figcaption>
+  </figure>
+  <figure class="ajuda-foto"><img src="/ajuda/img/usuarios.webp" alt="Lista de usuários" loading="lazy"><figcaption>Usuários com situação, perfil e permissões.</figcaption></figure>
+  <ul>
+    <li><span class="ui">Aprovar</span> libera quem está aguardando; <span class="ui">Bloquear</span> corta o acesso na hora.</li>
+    <li><span class="ui">Tornar admin</span> dá acesso total, inclusive às telas de Apoio.</li>
+    <li><span class="ui">Editar permissões</span> abre a matriz módulo × <b>Visualizar</b> / <b>Editar</b>. Editar inclui visualizar; o que a pessoa não pode visualizar some do menu.</li>
+  </ul>
+  <figure class="ajuda-foto"><img src="/ajuda/img/permissoes.webp" alt="Matriz de permissões por módulo" loading="lazy"><figcaption>Permissões de cada módulo, agrupadas por área.</figcaption></figure>
+  <p class="ajuda-dica"><b>Quem autoriza compras</b> não é definido aqui, e sim nas <a href="#" data-artigo="autorizacoes">alçadas</a>. Quem ainda não teve a matriz salva segue a regra antiga (visualiza tudo e edita se tinha permissão de edição).</p>
+</article>
+
+<article id="liberacao-backup" data-titulo="Liberação de orçamento e backup" data-grupo="Administração" data-tela="liberacao"
+  data-resumo="Destravar orçamentos esquecidos em edição e guardar uma cópia dos orçamentos."
+  data-palavras="liberacao bloqueio destravar travado em edicao backup exportar importar json copia seguranca">
+  <h3>Liberação</h3>
+  <p>Lista os orçamentos em edição, com quem bloqueou e desde quando. Se alguém esqueceu um orçamento aberto (ou saiu sem liberar), o administrador clica em <span class="ui">Liberar</span>. O que essa pessoa não salvou fica só no navegador dela.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/liberacao.webp" alt="Tela de liberação de orçamento" loading="lazy"><figcaption>Bloqueios ativos.</figcaption></figure>
+  <h3>Backup</h3>
+  <p><span class="ui">Exportar backup</span> baixa todos os orçamentos num arquivo <code>.json</code>. <span class="ui">Importar backup</span> faz o caminho inverso.</p>
+  <p class="ajuda-atencao"><b>Cuidado:</b> importar um backup <b>substitui todos os orçamentos atuais</b> pelos do arquivo. Exporte um backup novo antes de importar.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/backup.webp" alt="Tela de backup" loading="lazy"><figcaption>Exportar e importar orçamentos.</figcaption></figure>
+</article>
+
+<article id="base-sinapi" data-titulo="Base SINAPI" data-grupo="Administração" data-tela="sinapi"
+  data-resumo="Importar o arquivo mensal da Caixa e escolher a referência dos orçamentos."
+  data-palavras="sinapi base caixa importar mes referencia zip xlsx desonerado sao paulo atualizar precos">
+  <p class="ajuda-lead">A base própria guarda os meses do SINAPI de <b>São Paulo, desonerado</b>, usados nas pesquisas, preços e composições dos orçamentos.</p>
+  <ol class="ajuda-passos">
+    <li>No site da Caixa, baixe o arquivo do mês no formato <code>SINAPI-AAAA-MM-formato-xlsx.zip</code> (o arquivo inteiro, sem descompactar).</li>
+    <li>Em <b>Base SINAPI</b>, clique em <span class="ui">Escolher arquivo ZIP</span>. O arquivo é conferido no seu computador antes do envio.</li>
+    <li>Confira a prévia e clique em <span class="ui">Importar</span>. A barra mostra o andamento.</li>
+  </ol>
+  <figure class="ajuda-foto"><img src="/ajuda/img/sinapi.webp" alt="Tela da base SINAPI" loading="lazy"><figcaption>Meses na base, com quantidade de insumos e composições.</figcaption></figure>
+  <p>Depois, em cada orçamento, troque a referência em <span class="ui">Alterar</span> (veja <a href="#" data-artigo="orcamento">Orçamento</a>). Orçamentos antigos não mudam sozinhos.</p>
+</article>
+
+<!-- ======================= DÚVIDAS ======================= -->
+<article id="faq" data-titulo="Dúvidas frequentes" data-grupo="Dúvidas"
+  data-resumo="Respostas rápidas para as situações mais comuns."
+  data-palavras="duvida problema erro nao aparece nao consigo faq perguntas">
+  <details class="ajuda-faq"><summary>Não encontro um módulo no menu.</summary><p>O menu mostra só o que você pode visualizar. Peça ao administrador para liberar o módulo em <a href="#" data-artigo="usuarios-permissoes">Usuários › Editar permissões</a>.</p></details>
+  <details class="ajuda-faq"><summary>O orçamento diz “Em edição por …” e não consigo editar.</summary><p>Outra pessoa está editando. Peça para ela clicar em <span class="ui">Liberar</span>; se ela não estiver disponível, um administrador libera em <a href="#" data-artigo="liberacao-backup">Liberação</a>.</p></details>
+  <details class="ajuda-faq"><summary>Alterei o orçamento, mas o Planejamento e as compras não mudaram.</summary><p>As outras telas leem o que está salvo no servidor. Clique em <span class="ui">Salvar</span> no orçamento; enquanto houver “Alterações não salvas”, só você vê a mudança.</p></details>
+  <details class="ajuda-faq"><summary>A solicitação foi para autorização mesmo dentro do saldo.</summary><p>É o parâmetro “Solicitação exige autorização”, ligado por padrão. O administrador pode mudar em <a href="#" data-artigo="fornecedores">Cadastros › Parâmetros</a>. Itens acima do saldo ou fora do orçamento vão para autorização sempre.</p></details>
+  <details class="ajuda-faq"><summary>Não consigo autorizar um pedido.</summary><p>O valor passou da sua alçada, ou você não tem alçada para esse tipo de documento. O documento continua pendente para quem tem alçada maior. Veja <a href="#" data-artigo="autorizacoes">Autorizações e alçadas</a>.</p></details>
+  <details class="ajuda-faq"><summary>Digitei o CNPJ e nada foi preenchido.</summary><p>Confira se o CNPJ é válido (14 dígitos). As consultas à Receita usam serviços públicos gratuitos que às vezes ficam fora do ar — tente de novo em alguns minutos ou preencha à mão.</p></details>
+  <details class="ajuda-faq"><summary>O XML da nota não casou os itens com o pedido.</summary><p>O sistema compara as descrições. Se um item ficou sem par, digite a quantidade recebida na linha do pedido; a descrição da nota aparece embaixo do insumo como “Na nota: …”.</p></details>
+  <details class="ajuda-faq"><summary>A duração de um serviço no cronograma ficou estranha.</summary><p>A duração sai das horas de mão de obra ÷ equipe, convertidas pelo horário do calendário. Confira a equipe e o calendário em <span class="ui">Configurar</span>; o botão <span class="ui">↺</span> volta a duração ao cálculo automático. Veja <a href="#" data-artigo="cronograma">Cronograma</a>.</p></details>
+  <details class="ajuda-faq"><summary>Como o avanço da obra é calculado?</summary><p>Cada serviço pesa pelo seu valor orçado. Um serviço de R$ 100 mil com 50% executado pesa mais que um de R$ 5 mil com 100%. Veja <a href="#" data-artigo="avanco">Avanço físico</a>.</p></details>
+  <details class="ajuda-faq"><summary>O fornecedor não tem e-mail. Como mando a cotação ou o pedido?</summary><p>Use <span class="ui">Copiar link</span> e mande por WhatsApp. O fornecedor responde a cotação ou confirma o pedido pelo link, sem login.</p></details>
+  <details class="ajuda-faq"><summary>Lancei uma nota errada.</summary><p>Abra a nota e clique em <span class="ui">Cancelar nota</span>: estoque e parcelas são estornados. Se parte do material já saiu do estoque, estorne a saída antes.</p></details>
+</article>

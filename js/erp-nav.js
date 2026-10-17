@@ -1,5 +1,5 @@
 /* Controla o menu lateral: recolher/expandir e troca entre as views
-   (Início / Orçamento / Usuários / Backup / Suprimentos / Financeiro). Não depende do app.js.
+   (Início / Orçamento / Usuários / Backup / Suprimentos / Financeiro / Ajuda). Não depende do app.js.
    Os itens de Suprimentos são a mesma view com data-aba diferente (Painel, Solicitações...):
    o evento app:viewchange leva { view, aba }. window.ErpNav.abrir(view, aba) navega pelo código. */
 (function () {
@@ -20,7 +20,8 @@
     insumos: document.getElementById('viewInsumos'),
     unidades: document.getElementById('viewUnidades'),
     suprimentos: document.getElementById('viewSuprimentos'),
-    financeiro: document.getElementById('viewFinanceiro')
+    financeiro: document.getElementById('viewFinanceiro'),
+    ajuda: document.getElementById('viewAjuda')
   };
   var itens = Array.prototype.slice.call(document.querySelectorAll('.app-sidebar-item[data-view]'));
 
