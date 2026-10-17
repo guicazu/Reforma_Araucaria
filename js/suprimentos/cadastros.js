@@ -253,7 +253,10 @@
             '<label>CNPJ<input data-p="empresa_documento" value="' + S.esc(S.documento(p.empresa_documento)) + '"></label>' +
             '<label class="largo">Endereço<input data-p="empresa_endereco" value="' + S.esc(p.empresa_endereco) + '"></label>' +
             '<label class="largo">Local de entrega padrão<input data-p="local_entrega_padrao" value="' + S.esc(p.local_entrega_padrao) + '" placeholder="Endereço da obra para os pedidos"></label></div>' +
-            '<div class="supr-rodape"><button type="button" class="btn btn-primary" data-acao="salvar-param">' + S.ic('salvar') + 'Salvar parâmetros</button></div>';
+            '<div class="supr-rodape"><button type="button" class="btn btn-primary" data-acao="salvar-param">' + S.ic('salvar') + 'Salvar parâmetros</button></div>' +
+            S.secao('E-mails aos fornecedores', '<p class="supr-dica" style="margin:0">Convites de cotação e pedidos saem de <b>' + S.esc(p.email_remetente) +
+              '</b> com o nome de quem envia, e as respostas vão para o e-mail de login dessa pessoa. Defina aqui o remetente, a cópia oculta, o rodapé e os textos, com os campos {{...}} dos documentos.</p>',
+              S.botao('emails', 'Configurar e-mails', { icone: 'email' }));
         } else {
           const nomes = { solicitacao: 'Solicitações de compra', pedido: 'Pedidos de compra', contrato: 'Contratos e aditivos', medicao: 'Medições' };
           h += '<p class="supr-nota">Administradores autorizam tudo. Os demais usuários autorizam só o que estiver na alçada: tipo de documento e valor máximo (em branco = sem limite).</p>' +
@@ -296,6 +299,7 @@
           if (!b) return;
           if (b.dataset.acao === 'novo-forn') { if (await S.formFornecedor(null)) abrir(); }
           else if (b.dataset.acao === 'nova-cond') { if (await formCondicao(null)) abrir(); }
+          else if (b.dataset.acao === 'emails') S.ir('emails', {});
           else if (b.dataset.acao === 'salvar-param') {
             const parametros = {};
             c.querySelectorAll('[data-p]').forEach((x) => { parametros[x.dataset.p] = x.type === 'checkbox' ? (x.checked ? '1' : '0') : x.value.trim(); });

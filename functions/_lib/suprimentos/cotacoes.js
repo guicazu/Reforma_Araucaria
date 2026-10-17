@@ -9,7 +9,9 @@ import {
 } from './base.js';
 import { atendimentoDosItens } from './solicitacoes.js';
 import { condicaoPorId } from './cadastros.js';
-import { enviarEmail } from '../email.js';
+import { enviarEmail, motivoFalha } from '../email.js';
+import { montarEmail, dadosDoEnvio } from '../../../js/email-modelos.js';
+import { listarObras } from './orcado.js';
 
 const TOLERANCIA = 1e-6;
 
@@ -328,8 +330,10 @@ export async function enviarConvites({ env, ctx, params, corpo, url }) {
   exigirEdicao(ctx);
   const c = await cotacaoOuErro(env, params.id);
   exigirAberta(c);
-  const dados = await dadosDoMapa(env, c);
-  const p = await parametros(env);
+  const [dados, p, obras] = await Promise.all([dadosDoMapa(env, c), parametros(env), listarObras(env)]);
+  const obra = obras.find((o) => o.id === c.orcamentoId) || {};
+  const usuario = { email: ctx.email, nome: ctx.nome };
+  const empresa = { nome: p.empresa_nome, documento: p.empresa_documento, endereco: p.empresa_endereco };
   const alvo = Array.isArray(corpo.fornecedores) && corpo.fornecedores.length ? new Set(corpo.fornecedores) : null;
   const resultado = [];
   const comandos = [];
@@ -337,20 +341,13 @@ export async function enviarConvites({ env, ctx, params, corpo, url }) {
     if (alvo && !alvo.has(f.fornecedorId)) continue;
     const link = linkPortal(url.origin, f.token);
     if (!f.email) { resultado.push({ fornecedorId: f.fornecedorId, nome: f.nome, link, enviado: false, erro: 'Fornecedor sem e-mail' }); continue; }
-    const linhas = dados.itens.map((i) => `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">${esc(i.descricao)}</td>` +
-      `<td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right">${fmt(i.quantidade)} ${esc(i.unidade || '')}</td></tr>`).join('');
-    const html = `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#27272a">
-      <h2 style="font-size:18px">Solicitação de cotação nº ${c.numero}</h2>
-      <p>Olá, <b>${esc(f.nome)}</b>. A ${esc(p.empresa_nome)} pede sua proposta para os itens abaixo${c.prazoResposta ? ` até <b>${dataBr(c.prazoResposta)}</b>` : ''}.</p>
-      <table style="border-collapse:collapse;width:100%;font-size:13px">${linhas}</table>
-      <p style="margin:22px 0"><a href="${link}" style="background:#18181b;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:bold">Responder cotação</a></p>
-      <p style="color:#71717a;font-size:12px">Pelo link você informa preço, marca, prazo de entrega, frete e condição de pagamento. ${c.observacoes ? 'Observações: ' + esc(c.observacoes) : ''}</p></div>`;
+    const m = montarEmail('cotacao', p, dadosDoEnvio('cotacao', { usuario, empresa, fornecedor: f, obra, cotacao: c, itens: dados.itens, link }));
     try {
-      await enviarEmail({ env, destinatario: f.email, assunto: `Cotação nº ${c.numero} — ${p.empresa_nome}`, html });
+      await enviarEmail({ env, prm: p, usuario, nomeRemetente: m.nomeRemetente, destinatario: f.email, assunto: m.assunto, html: m.html, texto: m.texto });
       comandos.push(env.DB.prepare('UPDATE supr_cotacao_fornecedores SET conviteEnviadoEm = ? WHERE id = ?').bind(agora(), f.id));
       resultado.push({ fornecedorId: f.fornecedorId, nome: f.nome, link, enviado: true });
     } catch (e) {
-      resultado.push({ fornecedorId: f.fornecedorId, nome: f.nome, link, enviado: false, erro: e.message });
+      resultado.push({ fornecedorId: f.fornecedorId, nome: f.nome, link, enviado: false, erro: motivoFalha(e) });
     }
   }
   const enviados = resultado.filter((r) => r.enviado).length;
@@ -358,10 +355,6 @@ export async function enviarConvites({ env, ctx, params, corpo, url }) {
   if (comandos.length) await env.DB.batch(comandos);
   return json({ ok: true, resultado });
 }
-
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
-function fmt(n) { return Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 }); }
-function dataBr(d) { return d ? d.split('-').reverse().join('/') : ''; }
 
 /* ---------- gerar pedidos ---------- */
 export async function gerarPedidos({ env, ctx, params, corpo }) {

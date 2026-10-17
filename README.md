@@ -109,6 +109,14 @@ Cada obra é um orçamento; toda compra é apropriada a serviços da EAP da vers
 - **Autorizações**, **Painel** (pendências, atrasos, entregas e pagamentos) e **Acompanhamento**
   (orçado × comprometido × realizado por serviço e por insumo, com CSV).
 - **Financeiro › Contas a pagar**: baixa, estorno e alteração de vencimento dos títulos.
+- **E-mails aos fornecedores** (convite de cotação e pedido com PDF): saem do endereço de envio
+  (padrão `contato@cazu.com.br`, domínio verificado no Resend) com o nome de quem envia, "Responder
+  para" o e-mail de login dessa pessoa e cópia oculta para ela (opcional); quem entra com e-mail do
+  mesmo domínio envia com o próprio endereço. Em **Parâmetros › Configurar e-mails** o administrador
+  edita remetente, rodapé e os textos com campos `{{fornecedor.nome}}`, `{{pedido.valor}}`,
+  `{{usuario.nome}}`… (trechos `[[ ]]` somem quando o campo está vazio), com prévia ao lado e e-mail
+  de teste. Falhas do Resend viram mensagens claras (domínio não verificado, chave inválida, limite).
+  Textos padrão, campos e montagem em `js/email-modelos.js` (o mesmo na tela e no servidor).
 - **Cadastro de fornecedor**: digitar o CNPJ traz os dados públicos da Receita (razão social, nome
   fantasia, inscrição estadual, endereço, telefone, e-mail, situação cadastral) e avisa se o
   fornecedor já existe; digitar o CEP preenche rua, bairro, cidade e UF. Fontes gratuitas, com
@@ -219,8 +227,8 @@ Variáveis de ambiente necessárias (**Workers e Pages → Settings → Environm
 | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | credenciais OAuth do Microsoft Entra |
 | `SESSION_SECRET` | string aleatória usada para assinar o cookie de sessão |
 | `ADMIN_EMAILS` | e-mails (separados por vírgula) com acesso ao painel `/admin.html` |
-| `RESEND_API_KEY` | (opcional) envio de e-mail de pedidos e convites de cotação pelo [Resend](https://resend.com); sem ela, use "Copiar link" |
-| `REMETENTE_EMAIL` | (opcional) remetente dos e-mails, ex.: `Compras <compras@seudominio.com.br>` |
+| `RESEND_API_KEY` | envio de e-mail de pedidos e convites de cotação pelo [Resend](https://resend.com), com o domínio `cazu.com.br` verificado; sem ela, use "Copiar link". Endereço, nome do remetente e textos ficam em Suprimentos › Cadastros › Parâmetros › Configurar e-mails |
+| `RESEND_API_URL` | só nos testes locais: aponta o envio para um servidor falso que registra os e-mails |
 
 Associação de banco de dados (**Settings → Functions → D1 database bindings**):
 nome `DB` → banco `ibuild-orcamentos`.

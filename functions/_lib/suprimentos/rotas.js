@@ -20,6 +20,7 @@ import * as con from './consultas.js';
 const ROTAS = [
   ['GET', 'configuracao', cad.obterConfiguracao, 'livre'],
   ['PUT', 'parametros', cad.salvarParametros, 'admin'],
+  ['POST', 'parametros/email-teste', cad.emailDeTeste, 'admin'],
   ['GET', 'alcadas', cad.listarAlcadas, 'admin'],
   ['POST', 'alcadas', cad.salvarAlcada, 'admin'],
   ['DELETE', 'alcadas/:id', cad.excluirAlcada, 'admin'],

@@ -3,6 +3,7 @@
 // O D1 aceita até 100 parâmetros por consulta: listas de ids vão como um JSON só (json_each).
 import { lerCookie, validarSessao } from '../session.js';
 import { permissoesDoEmail } from '../permissoes.js';
+import { PADROES as EMAIL_PADROES } from '../../../js/email-modelos.js';
 
 export class ErroApi extends Error {
   constructor(status, codigo, mensagem, extra) {
@@ -192,13 +193,16 @@ export const PARAMETROS_PADRAO = {
   empresa_nome: 'Cazú Projetos e Construções',
   empresa_documento: '',
   empresa_endereco: '',
-  local_entrega_padrao: ''
+  local_entrega_padrao: '',
+  // e-mails aos fornecedores (textos com campos {{...}}; ver js/email-modelos.js)
+  ...EMAIL_PADROES
 };
 
 export async function parametros(env) {
   const { results } = await env.DB.prepare('SELECT chave, valor FROM supr_parametros').all();
   const p = { ...PARAMETROS_PADRAO };
-  for (const r of results) if (r.chave in p) p[r.chave] = r.valor;
+  // texto de e-mail em branco volta ao padrão
+  for (const r of results) if (r.chave in p && !(r.chave in EMAIL_PADROES && !String(r.valor || '').trim())) p[r.chave] = r.valor;
   return p;
 }
 export const ligado = (valor) => valor === '1' || valor === 'true' || valor === true;

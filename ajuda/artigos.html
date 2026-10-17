@@ -279,6 +279,15 @@
     <li><b>Parâmetros</b>: se solicitação, pedido, contrato e medição exigem autorização; se o sistema bloqueia (em vez de só avisar) compras acima do orçado; dados da empresa para o PDF do pedido e o local de entrega padrão.</li>
     <li><b>Alçadas</b>: quem autoriza cada tipo de documento e até qual valor. Veja <a href="#" data-artigo="autorizacoes">Autorizações e alçadas</a>.</li>
   </ul>
+  <h3>E-mails aos fornecedores (administrador)</h3>
+  <p>Convites de cotação e pedidos saem de <b>contato@cazu.com.br</b> com o nome de quem envia (ex.: <i>Carlos Silva (Cazú Projetos e Construções)</i>), e as respostas do fornecedor vão direto para o e-mail de login dessa pessoa. Quem entra com e-mail <b>@cazu.com.br</b> envia com o próprio endereço.</p>
+  <p>Em <b>Parâmetros › Configurar e-mails</b> você define o endereço de envio, o nome do remetente, a cópia oculta para quem enviou, o rodapé e os textos dos dois e-mails. Clique num campo da lista para colocá-lo no texto: <code>{{fornecedor.nome}}</code>, <code>{{pedido.valor}}</code>, <code>{{usuario.nome}}</code>… A prévia ao lado mostra o e-mail pronto, e <span class="ui">Enviar teste para mim</span> manda um exemplo para o seu e-mail antes de salvar.</p>
+  <figure class="ajuda-foto"><img src="/ajuda/img/supr-emails.webp" alt="Configuração dos e-mails aos fornecedores com editor e prévia" loading="lazy"><figcaption>Editor do texto à esquerda, prévia com dados de exemplo à direita.</figcaption></figure>
+  <ul>
+    <li><code>{{fornecedor.contato|fornecedor.nome}}</code> usa o nome da empresa quando não há pessoa de contato.</li>
+    <li><code>[[ ... ]]</code>: o trecho some quando algum campo dentro dele está vazio — ex.: <code>[[Responda até {{cotacao.prazo}}.]]</code>.</li>
+    <li><code>**texto**</code> fica em negrito; <code>{{itens}}</code> vira a tabela dos itens e <code>{{botao}}</code> o botão com o link, cada um em linha própria.</li>
+  </ul>
 </article>
 
 <article id="solicitacao" data-titulo="Solicitação de compra" data-grupo="Suprimentos" data-tela="suprimentos:solicitacoes"
@@ -337,7 +346,7 @@
   </ol>
   <figure class="ajuda-foto"><img src="/ajuda/img/supr-cotacao-form.webp" alt="Formulário de nova cotação" loading="lazy"><figcaption>Itens autorizados e fornecedores convidados.</figcaption></figure>
   <h3>Respostas dos fornecedores</h3>
-  <p><span class="ui">Convites e links</span> envia o convite por e-mail ou copia o link de cada fornecedor (para mandar por WhatsApp). Pelo link, o fornecedor preenche os preços e as condições sem precisar de login — ou clica em <span class="ui">Não vamos cotar</span>. Ele não vê o preço orçado.</p>
+  <p><span class="ui">Convites e links</span> envia o convite por e-mail ou copia o link de cada fornecedor (para mandar por WhatsApp). O e-mail sai em seu nome e as respostas vão para o seu e-mail; o texto é definido pelo administrador em <a href="#" data-artigo="fornecedores">Cadastros › Parâmetros</a>. Pelo link, o fornecedor preenche os preços e as condições sem precisar de login — ou clica em <span class="ui">Não vamos cotar</span>. Ele não vê o preço orçado.</p>
   <figure class="ajuda-foto"><img src="/ajuda/img/portal-fornecedor.webp" alt="Portal do fornecedor para responder a cotação" loading="lazy"><figcaption>O portal do fornecedor: preço por item, pagamento, prazo, frete e validade.</figcaption></figure>
   <p>Proposta recebida por telefone ou e-mail? Digite os preços direto no mapa.</p>
   <h3>Escolher e gerar os pedidos</h3>
@@ -360,7 +369,7 @@
   <ul>
     <li><span class="ui">Autorizar</span> / <span class="ui">Reprovar</span>, para quem tem alçada.</li>
     <li><span class="ui">PDF</span> gera o pedido com os dados da empresa para imprimir ou anexar.</li>
-    <li><span class="ui">Enviar ao fornecedor</span> manda por e-mail com o PDF; <span class="ui">Copiar link</span> gera o link em que o fornecedor <b>confirma</b> o pedido.</li>
+    <li><span class="ui">Enviar ao fornecedor</span> manda por e-mail com o PDF, em seu nome (as respostas vão para o seu e-mail); <span class="ui">Copiar link</span> gera o link em que o fornecedor <b>confirma</b> o pedido.</li>
     <li><span class="ui">Lançar nota fiscal</span> abre a entrada já com este pedido.</li>
     <li><span class="ui">Encerrar saldo</span> quando o fornecedor não vai entregar o restante; <span class="ui">Cancelar</span> enquanto nada foi entregue.</li>
   </ul>
@@ -507,6 +516,8 @@
   <details class="ajuda-faq"><summary>O XML da nota não casou os itens com o pedido.</summary><p>O sistema compara as descrições. Se um item ficou sem par, digite a quantidade recebida na linha do pedido; a descrição da nota aparece embaixo do insumo como “Na nota: …”.</p></details>
   <details class="ajuda-faq"><summary>A duração de um serviço no cronograma ficou estranha.</summary><p>A duração sai das horas de mão de obra ÷ equipe, convertidas pelo horário do calendário. Confira a equipe e o calendário em <span class="ui">Configurar</span>; o botão <span class="ui">↺</span> volta a duração ao cálculo automático. Veja <a href="#" data-artigo="cronograma">Cronograma</a>.</p></details>
   <details class="ajuda-faq"><summary>Como o avanço da obra é calculado?</summary><p>Cada serviço pesa pelo seu valor orçado. Um serviço de R$ 100 mil com 50% executado pesa mais que um de R$ 5 mil com 100%. Veja <a href="#" data-artigo="avanco">Avanço físico</a>.</p></details>
+  <details class="ajuda-faq"><summary>O e-mail para o fornecedor não foi enviado.</summary><p>A mensagem diz o motivo (e-mail do fornecedor inválido, limite de envios, configuração do envio). Enquanto isso, use <span class="ui">Copiar link</span> e mande por WhatsApp. Se o motivo for a configuração, o administrador confere em <a href="#" data-artigo="fornecedores">Parâmetros › Configurar e-mails</a> com <span class="ui">Enviar teste para mim</span>.</p></details>
+  <details class="ajuda-faq"><summary>O fornecedor respondeu o e-mail. Para onde vai a resposta?</summary><p>Para o e-mail de login de quem enviou (o sistema coloca esse endereço em “Responder para”). Com a cópia oculta ligada, você também recebe uma cópia do que foi enviado.</p></details>
   <details class="ajuda-faq"><summary>O fornecedor não tem e-mail. Como mando a cotação ou o pedido?</summary><p>Use <span class="ui">Copiar link</span> e mande por WhatsApp. O fornecedor responde a cotação ou confirma o pedido pelo link, sem login.</p></details>
   <details class="ajuda-faq"><summary>Lancei uma nota errada.</summary><p>Abra a nota e clique em <span class="ui">Cancelar nota</span>: estoque e parcelas são estornados. Se parte do material já saiu do estoque, estorne a saída antes.</p></details>
 </article>

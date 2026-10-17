@@ -3,6 +3,8 @@ import {
   json, falha, uuid, agora, texto, numero, escolha, lerJson, exigirEdicao, exigirAdmin, historico,
   parametros, PARAMETROS_PADRAO, alcadasDoUsuario, TIPOS_ALCADA, validarParcelas
 } from './base.js';
+import { validar as validarModelo, montarEmail, exemplo, TIPOS as TIPOS_EMAIL } from '../../../js/email-modelos.js';
+import { enviarEmail, mensagemFalha } from '../email.js';
 
 /* ---------- CPF/CNPJ ---------- */
 function digitos(v) { return String(v || '').replace(/\D/g, ''); }
@@ -190,15 +192,41 @@ export async function obterConfiguracao({ env, ctx }) {
   });
 }
 
+// Textos dos e-mails: tamanho e campos {{...}} conferidos pelo mesmo módulo da tela
+const MODELOS_EMAIL = {
+  email_remetente_nome: { rotulo: 'Nome do remetente', tipo: null, onde: 'linha', max: 200 },
+  email_rodape: { rotulo: 'Rodapé', tipo: null, onde: 'rodape', max: 600 },
+  email_cotacao_assunto: { rotulo: 'Assunto do convite de cotação', tipo: 'cotacao', onde: 'assunto', max: 200 },
+  email_cotacao_corpo: { rotulo: 'Texto do convite de cotação', tipo: 'cotacao', onde: 'corpo', max: 6000 },
+  email_pedido_assunto: { rotulo: 'Assunto do pedido de compra', tipo: 'pedido', onde: 'assunto', max: 200 },
+  email_pedido_corpo: { rotulo: 'Texto do pedido de compra', tipo: 'pedido', onde: 'corpo', max: 6000 }
+};
+const RE_EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+function valorDoParametro(chave, bruto) {
+  if (/_exige_|^bloquear_|^email_copia_/.test(chave)) return bruto === true || bruto === '1' ? '1' : '0';
+  if (chave === 'email_remetente') {
+    const v = String(bruto || '').trim().toLowerCase();
+    if (v && !RE_EMAIL.test(v)) falha(400, 'email_invalido', 'E-mail de envio inválido: use um endereço como contato@cazu.com.br.');
+    return v;
+  }
+  const m = MODELOS_EMAIL[chave];
+  if (m) {
+    const v = String(bruto == null ? '' : bruto).replace(/\r\n?/g, '\n');
+    if (v.length > m.max) falha(400, 'texto_longo', `${m.rotulo}: até ${m.max} caracteres.`);
+    const erros = validarModelo(v, m.tipo, m.onde);
+    if (erros.length) falha(400, 'modelo_invalido', `${m.rotulo}: ${erros.join('; ')}.`);
+    return v.trim() ? v : '';
+  }
+  return texto(bruto, chave, { max: 300 }) || '';
+}
+
 export async function salvarParametros({ env, ctx, corpo }) {
   exigirAdmin(ctx);
   const valores = corpo.parametros || {};
   const comandos = [];
   for (const chave of Object.keys(PARAMETROS_PADRAO)) {
     if (!(chave in valores)) continue;
-    const bool = /_exige_|^bloquear_/.test(chave);
-    const valor = bool ? (valores[chave] === true || valores[chave] === '1' ? '1' : '0')
-      : texto(valores[chave], chave, { max: 300 }) || '';
+    const valor = valorDoParametro(chave, valores[chave]);
     comandos.push(env.DB.prepare(
       'INSERT INTO supr_parametros (chave, valor) VALUES (?1, ?2) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor'
     ).bind(chave, valor));
@@ -208,6 +236,26 @@ export async function salvarParametros({ env, ctx, corpo }) {
     await env.DB.batch(comandos);
   }
   return json({ ok: true, parametros: await parametros(env) });
+}
+
+// E-mail de teste com os textos da tela (ainda não salvos) e dados de exemplo, para quem está configurando
+export async function emailDeTeste({ env, ctx, corpo }) {
+  exigirAdmin(ctx);
+  const tipo = corpo.tipo === 'pedido' ? 'pedido' : 'cotacao';
+  const prm = await parametros(env);
+  for (const [chave, bruto] of Object.entries(corpo.parametros || {})) {
+    if (/^email_/.test(chave) && chave in PARAMETROS_PADRAO) prm[chave] = valorDoParametro(chave, bruto) || PARAMETROS_PADRAO[chave];
+  }
+  const usuario = { email: ctx.email, nome: ctx.nome };
+  const dados = exemplo(tipo, usuario, { nome: prm.empresa_nome, documento: prm.empresa_documento, endereco: prm.empresa_endereco });
+  const m = montarEmail(tipo, prm, dados);
+  try {
+    const r = await enviarEmail({ env, prm, usuario, nomeRemetente: m.nomeRemetente, destinatario: ctx.email,
+      assunto: '[Teste] ' + m.assunto, html: m.html, texto: m.texto, semCopia: true });
+    return json({ ok: true, destinatario: ctx.email, de: r.de, tipo: TIPOS_EMAIL[tipo].nome });
+  } catch (e) {
+    falha(502, 'falha_email', mensagemFalha(e));
+  }
 }
 
 export async function listarAlcadas({ env, ctx }) {

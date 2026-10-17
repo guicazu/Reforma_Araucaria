@@ -236,3 +236,35 @@ dialog.supr-dlg::backdrop{background:rgba(24,24,27,.32)}
 .supr-dlg .forn-status.erro{color:var(--st-vermelho)}
 .supr-dlg .forn-status a{color:var(--tinta);font-weight:500}
 .supr-dlg .forn-preenchido{background:#f0fdf4}
+
+/* ---------- E-mails aos fornecedores (js/suprimentos/emails.js) ---------- */
+.eml-sujo{align-self:center;font-size:12px;font-weight:500;color:var(--st-amarelo)}
+.eml-barra{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:8px;margin:16px 0 0;padding:10px 0;border-top:1px solid var(--borda);background:var(--fundo)}
+.eml-barra .espaco{flex:1}
+.eml-sujo[hidden],.eml-editor[hidden],.eml-erros[hidden]{display:none}
+.eml-grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;margin-top:12px}
+.eml-editor{display:flex;flex-direction:column;gap:10px}
+.eml-editor .campo{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--suave)}
+.eml-editor textarea{min-height:360px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical}
+.supr .invalido{border-color:var(--st-vermelho)!important;background:#fef2f2}
+.eml-erros{margin:-4px 0 0;font-size:12px;color:var(--st-vermelho)}
+.eml-previa{position:sticky;top:64px;border:1px solid var(--borda);border-radius:8px;background:var(--fundo);overflow:hidden}
+.eml-previa-rot{margin:0;padding:8px 12px;border-bottom:1px solid var(--borda);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fraco)}
+.eml-cab{display:grid;grid-template-columns:110px minmax(0,1fr);gap:3px 10px;margin:0;padding:10px 12px;border-bottom:1px solid var(--borda);background:var(--superficie);font-size:12px}
+.eml-cab dt{color:var(--suave)}
+.eml-cab dd{margin:0;overflow-wrap:anywhere;color:var(--texto)}
+.eml-previa iframe{display:block;width:100%;min-height:300px;border:0;background:#fff}
+.eml-ajuda{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px}
+.eml-grupo{margin-bottom:12px}
+.eml-grupo p{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fraco)}
+.eml-campo{display:inline-flex;align-items:baseline;gap:6px;margin:0 6px 6px 0;padding:4px 8px;border:1px solid var(--borda);border-radius:6px;background:var(--superficie);font:inherit;font-size:12px;color:var(--texto);cursor:pointer;text-align:left}
+.eml-campo:hover{border-color:var(--fraco);background:var(--hover)}
+.eml-campo code{font-size:11.5px;color:var(--tinta)}
+.eml-campo span{color:var(--suave)}
+.eml-regras{font-size:12.5px;line-height:1.55}
+.eml-regras ul{margin:6px 0 0;padding-left:18px}
+.eml-regras li{margin:4px 0}
+.eml-regras code,.eml-ajuda code{padding:0 4px;border-radius:4px;background:var(--hover);overflow-wrap:anywhere}
+.eml-campo{max-width:100%}
+.eml-campo code,.eml-campo span{overflow-wrap:anywhere}
+@media (max-width:1000px){.eml-grade,.eml-ajuda{grid-template-columns:minmax(0,1fr)}.eml-previa{position:static}}

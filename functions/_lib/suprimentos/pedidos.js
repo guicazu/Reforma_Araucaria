@@ -10,8 +10,9 @@ import {
 import { atendimentoDosItens } from './solicitacoes.js';
 import { condicaoPorId } from './cadastros.js';
 import { listarObras } from './orcado.js';
-import { pdfPedido, base64, moeda, dataBr } from './pdf.js';
-import { enviarEmail } from '../email.js';
+import { pdfPedido, base64, moeda } from './pdf.js';
+import { enviarEmail, mensagemFalha } from '../email.js';
+import { montarEmail, dadosDoEnvio } from '../../../js/email-modelos.js';
 
 const TOLERANCIA = 1e-6;
 const ATIVOS = ['autorizado', 'parcial'];
@@ -366,19 +367,15 @@ export async function enviarPedido({ env, ctx, params, corpo, url }) {
   const dados = await dadosDoPdf(env, p, url.origin);
   const destino = texto(corpo.email, 'email', { max: 200 }) || dados.fornecedor.email;
   if (!destino) falha(400, 'sem_email', 'O fornecedor não tem e-mail cadastrado. Informe um e-mail ou copie o link.');
-  const empresa = dados.empresa.nome;
-  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#27272a">
-    <h2 style="font-size:18px">Pedido de compra nº ${p.numero}</h2>
-    <p>Olá, <b>${esc(dados.fornecedor.nome)}</b>. Segue o pedido de compra da ${esc(empresa)} (PDF em anexo).</p>
-    <p>Valor total: <b>${moeda(p.valorTotal)}</b><br>Entrega até: <b>${dataBr(p.dataEntrega)}</b>${p.localEntrega ? '<br>Local: ' + esc(p.localEntrega) : ''}<br>
-    Pagamento: ${esc(p.condicaoPagamento || 'a combinar')}</p>
-    <p style="margin:22px 0"><a href="${dados.link}" style="background:#18181b;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;font-weight:bold">Confirmar recebimento do pedido</a></p>
-    <p style="color:#71717a;font-size:12px">Informe o número do pedido na nota fiscal.</p></div>`;
+  const prm = await parametros(env);
+  const usuario = { email: ctx.email, nome: ctx.nome };
+  const m = montarEmail('pedido', prm, dadosDoEnvio('pedido', { usuario, empresa: dados.empresa, fornecedor: dados.fornecedor, obra: dados.obra,
+    pedido: p, itens: dados.itens, link: dados.link }));
   try {
-    await enviarEmail({ env, destinatario: destino, assunto: `Pedido de compra nº ${p.numero} — ${empresa}`, html,
+    await enviarEmail({ env, prm, usuario, nomeRemetente: m.nomeRemetente, destinatario: destino, assunto: m.assunto, html: m.html, texto: m.texto,
       anexoPdfBase64: base64(pdfPedido(dados)), nomeArquivo: `Pedido-${p.numero}.pdf` });
   } catch (e) {
-    falha(502, 'falha_email', 'Não foi possível enviar o e-mail (' + String(e.message).replace(/\.$/, '') + '). Use "Copiar link" para mandar por WhatsApp ou outro meio.', { link: dados.link });
+    falha(502, 'falha_email', mensagemFalha(e) + ' Use "Copiar link" para mandar por WhatsApp ou outro meio.', { link: dados.link });
   }
   const ts = agora();
   await env.DB.batch([
@@ -400,4 +397,3 @@ export async function registrarEnvioManual({ env, ctx, params, corpo }) {
   return json({ ok: true });
 }
 
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
